@@ -1,11 +1,10 @@
 import React from "react";
-import "./Hero.css";
-import  nen  from "../assets/nen.png";
 
+import "../../layout/citizen/Hero.css";
 export default function Hero() {
   return (
     <section className="hero">
-       
+      
         <div className="hero-text">
             <h1>Cầu cứu khẩn cấp</h1>
             <p className="subtitle">

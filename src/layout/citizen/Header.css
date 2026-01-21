@@ -32,14 +32,43 @@ span{
     color: white;
 }
 
+nav {
+  display: flex;
+  align-items: center;
+}
+
 nav a {
   margin-left: 24px;
-  color: rgb(0, 0, 0);
+  color: rgb(255, 255, 255);
   text-decoration: none;
   font-weight: 500;
   font-size: 20px;
 }
 
 nav a:hover {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(34, 25, 25, 0.9);
+}
+
+nav img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.admin{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 24px;  
+}
+
+.admin a{
+    color: rgb(223, 26, 26);
+    font-weight: bold;
+    font-size: 25px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    background-color: rgb(255, 255, 255);
+
 }

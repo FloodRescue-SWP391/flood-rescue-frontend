@@ -1,28 +1,32 @@
-import "./Profile.css";
-import logo from '../assets/logo.png'
+import '../layout/rescueTeam/Profile.css';
+import "../layout/citizen/Header.css";
+import logo from '../assets/logo.png';
+import { Link } from 'react-router-dom';
 
 export default function Profile() {
   return (
     <div className="profile-page">
-      <header className="profile-nav">
+      <header>
         <div className="logo">
           <img src={logo} alt="Rescue Now Logo" />
-          <span>
-            RESCUE.<div className="a">Now</div>
-          </span>
+          <span>RESCUE.<div className='a'>Now</div></span>
         </div>
-        <div className="avatar">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
-          </svg>
-        </div>
+
+        <nav>
+          <Link to="">Introduce</Link>
+          <Link to="">Contact</Link>
+          <div className='admin'>
+            <img src="https://www.dichvuinnhanh.com/wp-content/uploads/2024/12/co-be-doi-mu-tho-dang-yeu-301e026a.webp" alt="" />
+            <Link to="">Admin</Link>
+          </div>
+        </nav>
       </header>
 
       <section className="profile-content">
         {/* Profile Avatar */}
         <div className="profile-avatar">
         {/* Avatar can be changed when have api */}
-          <img src="https://i.pravatar.cc/150?img=5" alt="User Avatar" />
+          <img src="https://wp-cms-media.s3.ap-east-1.amazonaws.com/lay_anh_dai_dien_facebook_dep_5_d472871f1d.jpg" alt="User Avatar" />
         </div>
 
         {/* User Info */}
@@ -32,7 +36,7 @@ export default function Profile() {
           <span className="role-text">Manager</span>
           <span className="divider">|</span>
           <span className="status-dot"></span>
-          <span className="join-text">Joined:</span>
+          <span className="join-text">Joined: 16/05/2025</span>
         </div>
 
         {/* Quick Stats */}
