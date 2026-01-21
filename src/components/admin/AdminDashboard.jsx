@@ -4,6 +4,8 @@ import "../../layout/admin/AdminDashboard.css";
 import logo from '../../assets/logo.png';
 import { Outlet, Link } from 'react-router-dom';
 
+
+
 const AdminDashboard = () => {
   return (
     <div >
@@ -34,7 +36,7 @@ const AdminDashboard = () => {
           </ul>
           <h3>Settings</h3>
           <ul>
-            <li><Link to="/admin/profile">👤 Profile</Link></li>
+            <li><Link to="/rescueTeam/Profile">👤 Profile</Link></li>
             <li><Link to="/admin/settings">🚪 Logout</Link></li>
           </ul>
         </aside>

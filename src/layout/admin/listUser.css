@@ -26,6 +26,12 @@
   font-size: 14px;
 }
 
+.controls button{
+  width: 200px;
+  margin-top: -1px;
+}
+
+
 .user-list {
   display: flex; 
   gap: 15px;

@@ -1,44 +1,36 @@
-import React from "react";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-
-// Dựa vào ảnh image_17a61d.png:
-// Cả 2 file này đều nằm trong thư mục src/components/admin/
-import AdminLayout from "./components/admin/AdminDashboard"; // Dashboard đóng vai trò Layout
-import CreateUser from "./components/admin/createUser";
-import ListUser from "./components/admin/listUser";
+// Trang đăng nhập
 import Dashboard from "./components/admin/Dashboard";
 
-import Header from "./components/Header";
-import Hero from "./components/Hero";
+// Layout admin và các trang con
+import AdminDashboard from "./components/admin/AdminDashboard";
+import CreateUser from "./components/admin/createUser";
+import ListUser from "./components/admin/listUser";
+
+// Trang profile
 import Profile from "./components/Profile";
 
 function App() {
   return (
-   
     <BrowserRouter>
       <Routes>
-        {/* Tự động chuyển hướng về trang tạo user */}
-        <Route path="/" element={<Navigate to="/admin/create-user" />} />
-        
-        <Route path="/admin" element={<AdminLayout />}>
+
+        {/* Trang mặc định là đăng nhập */}
+        <Route path="/" element={<Dashboard />} />
+
+        {/* Layout admin sau khi đăng nhập */}
+        <Route path="/admin" element={<AdminDashboard />}>
+          <Route index element={<CreateUser />} /> {/* Trang mặc định khi vào /admin */}
           <Route path="create-user" element={<CreateUser />} />
           <Route path="list-user" element={<ListUser />} />
         </Route>
 
-        {/*Citizen routes*/}
-
-        <Route path="/" element={
-          <>
-          <Header/>
-          <Hero/>
-          </>          
-        }/>
+        {/* Trang profile */}
+        <Route path="/rescueTeam/Profile" element={<Profile />} />
 
       </Routes>
-      <Dashboard/>
     </BrowserRouter>
-
   );
 }
 
