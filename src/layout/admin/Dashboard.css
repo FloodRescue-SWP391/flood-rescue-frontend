@@ -1,0 +1,108 @@
+/* LOGIN CONTAINER */
+.login-container {
+  display: flex;
+  justify-content: center;
+    align-items: center;
+    height: 90.6vh;
+  background: #FFEBEB;
+}
+h2 {
+  text-align: center;
+  color: #ff9d34;
+  margin-bottom: 40px;
+  font-size: 36px;
+  font-family: Arial, Helvetica, sans-serif;
+  padding: 10px;
+  border-bottom: 2px solid rgba(25, 22, 21, 0.7);
+}
+.a2 {
+    width: 390px;
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    margin-top: -40px;
+}
+
+.login p {
+  margin-bottom: 6px;
+  font-weight: 700;
+    font-size: 18px;
+        margin-top: 10px;
+}
+
+.login input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #0077ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #005edb;
+}
+
+/* SWITCH */
+.switch {
+  margin-top: 40px;
+  font-size: 14px;
+    text-align: center;
+}
+
+.contact-admin {
+  color: #0077ff;
+  cursor: pointer;
+  margin-left: 120px;
+  margin-top: 10px;
+    font-weight: 600;
+ 
+}
+
+.contact-admin:hover {
+  text-decoration: underline;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 14px 18px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  z-index: 9999;
+  animation: slideIn 0.3s ease;
+  margin-top: 56px;
+}
+
+.toast.success {
+  background-color: #28a745;
+}
+
+.toast.info {
+  background-color: #17a2b8;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -1,0 +1,140 @@
+.create-user-container {
+  background: #FFEBEB;
+  padding: 30px;
+  height: 100%;
+}
+
+.create-user-container h2 {
+  margin-bottom: 20px;
+  font-size: 40px;
+  text-align: center;
+  color: #ff9d34;
+  padding: 10px;
+  border-bottom: 2px solid rgba(25, 22, 21, 0.7);
+  font-family: Arial, Helvetica, sans-serif;
+  
+}
+
+/* mỗi dòng */
+.form-row1, .form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* label bên trái */
+.form-row1 > label, .form-row > label {
+  width: 250px;          /* 🔥 cố định để thẳng hàng */
+  font-family: inherit;
+  font-style: italic;
+  font-size: 23px;
+  margin-left: 20px;
+}
+
+/* input bên phải */
+.form-row input {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  width: 560px;
+}
+
+.role-item  {
+  display: flex;
+  gap: 5px;
+  margin-right: 6px;
+  cursor: pointer;
+  padding: 10px 20px;
+  border: 1px solid #6c6565;
+  border-radius: 4px;
+  background-color: rgba(251, 200, 155, 0.137);
+  font-size: 20px;
+}
+
+.role-item:hover {
+  background-color: #f49c28;    
+}
+
+.role-item input {
+  cursor: pointer;
+}
+
+/* ROLE */
+.role-group {
+  display: flex;
+  gap: 15px;
+}
+
+.form{
+  margin-top: 50px;
+  margin-left: 98px;
+  width: 1000px;
+  box-shadow: #b7ab9c 0px 0px 10px 0px;
+  padding: 20px 40px 40px 40px;
+}
+
+/* button */
+.form-actions {
+  margin-left: 680px;   /* 👈 đẩy nút thẳng hàng input */
+  margin-top: 50px;
+}
+
+.form-actions button {
+  background: #ff986c;
+  color: rgb(0, 0, 0);
+  font-weight: bold;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.form-actions button:hover {
+  background: #e55b24;
+}
+
+.toast {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+
+  min-width: 220px;
+  max-width: 320px;
+
+  padding: 10px 14px;
+  border-radius: 8px;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  color: #ffffff;
+  z-index: 9999;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+}
+
+/* Thành công */
+.toast-success {
+  background-color: #22c55e;
+}
+
+/* Animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+

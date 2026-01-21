@@ -1,0 +1,120 @@
+.list-user-container {
+  padding: 20px;
+}
+
+.list-user-container h2 {
+ margin-bottom: 20px;
+  font-size: 40px;
+  text-align: center;
+  color: #ff9d34;
+  padding: 10px;
+  border-bottom: 2px solid rgba(25, 22, 21, 0.7);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  margin-top: 40px;
+}
+
+.controls input,
+.controls select,
+.controls button {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.user-list {
+  display: flex; 
+  gap: 15px;
+  
+}
+
+.user-card {
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  width: 400px;
+  line-height: 2em;
+}
+
+.user-card p {
+  margin: 5px 0;
+  font-size: 23px;
+}
+
+.actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.delete-btn {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.change-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  
+}
+
+.delete-btn:hover {
+  background-color: #cc0000;
+}
+
+.change-btn:hover {
+  background-color: #0056b3;
+}
+
+.reset-btn {
+  background-color: #ffc107;
+  color: #000;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+.reset-btn:hover {
+  background-color: #e0a800;
+}
+
+
+.toast {
+  position: fixed;
+  top: 95px;
+  right: 20px;
+  background-color: #28a745;
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  z-index: 9999;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react'
+import "../../layout/citizen/Header.css";
 import './Header.css'
 import logo from '../assets/logo.png'
 
@@ -18,4 +19,4 @@ const Header = () => {
   )
 }
 
-export default Header
+export default Header;
