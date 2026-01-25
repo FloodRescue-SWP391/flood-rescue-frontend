@@ -49,3 +49,8 @@
   flex: 1;
   background: #ffffff;
 }
+
+.admin-sidebar p:hover{
+  color: #ff4d4d;
+  cursor: pointer;
+}

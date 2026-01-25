@@ -31,6 +31,12 @@ const Dashboard = () => {
       setToast({ show: false, message: '', type: 'success' });
       navigate("/admin");
     }, 1500);
+
+    //Lưu Token
+    localStorage.setItem("token", "fake-token");
+    localStorage.setItem("role", "RESCUE_TEAM");
+    
+
   };
 
   return (
