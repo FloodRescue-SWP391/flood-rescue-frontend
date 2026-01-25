@@ -2,11 +2,17 @@ import React from 'react';
 import "../../layout/citizen/Header.css";
 import "../../layout/admin/AdminDashboard.css";
 import logo from '../../assets/logo.png';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 
 
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/");
+  };
   return (
     <div >
       <header>
@@ -37,7 +43,12 @@ const AdminDashboard = () => {
           <h3>Settings</h3>
           <ul>
             <li><Link to="/rescueTeam/Profile">👤 Profile</Link></li>
-            <li><Link to="/admin/settings">🚪 Logout</Link></li>
+            <li>
+              <p className="logout-btn" onClick={handleLogout}>
+                🚪 Logout
+              </p>
+            </li>
+
           </ul>
         </aside>
 
