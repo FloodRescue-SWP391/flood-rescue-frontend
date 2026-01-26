@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import '../../layout/admin/listUser.css';
 
-const dummyUsers = [
+export const dummyUsers = [
   {
     fullName: 'Đặng Hoàng Trúc Vy',
     username: 'Vy Dang',
     phone: '0965782358',
-    role: 'Manager',
+    role: 'Administrator',
     createdAt: '15/01/2026',
     password: '0965782358',
   },
@@ -25,6 +25,14 @@ const dummyUsers = [
     role: 'Rescue Team',
     createdAt: '15/01/2026',
     password: '0965782358',
+  },
+  {
+    fullName: 'Trương Trần Anh Minh',
+    username: 'Minh Trương',
+    phone: '0789543210',
+    role: 'Manager',
+    createdAt: '25/01/2026',
+    password: '30062005',
   },
 ];
 
@@ -102,6 +110,7 @@ const handleResetPassword = (username) => {
         />
         <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
           <option value="All">Tất cả chức vụ</option>
+          <option value="Administrator">Administrator</option>
           <option value="Manager">Manager</option>
           <option value="Rescue Coordinator">Rescue Coordinator</option>
           <option value="Rescue Team">Rescue Team</option>

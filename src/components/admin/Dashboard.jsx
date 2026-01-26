@@ -4,28 +4,59 @@ import '../../layout/admin/Dashboard.css';
 import logo from '../../assets/logo.png';
 import "../../layout/citizen/Header.css";
 import { Link } from 'react-router-dom';
+import { dummyUsers } from './listUser';
 
 const Dashboard = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const navigate = useNavigate();
+  const goByRole = (role) => {
+    switch (role) {
+      case "Administrator":
+        return "/admin";
+      case "Manager":
+        return "/manager";
+      default:
+        return "/unauthorized";
+    }
+  };
 
-  const handleLogin = () => {
+  const showToast = (message, type = "info", duration = 1500) => {
+    
+    setToast({ show: false, message: "", type });
+
+    setTimeout(() => {
+      setToast({ show: true, message, type });
+    }, 10);
+
+   
+    setTimeout(() => {
+      setToast({ show: false, message: "", type });
+    }, duration);
+  };
+
+  const handleLogin = (() => {
     if (!username || !password) {
-      setToast({
-        show: true,
-        message: 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu',
-        type: 'info',
-      });
+      showToast("Vui lòng điền đầy đủ thông tin", "info");
+      return;
+    }
+    const foundUser = dummyUsers.find(
+      (user) =>
+        user.username === username.trim() &&
+        user.password === password.trim()
+    );
+
+    if (!foundUser) {
+      showToast("Tên đăng nhập hoặc mật khẩu không đúng", "error");
       return;
     }
 
-    setToast({
-      show: true,
-      message: 'Đăng nhập thành công!',
-      type: 'success',
-    });
+    localStorage.setItem("isAuth", "true");
+    localStorage.setItem("role", foundUser.role);
+
+
+    showToast("Đăng nhập thành công", "success");
 
     setTimeout(() => {
       setToast({ show: false, message: '', type: 'success' });
@@ -37,6 +68,14 @@ const Dashboard = () => {
     localStorage.setItem("role", "RESCUE_TEAM");
     
 
+      if (foundUser.role === "Administrator") {
+        navigate("/admin", { replace: true });
+      } else if (foundUser.role === "Manager") {
+        navigate("/manager", { replace: true });
+      } else {
+        navigate("/unauthorized", { replace: true });
+      }
+    }, 850);
   };
 
   return (
