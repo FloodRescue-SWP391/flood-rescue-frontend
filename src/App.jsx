@@ -31,7 +31,6 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-<<<<<<< HEAD
         {/* ================= PUBLIC / CITIZEN ================= */}
         <Route path="/" element={<RequestRescue />} />
         <Route path="/request-status" element={<RequestStatus />} />
@@ -63,7 +62,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-=======
         {/* Trang mặc định là đăng nhập */}
         <Route path="/login" element={<Dashboard />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -87,7 +85,6 @@ function App() {
             <Route path="warehouse" element={<div>Warehouse (đang làm)</div>} />
           </Route>
         </Route>
->>>>>>> feature/manager-page
 
 
         {/* fallback */}
