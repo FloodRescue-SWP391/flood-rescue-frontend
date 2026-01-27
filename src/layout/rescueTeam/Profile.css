@@ -95,14 +95,9 @@
   flex-direction: column;
   align-items: center;
   padding: 1px 12px;
-  border: 1px solid #333;
+  border: 0.5px solid #aeacac;
   border-radius: 8px;
-  background-color: #F8F8F8;
-}
-
-.stat-box.worktime-box {
-  background-color: #E5F4FF;
-  width: 180px;
+  
 }
 
 .stat-number {
