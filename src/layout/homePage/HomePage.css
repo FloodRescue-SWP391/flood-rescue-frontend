@@ -1,0 +1,96 @@
+.c1{
+  background-color: antiquewhite;
+}
+/* ================= MENU ROLE ================= */
+.menu {
+  display: flex;
+  justify-content: center;
+  margin-top: 60px;
+}
+
+.menu ul {
+  display: flex;
+  flex-direction: column;   /* xếp dọc */
+  gap: 14px;
+  padding: 0;
+}
+
+.menu ul li {
+  list-style: none;
+  background: white;
+  width: 420px;
+  font-size: 24px;
+  font-weight: 800;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease;
+}
+
+/* LINK CHIẾM FULL Ô */
+.role-list li a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 16px;
+  text-decoration: none;
+  color: #333;
+  transition: 0.3s;
+}
+
+/* Hover chung */
+.role-list li:hover {
+  transform: translateY(-3px);
+}
+
+.role-list li:hover a {
+  color: white;
+}
+
+/* Citizen */
+.role-list li:nth-child(1):hover {
+  background: #f44336;
+}
+
+/* Rescue Coordinator */
+.role-list li:nth-child(2):hover {
+  background: #9c27b0;
+}
+
+/* Rescue Team */
+.role-list li:nth-child(3):hover {
+  background: #ff9800;
+}
+
+/* Manager */
+.role-list li:nth-child(4):hover {
+  background: #2196f3;
+}
+
+/* Admin */
+.role-list li:nth-child(5):hover {
+  background: #4caf50;
+}
+
+/* ================= NAV BUTTON ================= */
+.nav-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  margin-left: 20px;
+  cursor: pointer;
+  color: white;
+}
+
+.nav-btn:hover {
+  text-decoration: underline;
+}
+
+.footer1{
+  margin-top: 118px;
+    background-color: rgb(138, 112, 80);
+    padding: 30px;
+    text-align: center;
+    font-size: 20px;
+    color: white;
+}

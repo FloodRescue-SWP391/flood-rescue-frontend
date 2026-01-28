@@ -1,126 +1,140 @@
-.list-user-container {
-  padding: 20px;
+/* ===== RESET ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Times New Roman', Times, serif;
 }
 
-.list-user-container h2 {
- margin-bottom: 20px;
-  font-size: 40px;
-  text-align: center;
-  color: #ff9d34;
+/* ===== LAYOUT ===== */
+.admin-page {
+  display: flex;
+  min-height: 100vh;
+ 
+}
+
+/* ===== SIDEBAR ===== */
+.admin-sidebar {
+  width: 260px;
+  background: #0f172a;
+  color: #fff;
+  padding: 25px 20px;
+}
+
+.admin-sidebar h3 {
+  font-size: 14px;
+  margin: 20px 0 10px;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+.admin-sidebar a {
+  display: block;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  color: #e5e7eb;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.admin-sidebar a:hover {
+  background: #1e293b;
+}
+
+.admin-sidebar a.active {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+.logout-btn {
+  width: 100%;
+  margin-top: 20px;
   padding: 10px;
-  border-bottom: 2px solid rgba(25, 22, 21, 0.7);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #dc2626;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
+.logout-btn:hover {
+  background: #b91c1c;
+}
+
+/* ===== CONTENT ===== */
+.admin-content {
+  flex: 1;
+  padding: 30px 40px;
+}
+
+.admin-content h2 {
+  margin-bottom: 20px;
+}
+
+/* ===== SEARCH + FILTER ===== */
 .controls {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
-  margin-top: 40px;
 }
 
 .controls input,
-.controls select,
-.controls button {
-  padding: 8px 12px;
-  font-size: 14px;
+.controls select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  width: 300px;
+  font-size: 15px;
 }
 
-.controls button{
-  width: 200px;
-  margin-top: -1px;
-}
-
-
+/* ===== USER LIST ===== */
 .user-list {
-  display: flex; 
-  gap: 15px;
-  
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
 }
 
 .user-card {
-  border: 1px solid #ccc;
-  padding: 15px;
-  border-radius: 6px;
-  background-color: #f9f9f9;
-  width: 400px;
-  line-height: 2em;
+  background: white;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+
 }
 
 .user-card p {
-  margin: 5px 0;
-  font-size: 23px;
+  margin-bottom: 6px;
+  font-size: 18px;
 }
 
+/* ===== ACTIONS ===== */
 .actions {
-  margin-top: 10px;
   display: flex;
   gap: 10px;
+  margin-top: 12px;
 }
 
 .delete-btn {
-  background-color: #ff4d4d;
-  color: white;
+  flex: 1;
+  padding: 8px;
+  background: #ef4444;
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.change-btn {
-  background-color: #007bff;
   color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  
-}
-
-.delete-btn:hover {
-  background-color: #cc0000;
-}
-
-.change-btn:hover {
-  background-color: #0056b3;
 }
 
 .reset-btn {
-  background-color: #ffc107;
-  color: #000;
+  flex: 1;
+  padding: 8px;
+  background: #f59e0b;
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
+  color: white;
+  border-radius: 6px;
   cursor: pointer;
 }
 
+/* ===== TOAST ===== */
 
-.reset-btn:hover {
-  background-color: #e0a800;
-}
-
-
-.toast {
-  position: fixed;
-  top: 95px;
-  right: 20px;
-  background-color: #28a745;
-  color: #fff;
-  padding: 14px 20px;
-  border-radius: 6px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  font-size: 14px;
-  z-index: 9999;
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}

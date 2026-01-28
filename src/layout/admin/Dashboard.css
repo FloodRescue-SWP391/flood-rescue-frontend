@@ -2,18 +2,19 @@
 .login-container {
   display: flex;
   justify-content: center;
-    align-items: center;
-    height: 90.6vh;
-  background: #FFEBEB;
+  align-items: center;
+  height: 90.6vh;
+  background: antiquewhite;
 }
+
 h2 {
   text-align: center;
   color: #ff9d34;
   margin-bottom: 40px;
   font-size: 36px;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Times New Roman', Times, serif;
   padding: 10px;
-  border-bottom: 2px solid rgba(25, 22, 21, 0.7);
+  border-bottom: 1px solid rgba(25, 22, 21, 0.4);
 }
 .a2 {
     width: 390px;
@@ -56,53 +57,88 @@ button:hover {
 
 /* SWITCH */
 .switch {
-  margin-top: 40px;
+  margin-top: 90px;
   font-size: 14px;
-    text-align: center;
+  text-align: center;
 }
 
-.contact-admin {
-  color: #0077ff;
+.login-container .contact-admin {
+  color: #096fdb;
   cursor: pointer;
-  margin-left: 120px;
-  margin-top: 10px;
-    font-weight: 600;
- 
+  margin-top: 50px;
+  font-weight: 600;
+  font-size: 18px;
+  font-family: 'Times New Roman', Times, serif;
 }
 
 .contact-admin:hover {
   text-decoration: underline;
 }
 
-/* TOAST */
-.toast {
+/* ===== LOGIN TOAST (RIÊNG) ===== */
+.login-toast {
   position: fixed;
-  top: 20px;
+  top: 80px;
   right: 20px;
+
+  min-width: 250px;
+  max-width: 340px;
+  height: auto;
+
   padding: 14px 18px;
-  border-radius: 6px;
+  border-radius: 10px;
+
   color: #fff;
   font-size: 14px;
+  font-weight: 600;
+
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
   z-index: 9999;
-  animation: slideIn 0.3s ease;
-  margin-top: 56px;
+
+  display: inline-block;
+  animation: toastFade 0.25s ease-out;
 }
 
-.toast.success {
-  background-color: #28a745;
+.login-toast.success {
+  background-color: #22c55e;
 }
 
-.toast.info {
-  background-color: #17a2b8;
+.login-toast.info {
+  background-color: #0ea5e9;
 }
 
-@keyframes slideIn {
+.login-toast.error {
+  background-color: #ef4444;
+}
+
+@keyframes toastFade {
   from {
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
+
+
+.back-btn1 {
+  position: fixed;            /* ⭐ QUAN TRỌNG */
+  top: 80px;                  /* dưới header một xíu */
+  right:  60px;                 /* sát mé trái */
+  z-index: 1000;
+
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  transition: all 0.2s ease;
+}
+
