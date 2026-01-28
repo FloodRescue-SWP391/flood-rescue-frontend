@@ -17,7 +17,6 @@ import Completed from "./components/citizen/status/Completed";
 // PROFILE
 // layout and component of MANAGER
 import ManagerDashBoard from "./components/manager/ManagerDashBoard";
-import ManagerReport from "./components/manager/ManagerReport";
 // Trang profile
 import Profile from "./components/Profile";
 // Protected Route
@@ -79,10 +78,9 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["Manager"]} />}>
           <Route path="/manager/*" element={<ManagerDashBoard />}>
             <Route index element={<div />} />
-            <Route path="report" element={<ManagerReport />} />
-            <Route path="warehouse" element={<div>Warehouse (đang làm)</div>} />
           </Route>
         </Route>
+
 
 
         {/* fallback */}

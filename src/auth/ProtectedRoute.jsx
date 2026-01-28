@@ -5,7 +5,7 @@ export default function ProtectedRoute({ allowedRoles }) {
   const role = localStorage.getItem("role");
 
   // Chưa đăng nhập
-  if (!isAuth) {
+  if (!isAuth) { 
     return <Navigate to="/login" replace />;
   }
 
