@@ -1,5 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+// Home
+import HomePage from "./homePage/HomePage";
+import Contact from "./homePage/Contact";
+import Introduce from "./homePage/Introduce";
+
 // LOGIN
 import Dashboard from "./components/admin/Dashboard";
 
@@ -14,36 +19,40 @@ import RequestStatus from "./components/citizen/RequestStatus";
 import OnTheWay from "./components/citizen/status/OnTheWay";
 import Completed from "./components/citizen/status/Completed";
 
-// PROFILE
-// layout and component of MANAGER
+// MANAGER
 import ManagerDashBoard from "./components/manager/ManagerDashBoard";
 import ManagerReport from "./components/manager/ManagerReport";
-// Trang profile
-import Profile from "./components/Profile";
-//
-import ProtectedRoute from "./auth/ProtectedRoute";
 
-// PROTECTED
-import ProtectedRoute from "./routes/ProtectedRoute";
+// PROFILE
+import Profile from "./components/Profile";
+
+// AUTH
+import ProtectedRoute from "./auth/ProtectedRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* ================= PUBLIC / CITIZEN ================= */}
-        <Route path="/" element={<RequestRescue />} />
-        <Route path="/request-status" element={<RequestStatus />} />
-        <Route path="/On_The_Way" element={<OnTheWay />} />
-        <Route path="/Completed" element={<Completed />} />
+        {/* ================= HOME ================= */}
+        <Route path="/homepage" element={<HomePage />} />
+        <Route path="/introduce" element={<Introduce />} />
+        <Route path="/contact" element={<Contact />} />
+
+        {/* ================= CITIZEN (PUBLIC) ================= */}
+        <Route path="/citizen/request" element={<RequestRescue />} />
+        <Route path="/citizen/status" element={<RequestStatus />} />
+        <Route path="/citizen/on-the-way" element={<OnTheWay />} />
+        <Route path="/citizen/completed" element={<Completed />} />
+
         {/* ================= LOGIN ================= */}
         <Route path="/login" element={<Dashboard />} />
 
-        {/* ================= ADMIN (LOGIN REQUIRED) ================= */}
+        {/* ================= ADMIN ================= */}
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Administrator"]}>
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -53,42 +62,32 @@ function App() {
           <Route path="list-user" element={<ListUser />} />
         </Route>
 
-        {/* ================= RESCUE TEAM PROFILE ================= */}
+        {/* ================= MANAGER ================= */}
         <Route
-          path="/rescueTeam/profile"
+          path="/manager"
+          element={
+            <ProtectedRoute allowedRoles={["Manager"]}>
+              <ManagerDashBoard />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="report" element={<ManagerReport />} />
+        </Route>
+
+        {/* ================= PROFILE ================= */}
+        <Route
+          path="/profile"
           element={
             <ProtectedRoute>
               <Profile />
             </ProtectedRoute>
           }
         />
-        {/* Trang mặc định là đăng nhập */}
-        <Route path="/login" element={<Dashboard />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/unauthorized" element={<h1>Unauthorized Access</h1>} />
 
+        {/* ================= DEFAULT ================= */}
+        <Route path="/" element={<Navigate to="/homepage" replace />} />
+        <Route path="/unauthorized" element={<h1>Unauthorized</h1>} />
 
-        {/* Layout admin sau khi đăng nhập */}
-        <Route element={<ProtectedRoute allowedRoles={["Administrator"]} />}>
-          <Route path="/admin" element={<AdminDashboard />}>
-            <Route index element={<CreateUser />} /> {/* Trang mặc định khi vào /admin */}
-            <Route path="create-user" element={<CreateUser />} />
-            <Route path="list-user" element={<ListUser />} />
-          </Route>
-        </Route>
-
-        // Layout manager sau khi đăng nhập
-        <Route element={<ProtectedRoute allowedRoles={["Manager"]} />}>
-          <Route path="/manager/*" element={<ManagerDashBoard />}>
-            <Route index element={<div />} />
-            <Route path="report" element={<ManagerReport />} />
-            <Route path="warehouse" element={<div>Warehouse (đang làm)</div>} />
-          </Route>
-        </Route>
-
-
-        {/* fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
