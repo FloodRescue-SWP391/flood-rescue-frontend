@@ -1,7 +1,8 @@
 import React from 'react'
 import "../../layout/citizen/Header.css";
-import './Header.css'
-import logo from '../assets/logo.png'
+
+import logo from '../../assets/logo.png'
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   return (
@@ -12,8 +13,8 @@ const Header = () => {
         </div>
 
         <nav>
-            <a href="#">Introduce</a>
-            <a href="#">Contact</a>
+            <Link className='nav-btn' to="/introduce">Giới thiệu</Link>
+            <Link className='nav-btn' to="/contact">Liên hệ</Link>
         </nav>
     </header>
   )

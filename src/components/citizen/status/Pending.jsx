@@ -4,6 +4,7 @@ import nen from '../../../assets/nen.png'
 import "../../../layout/citizen/Header.css";
 
 import "../../../layout/citizen/Pending.css";
+import { Link } from 'react-router-dom';
 
 const Pending = () => {
   return (
@@ -18,6 +19,8 @@ const Pending = () => {
               <nav>
                   <a href="#">Introduce</a>
                   <a href="#">Contact</a>
+                   <Link className='nav-btn' to="/introduce">Giới thiệu</Link>
+                  <Link className='nav-btn' to="/contact">Liên hệ</Link>
               </nav>
       </header>
       <div className='background'>
@@ -26,6 +29,8 @@ const Pending = () => {
          <div className='noi-dung'> 
           <h1>Yêu cầu đang được xử lý.....</h1>
           <p>Vui lòng đợi vài giây...</p>
+         <div className='noi-dung5'> 
+          <h1>Yêu cầu đang được xử lý.....</h1>
         </div>
     </div>
   )

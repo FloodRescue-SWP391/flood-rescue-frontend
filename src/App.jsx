@@ -1,5 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+// Home
+import HomePage from "./homePage/HomePage";
+import Contact from "./homePage/Contact";
+import Introduce from "./homePage/Introduce";
+
 // LOGIN
 import Dashboard from "./components/admin/Dashboard";
 
@@ -20,6 +25,14 @@ import ManagerDashBoard from "./components/manager/ManagerDashBoard";
 // Trang profile
 import Profile from "./components/Profile";
 // Protected Route
+// MANAGER
+import ManagerDashBoard from "./components/manager/ManagerDashBoard";
+import ManagerReport from "./components/manager/ManagerReport";
+
+// PROFILE
+import Profile from "./components/Profile";
+
+// AUTH
 import ProtectedRoute from "./auth/ProtectedRoute";
 
 
@@ -63,15 +76,32 @@ function App() {
         <Route path="/login" element={<Dashboard />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/unauthorized" element={<h1>Unauthorized Access</h1>} />
+        {/* ================= HOME ================= */}
+        <Route path="/homepage" element={<HomePage />} />
+        <Route path="/introduce" element={<Introduce />} />
+        <Route path="/contact" element={<Contact />} />
 
+        {/* ================= CITIZEN (PUBLIC) ================= */}
+        <Route path="/citizen/request" element={<RequestRescue />} />
+        <Route path="/citizen/status" element={<RequestStatus />} />
+        <Route path="/citizen/on-the-way" element={<OnTheWay />} />
+        <Route path="/citizen/completed" element={<Completed />} />
 
-        {/* Layout admin sau khi đăng nhập */}
-        <Route element={<ProtectedRoute allowedRoles={["Administrator"]} />}>
-          <Route path="/admin" element={<AdminDashboard />}>
-            <Route index element={<CreateUser />} /> {/* Trang mặc định khi vào /admin */}
-            <Route path="create-user" element={<CreateUser />} />
-            <Route path="list-user" element={<ListUser />} />
-          </Route>
+        {/* ================= LOGIN ================= */}
+        <Route path="/login" element={<Dashboard />} />
+
+        {/* ================= ADMIN ================= */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["Administrator"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<CreateUser />} />
+          <Route path="create-user" element={<CreateUser />} />
+          <Route path="list-user" element={<ListUser />} />
         </Route>
 
         // Layout manager sau khi đăng nhập
@@ -79,8 +109,31 @@ function App() {
           <Route path="/manager/*" element={<ManagerDashBoard />}>
             <Route index element={<div />} />
           </Route>
+        {/* ================= MANAGER ================= */}
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute allowedRoles={["Manager"]}>
+              <ManagerDashBoard />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="report" element={<ManagerReport />} />
         </Route>
 
+        {/* ================= PROFILE ================= */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================= DEFAULT ================= */}
+        <Route path="/" element={<Navigate to="/homepage" replace />} />
+        <Route path="/unauthorized" element={<h1>Unauthorized</h1>} />
 
 
         {/* fallback */}

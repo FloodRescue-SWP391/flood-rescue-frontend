@@ -1,5 +1,6 @@
 .FE{
     background-color: #FFEBEB;
+    background-color: antiquewhite;
     height: 120vh;
 }
 /* ===== CONTAINER ===== */
@@ -9,6 +10,7 @@
   background: #fff;
   border-radius: 10px;
   padding: 30px 40px;
+  padding: 27px 40px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   height: 720px;
 }
@@ -16,6 +18,8 @@
 .request-container h2 {
   margin-bottom: 25px;
   font-size: 26px;
+  margin-bottom: 22px;
+  font-size: 36px;
   font-weight: 700;
 }
 
@@ -103,6 +107,7 @@
 
 .submit-btn {
   background: #eee;
+  background: #ff6a00;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -113,6 +118,7 @@
 
 .cancel-btn {
   background: #eee;
+  background: #5d5252;
   border: none;
   padding: 10px 30px;
   border-radius: 6px;
@@ -124,6 +130,11 @@
 .submit-btn:hover,
 .cancel-btn:hover {
   background: #616161;
+}
+
+.agree{
+  font-size: 15px;
+  color: red;
 }
 
 /* ===== RESPONSIVE ===== */
