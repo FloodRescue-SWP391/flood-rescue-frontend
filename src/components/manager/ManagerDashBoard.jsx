@@ -3,6 +3,8 @@ import logo from "../../assets/logo.png";
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
+import beai from "../../assets/user1.jpg"
+import "../../layout/citizen/Header.css"
 import {
   BarChart,
   Bar,
@@ -200,22 +202,28 @@ export default function ManagerDashboard() {
   return (
     <div className="manager-root">
       {/* HEADER */}
-      <header>
-        <div className="logo">
-          <img src={logo} alt="Rescue Now Logo" />
-          <span>
-            RESCUE.<div className="a">Now</div>
-          </span>
-        </div>
-
-        <nav>
-          <Link to="">Introduce</Link>
-          <Link to="">Contact</Link>
-          <div className="admin">
-            <Link to="">Manager</Link>
-          </div>
-        </nav>
-      </header>
+     <header>
+             <div className="logo">
+               <img src={logo} alt="Rescue Now Logo" />
+               <span>
+                 RESCUE.<div className="a">Now</div>
+               </span>
+             </div>
+             
+             <div className="header-right">
+               <nav>
+                 <Link className="nav-btn" to="/introduce">
+                   Introduce
+                 </Link>
+                 <Link className="nav-btn" to="/contact">
+                   Contact
+                 </Link>
+               </nav>
+     
+               <span className="admin-name">Manager</span>
+               <img src={beai} alt="Manager" className="admin-avatar" />
+             </div>
+           </header>
 
       {/* MAIN */}
       <main className="manager-content">

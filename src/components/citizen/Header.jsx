@@ -13,8 +13,8 @@ const Header = () => {
         </div>
 
         <nav>
-            <Link className='nav-btn' to="/introduce">Giới thiệu</Link>
-            <Link className='nav-btn' to="/contact">Liên hệ</Link>
+            <Link className='nav-btn' to="/introduce">Introduct</Link>
+            <Link className='nav-btn' to="/contact">Contact</Link>
         </nav>
     </header>
   )
