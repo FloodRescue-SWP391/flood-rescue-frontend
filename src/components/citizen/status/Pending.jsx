@@ -17,6 +17,8 @@ const Pending = () => {
               </div>
       
               <nav>
+                  <a href="#">Introduce</a>
+                  <a href="#">Contact</a>
                    <Link className='nav-btn' to="/introduce">Giới thiệu</Link>
                   <Link className='nav-btn' to="/contact">Liên hệ</Link>
               </nav>
@@ -24,6 +26,9 @@ const Pending = () => {
       <div className='background'>
         <img src={nen} alt="" />
       </div>
+         <div className='noi-dung'> 
+          <h1>Yêu cầu đang được xử lý.....</h1>
+          <p>Vui lòng đợi vài giây...</p>
          <div className='noi-dung5'> 
           <h1>Yêu cầu đang được xử lý.....</h1>
         </div>

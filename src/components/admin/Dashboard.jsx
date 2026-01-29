@@ -1,9 +1,16 @@
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../layout/admin/Dashboard.css";
 import "../../layout/citizen/Header.css";
 import logo from "../../assets/logo.png";
 import { dummyUsers } from "./listUser";
+
+const Dashboard = () => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
 
 const Dashboard = () => {
@@ -26,12 +33,16 @@ const Dashboard = () => {
     }, duration);
   };
 
+
   // ===== Login handler =====
   const handleLogin = () => {
     if (!username || !password) {
       showToast("Vui lòng điền đầy đủ thông tin", "info");
       return;
     }
+
+    const foundUser = dummyUsers.find(
+      (user) => user.username === username.trim() && user.password === password.trim()
     
     const foundUser = dummyUsers.find(
       (u) => u.username === username.trim() && u.password === password.trim(),
@@ -47,6 +58,17 @@ const Dashboard = () => {
     localStorage.setItem("token", "fake-token");
     localStorage.setItem("role", foundUser.role);
 
+    showToast("Đăng nhập thành công", "success");
+
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+
+      if (foundUser.role === "Administrator") {
+        navigate("/admin", { replace: true });
+      } else if (foundUser.role === "Manager") {
+        navigate("/manager", { replace: true });
+      } else {
+        navigate("/unauthorized", { replace: true });
     showToast("✅ Đăng nhập thành công", "success");
 
     setTimeout(() => {
@@ -93,6 +115,7 @@ const Dashboard = () => {
         <div className="a2">
           <h2>Login Account</h2>
 
+          <div className="login">
           <div className="login"> 
             <p>Tên đăng nhập</p>
             <input
@@ -114,6 +137,17 @@ const Dashboard = () => {
           <button onClick={handleLogin}>Đăng nhập</button>
 
           <p className="switch">
+            Bạn chưa có tài khoản?{" "}
+            <span
+              className="contact-admin"
+              onClick={() =>
+                setToast({
+                  show: true,
+                  message: "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
+                  type: "info",
+                })
+              }
+            >
             Bạn chưa có tài khoản?
             <span
               className="contact-admin"
@@ -132,6 +166,7 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {toast.show && <div className={`toast ${toast.type}`}>{toast.message}</div>}
       {/* ===== Toast ===== */}
       {toast.show && (
   <div className={`login-toast ${toast.type}`}>

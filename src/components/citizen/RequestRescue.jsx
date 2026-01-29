@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link, useNavigate } from "react-router-dom";
 import "../../layout/citizen/RequestRescue.css";
 import logo from "../../assets/logo.png";
@@ -55,6 +56,7 @@ const RequestRescue = () => {
     setShowSuccess(true);
 
     setTimeout(() =>{
+      navigate("/request-status");
       navigate("/citizen/status");
     }, 3000);
 
@@ -63,6 +65,18 @@ const RequestRescue = () => {
   return (
     <div className="FE">
       {/* HEADER */}
+      <header>
+        <div className="logo">
+          <img src={logo} alt="Rescue Now Logo" />
+          <span>
+            RESCUE.<div className="a">Now</div>
+          </span>
+        </div>
+        <nav>
+          <a>Giới thiệu</a>
+          <a>Liên hệ</a>
+        </nav>
+      </header>
        <header>
         <div className="logo">
             <img src={logo} alt="Rescue Now Logo" />
@@ -100,6 +114,7 @@ const RequestRescue = () => {
                 checked={formData.allowPublicPhone}
                 onChange={handleChange}
               />
+              <span>
               <span className="agree">
                 Có đồng ý công khai số điện thoại cho người khác hay không?
               </span>
