@@ -5,7 +5,6 @@ import "../../layout/citizen/Header.css";
 import logo from "../../assets/logo.png";
 import { dummyUsers } from "./listUser";
 
-
 const Dashboard = () => {
   const navigate = useNavigate();
 
@@ -26,7 +25,6 @@ const Dashboard = () => {
     }, duration);
   };
 
-
   // ===== Login handler =====
   const handleLogin = () => {
     if (!username || !password) {
@@ -35,7 +33,8 @@ const Dashboard = () => {
     }
 
     const foundUser = dummyUsers.find(
-      (user) => user.username === username.trim() && user.password === password.trim()
+      (user) =>
+        user.username === username.trim() && user.password === password.trim(),
     );
 
     if (!foundUser) {
@@ -50,9 +49,6 @@ const Dashboard = () => {
 
     showToast("Đăng nhập thành công", "success");
 
-
-
-
     setTimeout(() => {
       switch (foundUser.role) {
         case "Administrator":
@@ -65,7 +61,7 @@ const Dashboard = () => {
           navigate("/unauthorized", { replace: true });
       }
     }, 1500);
-  }
+  };
 
   return (
     <div>
@@ -80,10 +76,10 @@ const Dashboard = () => {
 
         <nav>
           <Link className="nav-btn" to="/introduce">
-            Giới thiệu
+            Introduce
           </Link>
           <Link className="nav-btn" to="/contact">
-            Liên hệ
+            Contact
           </Link>
         </nav>
       </header>
@@ -98,9 +94,8 @@ const Dashboard = () => {
           <h2>Login Account</h2>
 
           <div className="login">
-
             <div className="login">
-              <p>Tên đăng nhập</p>
+              <p>User Name</p>
               <input
                 type="text"
                 value={username}
@@ -109,7 +104,7 @@ const Dashboard = () => {
             </div>
 
             <div className="login">
-              <p>Mật khẩu</p>
+              <p>Password</p>
               <input
                 type="password"
                 value={password}
@@ -120,55 +115,33 @@ const Dashboard = () => {
             <button onClick={handleLogin}>Đăng nhập</button>
 
             <p className="switch">
-              Bạn chưa có tài khoản?{" "}
+              Do you have account ?
+               
               {/*       */}
               <span
                 className="contact-admin"
                 onClick={() =>
-                  setToast({
-                    show: true,
-                    message: "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
-                    type: "info",
-                  })
+                  showToast(
+                    "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
+                    "info",
+                    3000,
+                  )
                 }
               >
-                Bạn chưa có tài khoản?
-             </span>
-              {/*       */}
-                <span
-                  className="contact-admin"
-                  onClick={() =>
-                    showToast(
-                      "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
-                      "info",
-                      2500,
-                    )
-                  }
-                >
-                  {" "}
-                  Liên hệ Admin
-                </span>
+                {" "}
+                Contact Admin
+              </span>
             </p>
-
           </div>
-
         </div>
-        </div>
-
-        {/* --------------------  */}
-        {toast.show && <div className={`toast ${toast.type}`}>{toast.message}</div>}
-        {/* ===== Toast ===== */}
-        {toast.show && (
-          <div className={`login-toast ${toast.type}`}>
-            {toast.message}
-          </div>
-        )}
-
       </div>
 
-       
-    
-    );
+      {/* ===== Toast ===== */}
+      {toast.show && (
+        <div className={`login-toast ${toast.type}`}>{toast.message}</div>
+      )}
+    </div>
+  );
 };
 
-        export default Dashboard;
+export default Dashboard;

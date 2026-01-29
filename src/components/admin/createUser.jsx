@@ -75,10 +75,10 @@ const CreateUser = () => {
         <div className="header-right">
           <nav>
             <Link className="nav-btn" to="/introduce">
-              Giới thiệu
+              Introduce
             </Link>
             <Link className="nav-btn" to="/contact">
-              Liên hệ
+              Contact
             </Link>
           </nav>
 
@@ -96,29 +96,29 @@ const CreateUser = () => {
       <div className="admin-body">
         {/* ===== SIDEBAR ===== */}
         <aside className="admin-sidebar">
-          <h3>👤 Thành viên</h3>
+          <h3>👤 Member</h3>
 
-          <button className="active">➕ Thêm tài khoản</button>
+          <button className="active">➕ Add Member</button>
 
           <button onClick={() => navigate("/admin/list-user")}>
-            📋 Tất cả user
+            📋 List Account
           </button>
 
-          <h3>⚙️ Cài đặt</h3>
+          <h3>⚙️ Setting</h3>
           <button className="logout" onClick={handleLogout}>
-            🚪 Đăng xuất
+            🚪 Logout
           </button>
         </aside>
 
         {/* ===== CONTENT ===== */}
         <main className="admin-content">
           <div className="form-wrapper">
-            <h2>Tạo tài khoản mới</h2>
+            <h2>Create New Account</h2>
 
             <form onSubmit={handleSubmit} className="create-form">
               {/* ROLE */}
               <div className="role-section">
-                <p>Chọn vai trò</p>
+                <p>Choose roles:</p>
                 <div className="role-cards">
                   {["Rescue Coordinator", "Rescue Team", "Manager"].map(
                     (role) => (
@@ -144,11 +144,11 @@ const CreateUser = () => {
 
               {/* INPUT */}
               {[
-                ["Họ và tên", "fullName"],
-                ["Tên đăng nhập", "username"],
-                ["Số điện thoại", "phone"],
-                ["Tạo mật khẩu", "password", "password"],
-                ["Nhập lại mật khẩu", "confirmPassword", "password"],
+                ["Full Name", "fullName"],
+                ["Username", "username"],
+                ["Phone Number", "phone"],
+                ["Password", "password", "password"],
+                ["Confirm Password", "confirmPassword", "password"],
               ].map(([label, name, type]) => (
                 <div className="form-row-grid" key={name}>
                   <label>{label}</label>
@@ -162,7 +162,7 @@ const CreateUser = () => {
               ))}
 
               <div className="form-submit">
-                <button type="submit">Tạo tài khoản mới</button>
+                <button type="submit">Create</button>
               </div>
             </form>
           </div>

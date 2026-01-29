@@ -100,8 +100,8 @@ const ListUser = () => {
 
       <div className="header-right">
         <nav>
-          <Link className="nav-btn" to="/introduce">Giới thiệu</Link>
-          <Link className="nav-btn" to="/contact">Liên hệ</Link>
+          <Link className="nav-btn" to="/introduce">Introduce</Link>
+          <Link className="nav-btn" to="/contact">Contact</Link>
         </nav>
         <span className="admin-name">Admin</span>
         <img src={beai} alt="Admin" className="admin-avatar" />
@@ -112,35 +112,37 @@ const ListUser = () => {
     <div className="admin-body">
       {/* ===== SIDEBAR ===== */}
       <aside className="admin-sidebar">
-        <h3>👤 Thành viên</h3>
+        <h3>👤 Member</h3>
+
+        <button onClick={() => navigate("/admin/create-user")}>
+          ➕ Add Member
+        </button>
 
         <button
           className="active"
           onClick={() => navigate("/admin/list-user")}
         >
-          📋 Tất cả user
+          📋 List Account
         </button>
 
-        <button onClick={() => navigate("/admin/create-user")}>
-          ➕ Thêm tài khoản
-        </button>
+        
 
-        <h3>⚙️ Cài đặt</h3>
+        <h3>⚙️ Setting</h3>
         <button className="logout" onClick={handleLogout}>
-          🚪 Đăng xuất
+          🚪 Logout
         </button>
       </aside>
 
       {/* ===== CONTENT ===== */}
       <main className="admin-content">
         <div className="form-wrapper">
-          <h2>Quản lý tất cả tài khoản</h2>
+          <h2>Manage All Accounts</h2>
 
           {/* SEARCH + FILTER */}
           <div className="controls">
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên hoặc username..."
+              placeholder="Find name or username..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -149,7 +151,7 @@ const ListUser = () => {
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
             >
-              <option value="All">Tất cả chức vụ</option>
+              <option value="All">All positions</option>
               <option value="Administrator">Administrator</option>
               <option value="Manager">Manager</option>
               <option value="Rescue Coordinator">Rescue Coordinator</option>
@@ -161,12 +163,12 @@ const ListUser = () => {
           <div className="user-list">
             {filteredUsers.map((user, idx) => (
               <div key={idx} className="user-card">
-                <p><strong>Họ và tên:</strong> {user.fullName}</p>
+                <p><strong>Fullname:</strong> {user.fullName}</p>
                 <p><strong>Username:</strong> {user.username}</p>
-                <p><strong>SĐT:</strong> {user.phone}</p>
-                <p><strong>Chức vụ:</strong> {user.role}</p>
-                <p><strong>Ngày tạo:</strong> {user.createdAt}</p>
-                <p><strong>Mật Khẩu:</strong> {user.password}</p>
+                <p><strong>Number Phone:</strong> {user.phone}</p>
+                <p><strong>Role:</strong> {user.role}</p>
+                <p><strong>Create date:</strong> {user.createdAt}</p>
+                <p><strong>Password:</strong> {user.password}</p>
 
                 <div className="actions">
                   <button

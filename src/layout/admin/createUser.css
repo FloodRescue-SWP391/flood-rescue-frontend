@@ -15,10 +15,10 @@
 }
 
 .admin-name {
-  color: rgb(37, 36, 36);
+  color: rgb(75, 10, 255);
   font-weight: 600;
   font-size: 23px;
-  font-family: 'Times New Roman', Times, serif;
+
 }
 
 .admin-avatar {
@@ -46,7 +46,6 @@
   color: #ff0303;
   margin: 18px 0 10px;
   font-family: 'Times New Roman', Times, serif;
-  font-weight: 800;
 }
 
 .admin-sidebar button {
@@ -94,7 +93,7 @@
 
 /* ===== FORM WRAPPER ===== */
 .form-wrapper {
-  margin-left: 28px;
+  margin-left: 25px;
   background: #ffffff;
   padding: 20px 35px;
   border-radius: 4px;

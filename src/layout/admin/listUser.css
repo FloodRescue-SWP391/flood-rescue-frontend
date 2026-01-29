@@ -15,7 +15,7 @@
 
 /* ===== SIDEBAR ===== */
 .admin-sidebar {
-  width: 260px;
+  width: 240px;
   background: #0f172a;
   color: #fff;
   padding: 25px 20px;
@@ -25,7 +25,7 @@
   font-size: 14px;
   margin: 20px 0 10px;
   opacity: 0.8;
-  text-transform: uppercase;
+ 
 }
 
 .admin-sidebar a {
@@ -107,6 +107,10 @@
 .user-card p {
   margin-bottom: 6px;
   font-size: 18px;
+}
+
+.user-card strong{
+  width: 100px;
 }
 
 /* ===== ACTIONS ===== */

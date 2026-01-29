@@ -19,7 +19,6 @@ import RequestStatus from "./components/citizen/RequestStatus";
 import OnTheWay from "./components/citizen/status/OnTheWay";
 import Completed from "./components/citizen/status/Completed";
 
-
 // MANAGER
 import ManagerDashBoard from "./components/manager/ManagerDashBoard";
 
@@ -29,14 +28,10 @@ import Profile from "./components/Profile";
 // AUTH
 import ProtectedRoute from "./auth/ProtectedRoute";
 
-
-
-
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* ================= HOME ================= */}
         <Route path="/homepage" element={<HomePage />} />
         <Route path="/introduce" element={<Introduce />} />
@@ -64,6 +59,16 @@ function App() {
           <Route path="create-user" element={<CreateUser />} />
           <Route path="list-user" element={<ListUser />} />
         </Route>
+        {/*============Manager============*/}
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute allowedRoles={["Manager"]}>
+              <ManagerDashBoard />
+            </ProtectedRoute>
+          }
+        >
+        </Route>
 
         {/* ================= PROFILE ================= */}
         <Route
@@ -78,7 +83,6 @@ function App() {
         {/* ================= DEFAULT ================= */}
         <Route path="/" element={<Navigate to="/homepage" replace />} />
         <Route path="/unauthorized" element={<h1>Unauthorized</h1>} />
-
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/login" replace />} />
