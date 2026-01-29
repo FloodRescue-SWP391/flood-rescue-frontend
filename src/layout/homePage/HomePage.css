@@ -1,13 +1,22 @@
 .c1{
+    display: flex;
+  flex-direction: column;
+
   background-color: antiquewhite;
+  min-height: 100vh;
 }
 /* ================= MENU ROLE ================= */
 .menu {
   display: flex;
   justify-content: center;
   margin-top: 60px;
-}
 
+
+  /* display: flex;
+    flex-direction: column;
+    align-items: center; /* Để căn giữa mấy cái nút */
+    
+}
 .menu ul {
   display: flex;
   flex-direction: column;   /* xếp dọc */
@@ -87,7 +96,7 @@
 }
 
 .footer1{
-  margin-top: 118px;
+    /* margin-top: 118px; */
     background-color: rgb(138, 112, 80);
     padding: 30px;
     text-align: center;

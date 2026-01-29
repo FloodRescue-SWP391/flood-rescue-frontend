@@ -1,4 +1,3 @@
-import React from "react";
 
 import Header from "../components/citizen/Header";
 import { useNavigate } from "react-router-dom";

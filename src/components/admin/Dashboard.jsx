@@ -1,16 +1,9 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../layout/admin/Dashboard.css";
 import "../../layout/citizen/Header.css";
 import logo from "../../assets/logo.png";
 import { dummyUsers } from "./listUser";
-
-const Dashboard = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
 
 const Dashboard = () => {
@@ -43,9 +36,6 @@ const Dashboard = () => {
 
     const foundUser = dummyUsers.find(
       (user) => user.username === username.trim() && user.password === password.trim()
-    
-    const foundUser = dummyUsers.find(
-      (u) => u.username === username.trim() && u.password === password.trim(),
     );
 
     if (!foundUser) {
@@ -60,16 +50,8 @@ const Dashboard = () => {
 
     showToast("Đăng nhập thành công", "success");
 
-    setTimeout(() => {
-      setToast({ show: false, message: "", type: "success" });
 
-      if (foundUser.role === "Administrator") {
-        navigate("/admin", { replace: true });
-      } else if (foundUser.role === "Manager") {
-        navigate("/manager", { replace: true });
-      } else {
-        navigate("/unauthorized", { replace: true });
-    showToast("✅ Đăng nhập thành công", "success");
+
 
     setTimeout(() => {
       switch (foundUser.role) {
@@ -83,7 +65,7 @@ const Dashboard = () => {
           navigate("/unauthorized", { replace: true });
       }
     }, 1500);
-  };
+  }
 
   return (
     <div>
@@ -106,9 +88,9 @@ const Dashboard = () => {
         </nav>
       </header>
 
-<button className="back-btn1" onClick={() => navigate("/homePage")}>
-          ⬅ Back
-        </button>
+      <button className="back-btn1" onClick={() => navigate("/homePage")}>
+        ⬅ Back
+      </button>
 
       {/* ===== Login ===== */}
       <div className="login-container">
@@ -116,66 +98,77 @@ const Dashboard = () => {
           <h2>Login Account</h2>
 
           <div className="login">
-          <div className="login"> 
-            <p>Tên đăng nhập</p>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
+
+            <div className="login">
+              <p>Tên đăng nhập</p>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+
+            <div className="login">
+              <p>Mật khẩu</p>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <button onClick={handleLogin}>Đăng nhập</button>
+
+            <p className="switch">
+              Bạn chưa có tài khoản?{" "}
+              {/*       */}
+              <span
+                className="contact-admin"
+                onClick={() =>
+                  setToast({
+                    show: true,
+                    message: "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
+                    type: "info",
+                  })
+                }
+              >
+                Bạn chưa có tài khoản?
+             </span>
+              {/*       */}
+                <span
+                  className="contact-admin"
+                  onClick={() =>
+                    showToast(
+                      "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
+                      "info",
+                      2500,
+                    )
+                  }
+                >
+                  {" "}
+                  Liên hệ Admin
+                </span>
+            </p>
+
           </div>
 
-          <div className="login">
-            <p>Mật khẩu</p>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button onClick={handleLogin}>Đăng nhập</button>
-
-          <p className="switch">
-            Bạn chưa có tài khoản?{" "}
-            <span
-              className="contact-admin"
-              onClick={() =>
-                setToast({
-                  show: true,
-                  message: "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
-                  type: "info",
-                })
-              }
-            >
-            Bạn chưa có tài khoản?
-            <span
-              className="contact-admin"
-              onClick={() =>
-                showToast(
-                  "Vui lòng liên hệ Admin qua SĐT: 0965782358 để được cấp tài khoản.",
-                  "info",
-                  2500,
-                )
-              }
-            >
-              {" "}
-              Liên hệ Admin
-            </span>
-          </p>
         </div>
+        </div>
+
+        {/* --------------------  */}
+        {toast.show && <div className={`toast ${toast.type}`}>{toast.message}</div>}
+        {/* ===== Toast ===== */}
+        {toast.show && (
+          <div className={`login-toast ${toast.type}`}>
+            {toast.message}
+          </div>
+        )}
+
       </div>
 
-      {toast.show && <div className={`toast ${toast.type}`}>{toast.message}</div>}
-      {/* ===== Toast ===== */}
-      {toast.show && (
-  <div className={`login-toast ${toast.type}`}>
-    {toast.message}
-  </div>
-)}
-
-    </div>
-  );
+       
+    
+    );
 };
 
-export default Dashboard;
+        export default Dashboard;
