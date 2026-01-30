@@ -1,4 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+
+
 
 // Home
 import HomePage from "./homePage/HomePage";
@@ -16,8 +31,7 @@ import ListUser from "./components/admin/listUser";
 // CITIZEN
 import RequestRescue from "./components/citizen/RequestRescue";
 import RequestStatus from "./components/citizen/RequestStatus";
-import OnTheWay from "./components/citizen/status/OnTheWay";
-import Completed from "./components/citizen/status/Completed";
+
 
 // MANAGER
 import ManagerDashBoard from "./components/manager/ManagerDashBoard";
@@ -39,9 +53,8 @@ function App() {
 
         {/* ================= CITIZEN (PUBLIC) ================= */}
         <Route path="/citizen/request" element={<RequestRescue />} />
-        <Route path="/citizen/status" element={<RequestStatus />} />
-        <Route path="/citizen/on-the-way" element={<OnTheWay />} />
-        <Route path="/citizen/completed" element={<Completed />} />
+        <Route path="/citizen/request-status"element={<RequestStatus />}/>
+       
 
         {/* ================= LOGIN ================= */}
         <Route path="/login" element={<Dashboard />} />
