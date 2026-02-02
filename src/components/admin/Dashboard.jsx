@@ -116,7 +116,7 @@ const Dashboard = () => {
 
             <p className="switch">
               Do you have account ?
-               
+
               {/*       */}
               <span
                 className="contact-admin"
@@ -134,7 +134,9 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
+        
       </div>
+      <div className="footer1">© 2026 Rescue System. All rights reserved.</div>
 
       {/* ===== Toast ===== */}
       {toast.show && (
