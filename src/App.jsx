@@ -36,6 +36,9 @@ import RequestStatus from "./components/citizen/RequestStatus";
 // MANAGER
 import ManagerDashBoard from "./components/manager/ManagerDashBoard";
 
+//rescue team
+import RescueTeam from "./components/rescueTeam/rescueTeam";
+
 // PROFILE
 import Profile from "./components/Profile";
 
@@ -53,8 +56,8 @@ function App() {
 
         {/* ================= CITIZEN (PUBLIC) ================= */}
         <Route path="/citizen/request" element={<RequestRescue />} />
-        <Route path="/citizen/request-status"element={<RequestStatus />}/>
-       
+        <Route path="/citizen/request-status" element={<RequestStatus />} />
+
 
         {/* ================= LOGIN ================= */}
         <Route path="/login" element={<Dashboard />} />
@@ -82,6 +85,17 @@ function App() {
           }
         >
         </Route>
+
+        {/* ================= RESCUE TEAM ================= */}
+        <Route
+          path="/rescueTeam"
+          element={
+            <ProtectedRoute allowedRoles={["Rescue Team"]}>
+              <RescueTeam />
+            </ProtectedRoute>
+          }
+        />
+
 
         {/* ================= PROFILE ================= */}
         <Route

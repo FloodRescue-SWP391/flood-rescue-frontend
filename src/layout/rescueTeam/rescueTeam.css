@@ -1,0 +1,405 @@
+/* ===============================
+   RESCUE TEAM PAGE STYLES
+   =============================== */
+
+.rescue-team-page {
+    min-height: 100vh;
+    background: #f6e6cf;
+    /* same as Manager background */
+}
+
+/* Center content like Manager */
+.rescue-team-container {
+    max-width: 1200px;
+    margin: 22px auto 60px;
+    padding: 0 18px;
+}
+
+/* ===== Top header panel (title + stats) ===== */
+.rescue-team-page-header {
+    background: #f5d7a6;
+    border: 2px solid #b9a48c;
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.rescue-team-page-header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+    color: #1f2937;
+}
+
+.rescue-team-page-header p {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: #4b5563;
+}
+
+/* ===== Stats cards ===== */
+.rescue-team-stats {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.stat-card {
+    background: #fff7ea;
+    border: 2px solid #d7c2a6;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+.stat-card span {
+    display: block;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.stat-card h2 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 900;
+    color: #ff6b00;
+    /* manager accent */
+}
+
+/* ===== 2-column layout ===== */
+.rescue-team-content {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+/* Each column panel */
+.rescue-team-panel {
+    background: #f5d7a6;
+    border: 2px solid #b9a48c;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.rescue-team-panel h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 900;
+    color: #1f2937;
+}
+
+/* ===== Request card ===== */
+.request-card {
+    background: #ffffff;
+    border: 2px solid #e7d7c3;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.10);
+}
+
+.request-title {
+    font-weight: 900;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.request-desc {
+    color: #4b5563;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+/* ===== Buttons ===== */
+.request-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.btn {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.05s ease, opacity 0.2s ease;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-accept {
+    background: #16a34a;
+    color: #fff;
+}
+
+.btn-reject {
+    background: #dc2626;
+    color: #fff;
+}
+
+.btn-problem {
+    background: #ff6b00;
+    color: #fff;
+    /* full width */
+}
+
+
+/* ===== Problem Reports (inside request card) ===== */
+.problem-wrap {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.problem-title {
+    font-weight: 900;
+    font-size: 13px;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.problem-card {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.problem-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.problem-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 11px;
+    border: 1px solid transparent;
+}
+
+.problem-badge.low {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #86efac;
+}
+
+.problem-badge.medium {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+.problem-badge.high {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+
+.problem-time {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.problem-desc {
+    font-size: 13px;
+    color: #374151;
+}
+
+/* ===== History (full width like Manager report) ===== */
+.rescue-team-history {
+    margin-top: 18px;
+    background: #f5d7a6;
+    border: 2px solid #b9a48c;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.history-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.history-head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+    color: #1f2937;
+}
+
+.history-sub {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.history-tablewrap {
+    background: #ffffff;
+    border: 2px solid #e7d7c3;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+    padding: 12px 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+}
+
+.history-table th {
+    text-align: left;
+    background: #fff7ea;
+    font-weight: 900;
+    color: #374151;
+}
+
+.history-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* History badges */
+.history-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 12px;
+    border: 1px solid transparent;
+}
+
+.history-badge.accepted {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #86efac;
+}
+
+.history-badge.rejected {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+
+.history-badge.completed {
+    background: #e0f2fe;
+    color: #075985;
+    border-color: #7dd3fc;
+}
+
+.history-badge.problem_reported {
+    background: #fff7ed;
+    color: #9a3412;
+    border-color: #fed7aa;
+}
+
+/* ===== Modal (Report Problem) ===== */
+.problem-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+}
+
+.problem-modal {
+    width: 100%;
+    max-width: 520px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.problem-modal h3 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #111827;
+}
+
+.pm-label {
+    display: block;
+    margin: 10px 0 6px;
+    font-size: 13px;
+    font-weight: 900;
+    color: #374151;
+}
+
+.problem-modal textarea,
+.problem-modal select {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 10px;
+    outline: none;
+    font-size: 13px;
+}
+
+.problem-modal textarea:focus,
+.problem-modal select:focus {
+    border-color: #fb923c;
+    box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.25);
+}
+
+.pm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.pm-cancel {
+    flex: 1;
+    border: 2px solid #2563eb;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 10px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.pm-submit {
+    flex: 1;
+    border: none;
+    background: #ff3c00;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 10px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.pm-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+    .rescue-team-content {
+        grid-template-columns: 1fr;
+    }
+
+    .rescue-team-stats {
+        grid-template-columns: 1fr;
+    }
+}

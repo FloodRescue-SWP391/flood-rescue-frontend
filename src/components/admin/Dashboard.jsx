@@ -57,6 +57,9 @@ const Dashboard = () => {
         case "Manager":
           navigate("/manager", { replace: true });
           break;
+        case "Rescue Team":
+          navigate("/rescueTeam", { replace: true });
+          break;
         default:
           navigate("/unauthorized", { replace: true });
       }

@@ -13,7 +13,7 @@ export const dummyUsers = [
     phone: "0965782358",
     role: "Administrator",
     createdAt: "15/01/2026",
-    password: "0965782358",
+    password: "123",
   },
   {
     fullName: "Baomini",
@@ -21,7 +21,15 @@ export const dummyUsers = [
     phone: "0965782358",
     role: "Rescue Coordinator",
     createdAt: "15/01/2026",
-    password: "0965782358",
+    password: "123",
+  },
+  {
+    fullName: "Chung Quốc Huy",
+    username: "Huy Chung",
+    phone: "0965782352",
+    role: "Rescue Team",
+    createdAt: "15/01/2026",
+    password: "123",
   },
   {
     fullName: "Vũ Nguyễn Đức Huy",
@@ -29,15 +37,15 @@ export const dummyUsers = [
     phone: "0965782358",
     role: "Rescue Team",
     createdAt: "15/01/2026",
-    password: "0965782358",
+    password: "123",
   },
   {
     fullName: "Trương Trần Anh Minh",
-    username: "Minh Trương",
+    username: "Minh Truong",
     phone: "0789543210",
     role: "Manager",
     createdAt: "25/01/2026",
-    password: "30062005",
+    password: "123",
   },
 ];
 
