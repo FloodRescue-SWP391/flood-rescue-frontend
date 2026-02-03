@@ -5,24 +5,64 @@
 }
 
 /* HERO SECTION */
-.a{
+.a {
   text-align: center;
   padding: 50px 20px;
-  font-size: 23px;
+  font-size: 80px;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-  color: rgb(116, 131, 156, 0.6);
+  color: rgba(0, 0, 0, 0.6);
 
+}
+
+.slogan {
+  padding: 50px 20px 20px;
+  font-size: 85px;
+  text-align: center;
+  background: linear-gradient(90deg,
+      #ff0000,
+      #ff7a00,
+      #fff000,
+      #00ff00,
+      #00c8ff,
+      #2b65ff,
+      #a600ff,
+      #ff0000);
+
+  background-size: 400% 100%;
+  background-position: 0% 50%;
+  /* cắt nền theo chữ */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* animation */
+  animation: rainbowMove 5s linear infinite;
+  ;
+}
+@keyframes rainbowMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.caption {
+  text-align: center;
+  font-size: 30px;
+  color: rgba(116, 131, 156, 0.8);
+  padding-bottom: 40px;
 }
 
 /* ROLE SECTION */
 .role-section {
   padding: 40px 5% 60px;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   background: white;
   border-radius: 20px;
   margin: 0 5% 40px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 
@@ -37,7 +77,7 @@
 .role-grid {
   display: flex;
   justify-content: space-around;
-  align-items: center;  
+  align-items: center;
   gap: 25px;
   padding: 0 20px;
 }
@@ -52,13 +92,13 @@
   height: 320px;
   display: flex;
   flex-direction: column;
-  width:100%;
+  width: 100%;
 }
 
 .role-card:hover {
   transform: translateY(-5px);
   border-color: #4299e1;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .role-icon {
@@ -117,7 +157,7 @@
   padding: 30px;
   border-radius: 15px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   transition: transform 0.3s ease;
 }
 
@@ -154,7 +194,7 @@
 .footer-content {
   display: flex;
   justify-content: space-around;
-  
+
   gap: 40px;
   max-width: 1200px;
   margin: 0 auto;
