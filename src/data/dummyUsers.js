@@ -1,0 +1,42 @@
+export const dummyUsers = [
+  {
+    fullName: "Đặng Hoàng Trúc Vy",
+    username: "Truc Vy",
+    phone: "0901234567",
+    password: "0123",
+    role: "Administrator",
+    createdAt: "15/01/2026",
+  },
+  {
+    fullName: "Trương Trần Anh Minh",
+    username: "anhminh",
+    phone: "0912345678",
+    password: "0123",
+    role: "Manager",
+    createdAt: "20/01/2026",
+  },
+   {
+    fullName: "Lương Gia Luân",
+    username: "luan",
+    phone: "0912345678",
+    password: "0123",
+    role: "Coordinator",
+    createdAt: "20/01/2026",
+  },
+   {
+    fullName: "Lê Hoàng Huy",
+    username: "lehuy",
+    phone: "0912345678",
+    password: "0123",
+    role: "RescueTeam",
+    createdAt: "20/01/2026",
+  },
+   {
+    fullName: "Chung Quốc Huy",
+    username: "chunghuy",
+    phone: "0912345678",
+    password: "0123",
+    role: "Coordinator",
+    createdAt: "20/01/2026",
+  },
+];
