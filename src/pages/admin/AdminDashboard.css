@@ -1,0 +1,109 @@
+.admin-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.admin-body {
+  display: flex;
+  min-height: calc(100vh - 64px); /* Trừ height của header */
+}
+
+.admin-sidebar {
+  width: 250px;
+  background: #2c3e50;
+  color: white;
+  padding: 20px;
+  min-height: calc(100vh - 64px); /* Chiều cao bằng với admin-body */
+}
+
+.admin-sidebar h3 {
+  color: #ecf0f1;
+  margin: 25px 0 15px 0;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-sidebar button {
+  width: 100%;
+  padding: 12px 15px;
+  margin: 5px 0;
+  background: #34495e;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-sidebar button:hover {
+  background: #3d566e;
+  transform: translateX(5px);
+}
+
+.admin-sidebar button.active {
+  background: #3498db;
+  font-weight: bold;
+}
+
+.admin-sidebar button.logout {
+  background: #e74c3c;
+  margin-top: 30px;
+}
+
+.admin-sidebar button.logout:hover {
+  background: #c0392b;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 20px;
+  background: #fff;
+  min-height: calc(100vh - 64px); /* Chiều cao bằng với admin-body */
+  overflow-y: auto; /* Cho phép scroll nếu content dài */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-body {
+    flex-direction: column;
+  }
+  
+  .admin-sidebar {
+    width: 100%;
+    min-height: auto;
+    padding: 15px;
+  }
+  
+  .admin-content {
+    min-height: auto;
+    padding: 15px;
+  }
+  
+  .admin-sidebar button:hover {
+    transform: translateY(-2px); /* Thay đổi hiệu ứng hover cho mobile */
+  }
+}
+
+/* Scrollbar styling cho sidebar */
+.admin-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track {
+  background: #1a252f;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background: #3498db;
+  border-radius: 3px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #2980b9;
+}

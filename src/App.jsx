@@ -1,66 +1,48 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-delete L.Icon.Default.prototype._getIconUrl;
+import HomePage from "./pages/home/HomePage";
+import Introduce from "./pages/home/Introduce";
+import Contact from "./pages/home/Contact";
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
+import Hero from "./pages/citizen/home/Hero";
+import RequestRescue from "./pages/citizen/request/RequestRescue";
+import RequestStatus from "./pages/citizen/request/RequestStatus"; 
 
+import Login from "./pages/auth/Login";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
+// ===== ADMIN =====
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ListUser from "./pages/admin/ListUser.jsx";
+import CreateUser from "./pages/admin/CreateUser.jsx";
 
-// Home
-import HomePage from "./homePage/HomePage";
-import Contact from "./homePage/Contact";
-import Introduce from "./homePage/Introduce";
+// ===== MANAGER =====
+import ManagerDashboard from "./pages/manager/ManagerDashboard";
 
-// LOGIN
-import Dashboard from "./components/admin/Dashboard";
+import RescueTeam from "./pages/rescueTeam/RescueTeam";
 
-// ADMIN
-import AdminDashboard from "./components/admin/AdminDashboard";
-import CreateUser from "./components/admin/createUser";
-import ListUser from "./components/admin/listUser";
-
-// CITIZEN
-import RequestRescue from "./components/citizen/RequestRescue";
-import RequestStatus from "./components/citizen/RequestStatus";
-
-
-// MANAGER
-import ManagerDashBoard from "./components/manager/ManagerDashBoard";
-
-// PROFILE
-import Profile from "./components/Profile";
-
-// AUTH
-import ProtectedRoute from "./auth/ProtectedRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ================= HOME ================= */}
-        <Route path="/homepage" element={<HomePage />} />
+        {/* ===== HOME ===== */}
+        <Route path="/" element={<HomePage />} />
+
+        {/* ===== HEADER ===== */}
         <Route path="/introduce" element={<Introduce />} />
         <Route path="/contact" element={<Contact />} />
 
-        {/* ================= CITIZEN (PUBLIC) ================= */}
+        {/* ===== LOGIN ===== */}
+        <Route path="/login" element={<Login />} />
+
+        {/* ===== CITIZEN ===== */}
+        <Route path="/citizen/hero" element={<Hero />} />
         <Route path="/citizen/request" element={<RequestRescue />} />
-        <Route path="/citizen/request-status"element={<RequestStatus />}/>
-       
+        <Route path="/citizen/request-status" element={<RequestStatus />} />
 
-        {/* ================= LOGIN ================= */}
-        <Route path="/login" element={<Dashboard />} />
-
-        {/* ================= ADMIN ================= */}
-        <Route
+        {/* ===== ADMIN (PROTECTED) ===== */}
+         <Route
           path="/admin"
           element={
             <ProtectedRoute allowedRoles={["Administrator"]}>
@@ -68,37 +50,31 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<CreateUser />} />
+          {/* Redirect mặc định đến create-user */}
+          <Route index element={<Navigate to="create-user" replace />} />
           <Route path="create-user" element={<CreateUser />} />
           <Route path="list-user" element={<ListUser />} />
         </Route>
-        {/*============Manager============*/}
+
+        {/* ===== MANAGER (PROTECTED) ===== */}
         <Route
           path="/manager"
           element={
             <ProtectedRoute allowedRoles={["Manager"]}>
-              <ManagerDashBoard />
-            </ProtectedRoute>
-          }
-        >
-        </Route>
-
-        {/* ================= PROFILE ================= */}
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
+              <ManagerDashboard />
             </ProtectedRoute>
           }
         />
 
-        {/* ================= DEFAULT ================= */}
-        <Route path="/" element={<Navigate to="/homepage" replace />} />
-        <Route path="/unauthorized" element={<h1>Unauthorized</h1>} />
+        <Route
+  path="/rescue-team"
+  element={
+    <ProtectedRoute allowedRoles={["RescueTeam"]}>
+      <RescueTeam />
+    </ProtectedRoute>
+  }
+/>
 
-        {/* fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
