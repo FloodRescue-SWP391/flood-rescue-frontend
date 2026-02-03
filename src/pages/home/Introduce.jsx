@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import Header from "../../components/common/Header";
 import "./Introduce.css";
@@ -85,10 +85,33 @@ helping to connect people with rescue teams.
           </div>
         </div>
 
-        <div className="footer">
+        
+      </div>
+
+       <footer className="homepage-footer">
+        <div className="footer-content">
+          <div className="footer-section">
+            <h3>Emergency Rescue System</h3>
+            <p>Smart rescue connection, 
+              <br />
+              fast and effective</p>
+          </div>
+          <div className="footer-section">
+            <h3>Contact</h3>
+            <p>Email: rescue@gmail.com</p>
+            <p>Hotline: 0901 234 567</p>
+          </div>
+          <div className="footer-section">
+            <h3>Support</h3>
+            <Link to="/guide">Instructions for use</Link>
+            <Link to="/faq">Frequently asked questions</Link>
+            <Link to="/contact">Contact support</Link>
+          </div>
+        </div>
+        <div className="footer-bottom">
           © 2026 Rescue System. All rights reserved.
         </div>
-      </div>
+      </footer>
     </div>
   );
 };
