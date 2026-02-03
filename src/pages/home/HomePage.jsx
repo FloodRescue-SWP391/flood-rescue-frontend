@@ -7,8 +7,8 @@ const HomePage = () => {
   return (
     <div className="homepage-container">
       <Header />
-
-          <p className="a">
+        <h1 className="slogan">When emergencies strike, help arrives.</h1>
+          <p className="caption">
             Smart system connects people, rescue teams and coordinators in emergency situations
           </p>
      
