@@ -1,0 +1,233 @@
+/* HomePage.css */
+.homepage-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+/* HERO SECTION */
+.a {
+  text-align: center;
+  padding: 50px 20px;
+  font-size: 80px;
+  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  color: rgba(0, 0, 0, 0.6);
+
+}
+
+.slogan {
+  padding: 50px 20px 20px;
+  font-size: 85px;
+  text-align: center;
+  background: linear-gradient(90deg,
+      #ff0000,
+      #ff7a00,
+      #fff000,
+      #00ff00,
+      #00c8ff,
+      #2b65ff,
+      #a600ff,
+      #ff0000);
+
+  background-size: 400% 100%;
+  background-position: 0% 50%;
+  /* cắt nền theo chữ */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* animation */
+  animation: rainbowMove 5s linear infinite;
+  ;
+}
+@keyframes rainbowMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.caption {
+  text-align: center;
+  font-size: 30px;
+  color: rgba(116, 131, 156, 0.8);
+  padding-bottom: 40px;
+}
+
+/* ROLE SECTION */
+.role-section {
+  padding: 40px 5% 60px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: white;
+  border-radius: 20px;
+  margin: 0 5% 40px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+
+.section-title {
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 40px;
+}
+
+.role-grid {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 25px;
+  padding: 0 20px;
+}
+
+.role-card {
+  background: #f8fafc;
+  border-radius: 15px;
+  padding: 30px 25px;
+  text-align: center;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.role-card:hover {
+  transform: translateY(-5px);
+  border-color: #4299e1;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.role-icon {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.role-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 15px;
+}
+
+.role-description {
+  color: #718096;
+  font-size: 16px;
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  flex-grow: 1;
+}
+
+.role-link {
+  display: inline-block;
+  color: #4299e1;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  margin-top: auto;
+}
+
+.role-link:hover {
+  color: #3182ce;
+  transform: translateX(5px);
+}
+
+/* FEATURES SECTION */
+.features-section {
+  background: #f7fafc;
+  padding: 60px 5%;
+  margin: 0 5% 40px;
+  border-radius: 20px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.feature-item {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.feature-item:hover {
+  transform: translateY(-5px);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.feature-item h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 10px;
+}
+
+.feature-item p {
+  color: #718096;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* FOOTER */
+.homepage-footer {
+  background: #2d3748;
+  color: white;
+  padding: 60px 5% 30px;
+  margin-top: 60px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-around;
+
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-section h3 {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  color: #e2e8f0;
+}
+
+.footer-section p {
+  color: #cbd5e0;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.footer-section a {
+  color: #cbd5e0;
+  margin-bottom: 10px;
+  display: block;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-section a:hover {
+  color: white;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 40px;
+  margin-top: 40px;
+  border-top: 1px solid #4a5568;
+  color: #a0aec0;
+}
