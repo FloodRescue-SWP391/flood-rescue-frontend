@@ -3,6 +3,11 @@
     background-color: white;
 }
 
+.hp-intro h4{
+    text-align: center;
+    font-size: 50px;
+}
+
 .hp-intro p{
     text-align: center;
     margin-top: 25px;

@@ -81,6 +81,7 @@ const Dashboard = () => {
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username"
             />
 
             <p>Password</p>
@@ -88,9 +89,16 @@ const Dashboard = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
             />
 
             <button onClick={handleLogin}>Login</button>
+
+            {/* Emergency hotline */}
+            <div className="emergency-hotline">
+              <span>🚨</span>
+              <span>Emergency Hotline: 115</span>
+            </div>
           </div>
         </div>
       </div>
@@ -98,6 +106,8 @@ const Dashboard = () => {
       {toast.show && (
         <div className={`login-toast ${toast.type}`}>{toast.message}</div>
       )}
+
+      
     </div>
   );
 };
