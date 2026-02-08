@@ -228,37 +228,52 @@ const RequestRescue = () => {
   };
 
   const emergencyTypes = [
-    {
-      value: "Medical Emergency",
-      icon: "🚑",
-      description: "Medical assistance needed",
-    },
-    {
-      value: "Fire Rescue",
-      icon: "🔥",
-      description: "Fire or smoke emergency",
-    },
-    {
-      value: "Flood Rescue",
-      icon: "🌊",
-      description: "Flood or water emergency",
-    },
-    {
-      value: "Accident Rescue",
-      icon: "🚗",
-      description: "Vehicle or traffic accident",
-    },
-    {
-      value: "Building Collapse",
-      icon: "🏚️",
-      description: "Structural collapse or damage",
-    },
-    {
-      value: "Other Emergency",
-      icon: "🚨",
-      description: "Other type of emergency",
-    },
-  ];
+  {
+    value: "Người mắc kẹt trong nước",
+    icon: "🌊",
+    description: "Người bị mắc kẹt do nước lũ dâng cao",
+  },
+  {
+    value: "Nhà bị ngập",
+    icon: "🏠",
+    description: "Nhà cửa bị ngập nước, cần di dời",
+  },
+  {
+    value: "Cần thực phẩm/ nước uống",
+    icon: "📦",
+    description: "Cần tiếp tế lương thực, nước sạch",
+  },
+  {
+    value: "Cần thuốc men",
+    icon: "💊",
+    description: "Cần thuốc men, vật tư y tế",
+  },
+  {
+    value: "Cần áo phao/thuyền",
+    icon: "🛟",
+    description: "Cần phương tiện cứu hộ, thiết bị an toàn",
+  },
+  {
+    value: "Cần di dời khẩn cấp",
+    icon: "🚨",
+    description: "Cần sơ tán đến nơi an toàn",
+  },
+  {
+    value: "Sạt lở đất",
+    icon: "⛰️",
+    description: "Sạt lở đất đá, đe dọa nhà cửa",
+  },
+  {
+    value: "Cây đổ/ đường sá hư hỏng",
+    icon: "🛣️",
+    description: "Cây đổ, đường sá hư hỏng do lũ",
+  },
+  {
+    value: "Mất điện/ mất liên lạc",
+    icon: "📡",
+    description: "Mất điện, mất liên lạc với bên ngoài",
+  },
+];
 
   const priorityLevels = [
     {

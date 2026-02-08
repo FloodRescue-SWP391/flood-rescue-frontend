@@ -25,7 +25,7 @@ export default function ManagerDashboard() {
   const [reportTeam, setReportTeam] = useState("");
   const [reportPeriod, setReportPeriod] = useState("week");
 
-  // ====== DATA ======
+ 
 
   // ====== PRODUCT USAGE HISTORY (mock) ======
   const productUsageHistory = [
