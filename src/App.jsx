@@ -6,7 +6,7 @@ import Contact from "./pages/home/Contact";
 
 import Hero from "./pages/citizen/home/Hero";
 import RequestRescue from "./pages/citizen/request/RequestRescue";
-import RequestStatus from "./pages/citizen/request/RequestStatus"; 
+import RequestStatus from "./pages/citizen/request/RequestStatus";
 
 import Login from "./pages/auth/Login";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -21,6 +21,7 @@ import ManagerDashboard from "./pages/manager/ManagerDashboard";
 
 import RescueTeam from "./pages/rescueTeam/RescueTeam";
 
+import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
 
 function App() {
   return (
@@ -42,7 +43,7 @@ function App() {
         <Route path="/citizen/request-status" element={<RequestStatus />} />
 
         {/* ===== ADMIN (PROTECTED) ===== */}
-         <Route
+        <Route
           path="/admin"
           element={
             <ProtectedRoute allowedRoles={["Administrator"]}>
@@ -66,15 +67,24 @@ function App() {
           }
         />
 
+        {/* ===== COORDINATOR (PROTECTED) ===== */}
         <Route
-  path="/rescue-team"
-  element={
-    <ProtectedRoute allowedRoles={["RescueTeam"]}>
-      <RescueTeam />
-    </ProtectedRoute>
-  }
-/>
+          path="/coordinator"
+          element={
+            <ProtectedRoute allowedRoles={["Coordinator"]}>
+              <CoordinatorDashboard />
+            </ProtectedRoute>
+          }
+        />
 
+        <Route
+          path="/rescue-team"
+          element={
+            <ProtectedRoute allowedRoles={["RescueTeam"]}>
+              <RescueTeam />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
