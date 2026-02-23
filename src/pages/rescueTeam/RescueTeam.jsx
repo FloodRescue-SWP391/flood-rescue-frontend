@@ -1,8 +1,6 @@
 import "./Dashboard.css";
-import Header from "../../components/common/Header";  
-
-import  "react-router-dom";
-import { useMemo, useState } from "react";
+import Header from "../../components/common/Header";
+import { useMemo,useRef, useState } from "react";
 
 /* ===== MOCK DATA (with problemReports) ===== */
 const initialRequests = [
@@ -70,6 +68,12 @@ export default function RescueTeam() {
     ]);
   };
 
+  /* ===== TOPBAR (SEARCH/FILTER) ===== */
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // all | new | in-progress | completed | rejected
+  const [severityFilter, setSeverityFilter] = useState("all"); // all | low | medium | high
+  const historyRef = useRef(null);
+
   /* ===== REPORT PROBLEM MODAL ===== */
   const [showProblemModal, setShowProblemModal] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
@@ -82,6 +86,11 @@ export default function RescueTeam() {
     setSelectedRequestId(id);
     setProblemForm({ description: "", severity: "medium" });
     setShowProblemModal(true);
+  };
+
+  const closeProblemModal = () => {
+    setSelectedRequestId(null);
+    setShowProblemModal(false);
   };
 
   const submitProblem = () => {
@@ -110,22 +119,7 @@ export default function RescueTeam() {
     setSelectedRequestId(null);
   };
 
-  /* ===== DERIVED DATA ===== */
-  const newRequests = useMemo(
-    () => requests.filter((r) => r.status === "new"),
-    [requests]
-  );
-
-  const inProgressRequests = useMemo(
-    () => requests.filter((r) => r.status === "in-progress"),
-    [requests]
-  );
-
-  const completedRequests = useMemo(
-    () => requests.filter((r) => r.status === "completed"),
-    [requests]
-  );
-
+  
   /* ===== ACTIONS ===== */
   const acceptRequest = (id) => {
     const req = requests.find((r) => r.id === id);
@@ -159,11 +153,45 @@ export default function RescueTeam() {
 
     addHistory("COMPLETED", req);
   };
+  /* ===== FILTERED REQUESTS ===== */
+  const filteredRequests = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return requests.filter((r) => {
+      const okStatus = statusFilter === "all" ? true : r.status === statusFilter;
+
+      const okSearch =
+        !q ||
+        r.id.toLowerCase().includes(q) ||
+        r.type.toLowerCase().includes(q) ||
+        r.description.toLowerCase().includes(q);
+
+      const okSeverity =
+        severityFilter === "all"
+          ? true
+          : (r.problemReports || []).some((p) => p.severity === severityFilter);
+
+      return okStatus && okSearch && okSeverity;
+    });
+  }, [requests, search, statusFilter, severityFilter]);
+
+  const newRequests = useMemo(
+    () => filteredRequests.filter((r) => r.status === "new"),
+    [filteredRequests]
+  );
+  const inProgressRequests = useMemo(
+    () => filteredRequests.filter((r) => r.status === "in-progress"),
+    [filteredRequests]
+  );
+  const completedRequests = useMemo(
+    () => filteredRequests.filter((r) => r.status === "completed"),
+    [filteredRequests]
+  );
 
   return (
     <div className="rescue-team-page">
       {/* HEADER */}
-     <Header />
+      <Header />
 
       {/* PAGE CONTENT */}
       <div className="rescue-team-container">

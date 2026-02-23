@@ -8,6 +8,7 @@
   max-width: 1600px;
   margin: 0 auto;
   height: calc(100vh - 120px); /* trừ header + stats */
+  height: auto;
 }
 
 /* Header */

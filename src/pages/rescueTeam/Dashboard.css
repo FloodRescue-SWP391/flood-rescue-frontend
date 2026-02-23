@@ -4,7 +4,7 @@
 
 .rescue-team-page {
     min-height: 100vh;
-    background: #f6e6cf;
+    background: #EEF1F7;
     /* same as Manager background */
 }
 
@@ -401,5 +401,132 @@
 
     .rescue-team-stats {
         grid-template-columns: 1fr;
+    }
+
+    /* ===== TOPBAR (Search / Filter / Reset / History) ===== */
+    .rescue-team-topbar {
+        margin-top: 18px;
+        background: #f5d7a6;
+        border: 2px solid #b9a48c;
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .rtb-search {
+        flex: 1;
+        min-width: 260px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        background: #ffffff;
+        border: 2px solid #e7d7c3;
+        border-radius: 12px;
+        padding: 10px 12px;
+        box-shadow: 0 8px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    .rtb-icon {
+        opacity: 0.75;
+    }
+
+    .rtb-search input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 13px;
+        color: #111827;
+    }
+
+    .rtb-clear {
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: #fff7ea;
+        font-weight: 900;
+    }
+
+    .rtb-controls {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .rtb-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 170px;
+    }
+
+    .rtb-group label {
+        font-size: 12px;
+        font-weight: 900;
+        color: #374151;
+        opacity: 0.9;
+    }
+
+    .rtb-group select {
+        width: 100%;
+        border: 2px solid #e7d7c3;
+        border-radius: 10px;
+        padding: 10px;
+        outline: none;
+        font-size: 13px;
+        background: #ffffff;
+    }
+
+    .rtb-group select:focus {
+        border-color: #fb923c;
+        box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.25);
+    }
+
+    /* Buttons for topbar */
+    .rtb-btn {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-weight: 900;
+        cursor: pointer;
+        transition: transform 0.05s ease, opacity 0.2s ease;
+        background: #ff6b00;
+        color: #fff;
+    }
+
+    .rtb-btn:active {
+        transform: translateY(1px);
+    }
+
+    .rtb-btn-ghost {
+        background: #2563eb;
+    }
+
+    /* Responsive for topbar */
+    @media (max-width: 1024px) {
+        .rescue-team-topbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .rtb-controls {
+            justify-content: stretch;
+        }
+
+        .rtb-group {
+            min-width: 0;
+            flex: 1;
+        }
     }
 }
