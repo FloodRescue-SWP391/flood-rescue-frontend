@@ -1,54 +1,61 @@
-//fetch = function used for making HTTP requests to fetch authentication tokens and manage user sessions.
-//       (JSON style data, images, files, etc.)
-//       Simplifies asynchronous data fetching in JS and used  for interacting with APIs to retrieve and send
-//       data asynchronously over the web.
-//       fetch(url,{method: "options"})
+/**
+ * AUTH SERVICE 
+ *
+ * Vai trò / Chức năng chính:
+ * - Cung cấp các hàm gọi API liên quan đến Authentication.
+ * - Thực hiện đăng ký (register) và đăng nhập (login).
+ * - Khi login thành công: lưu thông tin auth (token + user info) vào localStorage
+ *   để các request sau dùng được (thông qua apiClient/fetchWithAuth).
+ *
+ * ------------------------------------------------------------
+ * FLOW REGISTER:
+ * 1) Nhận payload từ UI (RegisterRequestDTO).
+ * 2) Gửi POST /api/Auth/register.
+ * 3) Nếu OK → return json.data cho UI xử lý.
+ * 4) Nếu lỗi → throw Error để UI hiển thị thông báo.
+ *
+ * ------------------------------------------------------------
+ * FLOW LOGIN:
+ * 1) Nhận username + password từ UI (LoginRequestDTO).
+ * 2) Gửi POST /api/Auth/login.
+ * 3) Nếu OK:
+ *      - Backend trả AuthResponseDTO (AccessToken, Role, UserID, ...)
+ *      - Lưu json.data vào localStorage key "auth".
+ *      - Return json.data cho UI (navigate theo role, hiển thị tên,...)
+ * 4) Nếu lỗi → throw Error để UI hiển thị thông báo.
+ *
+ */
+import { API_BASE_URL } from "./apiClient";
 
 
-import { getAccessToken, saveAuth, logout } from "../auth/authHelper";
-
-export async function fetchWithAuth(url, options = {}) {
-  const accessToken = getAccessToken();
-
-  let res = await fetch(url, {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (res.status !== 401) return res;
-
-  // refresh token (refresh token nằm trong cookie/server, DB check)
-  const refreshRes = await fetch("/api/auth/refresh-token", {
+export async function register(payload) {
+  const res = await fetch(`${API_BASE_URL}/Auth/register`, {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ AccessToken: accessToken }), 
+    body: JSON.stringify(payload),
   });
 
-  if (!refreshRes.ok) {
-    logout();
-    window.location.href = "/login";
-    return res;
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.message || "Register failed");
   }
 
-  const refreshJson = await refreshRes.json();
-  const authDto = refreshJson.data;
-
-  saveAuth(authDto);
-
-  const newAccessToken = authDto.accessToken || authDto.AccessToken;
-
-  return fetch(url, {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${newAccessToken}`,
-    },
-  });
+  return json.data;
 }
 
+
+export async function login(username, password) {
+  const res = await fetch(`${API_BASE_URL}/Auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.message || "Login failed");
+  }
+  //lưu auth để apiClient có thể tự động thêm token vào header khi gọi API sau này
+  localStorage.setItem("auth", JSON.stringify(json.data)); //giả sử backend trả về { data: { accessToken, refreshToken, ... } } 
+  return json.data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
+}
