@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header";
-import { dummyUsers } from "../../data/dummyUsers";
 import "./login.css";
+import { login } from "../../services/authService";
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -22,46 +23,41 @@ const Dashboard = () => {
     }, duration);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
       showToast("Vui lòng điền đầy đủ thông tin", "info");
       return;
     }
 
-    const foundUser = dummyUsers.find(
-      (u) =>
-        u.username.trim().toLowerCase() === username.trim().toLowerCase() &&
-        u.password === password
-    );
+    try {
+      //gọi api login
+      const auth = await login(username, password);
+      const role = auth.role ?? auth.Role; //backend có thể trả về role hoặc Role, nên phải check cả 2
+      // auth là AuthResponseDTO: AccessToken, Role, FullName, ...
 
-    if (!foundUser) {
-      showToast("❌ Tên đăng nhập hoặc mật khẩu không đúng", "error");
-      return;
+      showToast("Đăng nhập thành công", "success");
+
+      setTimeout(() => {
+        switch (role) {
+          case "Administrator":
+            navigate("/admin", { replace: true });
+            break;
+          case "Manager":
+            navigate("/manager", { replace: true });
+            break;
+          case "RescueTeam":
+            navigate("/rescue-team", { replace: true });
+            break;
+          case "Coordinator":
+            navigate("/coordinator", { replace: true });
+            break;
+          default:
+            navigate("/unauthorized", { replace: true });
+        }
+      }, 1500);
+    } catch (err) {
+      showToast(err?.message || "Đăng nhập thất bại", "error");
     }
-
-    localStorage.setItem("isAuth", "true");
-    localStorage.setItem("role", foundUser.role);
-
-    showToast("Đăng nhập thành công", "success");
-
-    setTimeout(() => {
-      switch (foundUser.role) {
-        case "Administrator":
-          navigate("/admin", { replace: true });
-          break;
-        case "Manager":
-          navigate("/manager", { replace: true });
-          break;
-        case "RescueTeam":
-          navigate("/rescue-team", { replace: true });
-          break;
-        case "Coordinator":
-          navigate("/coordinator", { replace: true });
-          break;
-        default:
-          navigate("/unauthorized", { replace: true });
-      }
-    }, 1500);
   };
 
   return (
@@ -107,7 +103,7 @@ const Dashboard = () => {
         <div className={`login-toast ${toast.type}`}>{toast.message}</div>
       )}
 
-      
+
     </div>
   );
 };
