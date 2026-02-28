@@ -1,9 +1,9 @@
 import "./Dashboard.css";
 import Header from "../../components/common/Header.jsx"
 import "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
-
+import { categoryService } from "../../services/categoryService.js";
 import {
   BarChart,
   Bar,
@@ -25,7 +25,34 @@ export default function ManagerDashboard() {
   const [reportTeam, setReportTeam] = useState("");
   const [reportPeriod, setReportPeriod] = useState("week");
 
- 
+  //category STATE
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await categoryService.getAll();
+        if (res?.success) {
+          setCategories(res.data || []);
+        }
+      } catch (err) {
+        console.error("Load categories failed: ", err);
+        setCategories([]);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  const selectCategories = useMemo(() => {
+    const base = ["Equipment", "Medical"];
+    const apiNames = (categories || []).map((c) => c.categoryName);
+    //gộp + bỏ trùng
+    return Array.from(new Set([...base, ...apiNames])).filter(Boolean);
+  }, [categories]);
+
+
+
+
 
   // ====== PRODUCT USAGE HISTORY (mock) ======
   const productUsageHistory = [
@@ -201,8 +228,8 @@ export default function ManagerDashboard() {
   return (
     <div className="manager-root">
       {/* HEADER */}
-    
-    <Header />
+
+      <Header />
 
       {/* MAIN */}
       <main className="manager-content">
@@ -462,8 +489,11 @@ export default function ManagerDashboard() {
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     >
                       <option value="">Select category</option>
-                      <option value="Equipment">Equipment</option>
-                      <option value="Medical">Medical</option>
+                      {selectCategories.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
