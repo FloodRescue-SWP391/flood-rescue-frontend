@@ -2,7 +2,7 @@ import { API_BASE_URL,fetchWithAuth } from "./apiClient";
 
 const BASE = `${API_BASE_URL}/Categories`;
 
-export const getAllCategories = {
+export const categoryService = {
     async getAll(){
         const res = await fetchWithAuth(`${BASE}`);
         const data = await res.json()

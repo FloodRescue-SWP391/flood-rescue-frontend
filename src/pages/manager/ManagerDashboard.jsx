@@ -4,6 +4,9 @@ import "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
 import { categoryService } from "../../services/categoryService.js";
+import { reliefItemsService } from "../../services/reliefItemService.js";
+
+
 import {
   BarChart,
   Bar,
@@ -42,16 +45,32 @@ export default function ManagerDashboard() {
     };
     loadCategories();
   }, []);
-
-  const selectCategories = useMemo(() => {
-    const base = ["Equipment", "Medical"];
-    const apiNames = (categories || []).map((c) => c.categoryName);
-    //gộp + bỏ trùng
-    return Array.from(new Set([...base, ...apiNames])).filter(Boolean);
+  const categoryNameById = useMemo(() => {
+    const map = new Map();
+    (categories || []).forEach((c) => {
+      const id = c.categoryID ?? c.CategoryID;
+      const name = c.categoryName ?? c.CategoryName;
+      if (id != null && name) {
+        map.set(Number(id), name);
+      }
+    });
+    return map;
   }, [categories]);
 
-
-
+  const [products, setProducts] = useState([]);
+  const loadItems = async () => {
+    try {
+      const res = await reliefItemsService.getAll();
+      if (res?.success) setProducts(res.data || []);
+      else setProducts([]);
+    } catch (err) {
+      console.error("Load relief items failed:", err);
+      setProducts([]);
+    }
+  };
+  useEffect(() => {
+    loadItems();
+  }, []);
 
 
   // ====== PRODUCT USAGE HISTORY (mock) ======
@@ -90,21 +109,14 @@ export default function ManagerDashboard() {
     { time: "20+ min", count: 30 },
   ];
 
-  // ====== PRODUCTS ======
-  const [products, setProducts] = useState([
-    { id: "1", name: "Medical Kit", category: "Equipment", quantity: 15, status: "available" },
-    { id: "2", name: "First Aid Kit", category: "Equipment", quantity: 30, status: "available" },
-    { id: "3", name: "Stretcher", category: "Equipment", quantity: 0, status: "out-of-stock" },
-  ]);
-
   // ====== MODAL ======
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
   const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    quantity: 1,
+    reliefItemName: "",
+    categoryID: "",
+    unit: "",
   });
 
   // ====== KPI ======
@@ -122,13 +134,17 @@ export default function ManagerDashboard() {
   // ====== ACTIONS ======
   const openAdd = () => {
     setEditingProduct(null);
-    setFormData({ name: "", category: "", quantity: 1 });
+    setFormData({ reliefItemName: "", categoryID: "", unit: "" });
     setShowModal(true);
   };
 
   const openEdit = (p) => {
     setEditingProduct(p);
-    setFormData({ name: p.name, category: p.category, quantity: p.quantity });
+    setFormData({
+      reliefItemName: p.reliefItemName || "",
+      categoryID: Number(p.categoryID ?? p.CategoryID ?? 0),
+      unit: p.unit || "",
+    });
     setShowModal(true);
   };
 
@@ -137,24 +153,38 @@ export default function ManagerDashboard() {
     setEditingProduct(null);
   };
 
-  const submit = (e) => {
+  const submit = async(e) => {
     e.preventDefault();
 
-    const status = formData.quantity > 0 ? "available" : "out-of-stock";
-
-    if (editingProduct) {
-      setProducts(
-        products.map((p) => (p.id === editingProduct.id ? { ...p, ...formData, status } : p))
-      );
-    } else {
-      setProducts([...products, { id: Date.now().toString(), ...formData, status }]);
+    const payload = {
+      reliefItemName: formData.reliefItemName,
+      categoryID: Number(formData.categoryID),
+      unit: formData.unit,
+    };
+    try {
+      if (editingProduct) {
+        await reliefItemsService.update(editingProduct.reliefItemID, payload);
+      } else {
+        await reliefItemsService.create(payload);
+      }
+      await loadItems(); // reload lại list từ API
+      closeModal();
+    } catch (err) {
+      console.error("Save relief item failed:", err);
+      alert("Save failed!");
     }
-
-    closeModal();
   };
 
-  const del = (id) => {
-    if (confirm("Delete this product?")) setProducts(products.filter((p) => p.id !== id));
+  const del = async (id) => {
+    if (!confirm("Delete this product?")) return;
+
+    try {
+      await reliefItemsService.remove(id);
+      await loadItems();
+    } catch (err) {
+      console.error("Delete relief item failed:", err);
+      alert("Delete failed!");
+    }
   };
 
   const badgeClass = (st) => {
@@ -190,21 +220,20 @@ export default function ManagerDashboard() {
 
   const escapeCSV = (v = "") => `"${String(v).replaceAll('"', '""')}"`;
 
-  const handleExportUsageCSV = () => {
-    const selectedTeam = teams.find((t) => t.id === reportTeam);
-    const periodLabel =
-      reportPeriod === "week" ? "Past Week" : reportPeriod === "month" ? "Past Month" : "Past Quarter";
-
+  const handleExportProductsCSV = () => {
     const rows = [
       ["RESCUE MANAGEMENT SYSTEM"],
-      ["Product Usage Report"],
+      ["Relief Items Report"],
       ["Generated", new Date().toLocaleString()],
-      ["Team ID", reportTeam || "All Teams"],
-      ["Team Name", selectedTeam ? selectedTeam.name : "All Teams"],
-      ["Time Period", periodLabel],
       [],
-      ["Product Name", "Quantity", "Date Taken", "Team ID"],
-      ...filteredUsage.map((x) => [x.productName, x.quantity, x.dateTaken, x.teamId]),
+      ["ReliefItemID", "ReliefItemName", "CategoryID", "CategoryName", "Unit"],
+      ...products.map((p) => [
+        p.reliefItemID,
+        p.reliefItemName,
+        p.categoryID ?? p.CategoryID,
+        categoryNameById.get(Number(p.categoryID ?? p.CategoryID)) || "",
+        p.unit,
+      ]),
     ];
 
     const csv = rows.map((r) => r.map(escapeCSV).join(",")).join("\n");
@@ -213,7 +242,7 @@ export default function ManagerDashboard() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `product-usage-report-${reportTeam || "all"}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `relief-items-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -356,7 +385,7 @@ export default function ManagerDashboard() {
                   {products.map((p) => (
                     <div
                       className="product-item"
-                      key={p.id}
+                      key={p.reliefItemID}
                       role="button"
                       tabIndex={0}
                       onClick={() => openEdit(p)}
@@ -364,22 +393,20 @@ export default function ManagerDashboard() {
                       style={{ cursor: "pointer" }}
                     >
                       <div>
-                        <div className="product-name">{p.name}</div>
+                        <div className="product-name">{p.reliefItemName}</div>
                         <div className="product-meta">
-                          <span>{p.category}</span>
+                          <span>{categoryNameById.get(Number(p.categoryID ?? p.CategoryID)) || `Category #${p.categoryID ?? p.CategoryID}`}</span>
                           <span className="dot">•</span>
-                          <span>Qty: {p.quantity}</span>
+                          <span>Unit: {p.unit}</span>
                         </div>
                       </div>
 
                       <div className="product-right">
-                        <span className={badgeClass(p.status)}>{badgeLabel(p.status)}</span>
-
                         <button
                           className="link link-danger"
                           onClick={(e) => {
                             e.stopPropagation();
-                            del(p.id);
+                            del(p.reliefItemID);
                           }}
                         >
                           Delete
@@ -396,7 +423,7 @@ export default function ManagerDashboard() {
               <div className="panel-row">
                 <div className="panel-card-title">Product Usage Report</div>
 
-                <button className="btn-yellow" onClick={handleExportUsageCSV}>
+                <button className="btn-yellow" onClick={handleExportProductsCSV}>
                   Export File
                 </button>
               </div>
@@ -476,8 +503,8 @@ export default function ManagerDashboard() {
                     <label>Product Name *</label>
                     <input
                       required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      value={formData.reliefItemName}
+                      onChange={(e) => setFormData({ ...formData, reliefItemName: e.target.value })}
                     />
                   </div>
 
@@ -485,26 +512,25 @@ export default function ManagerDashboard() {
                     <label>Category *</label>
                     <select
                       required
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      value={formData.categoryID}
+                      onChange={(e) => setFormData({ ...formData, categoryID: Number(e.target.value) })}
                     >
                       <option value="">Select category</option>
-                      {selectCategories.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
+                      {categories.map((c) => (
+                        <option key={c.categoryID} value={c.categoryID}>
+                          {c.categoryName}
                         </option>
                       ))}
                     </select>
                   </div>
 
                   <div className="field">
-                    <label>Quantity *</label>
+                    <label>Unit *</label>
                     <input
-                      type="number"
-                      min="0"
+                      type="text"
                       required
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                      value={formData.unit}
+                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     />
                   </div>
 
@@ -519,9 +545,10 @@ export default function ManagerDashboard() {
                 </form>
               </div>
             </div>
-          )}
-        </div>
-      </main>
-    </div>
+          )
+          }
+        </div >
+      </main >
+    </div >
   );
 }
