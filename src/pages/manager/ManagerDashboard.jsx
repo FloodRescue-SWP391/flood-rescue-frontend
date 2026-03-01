@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
 import { categoryService } from "../../services/categoryService.js";
 import { reliefItemsService } from "../../services/reliefItemService.js";
-
+import { reliefOrdersService } from "../../services/reliefOrdersService.js";
 
 import {
   BarChart,
@@ -61,8 +61,17 @@ export default function ManagerDashboard() {
   const loadItems = async () => {
     try {
       const res = await reliefItemsService.getAll();
-      if (res?.success) setProducts(res.data || []);
-      else setProducts([]);
+      if (res?.success) {
+        const normalized = (res.data || []).map((p) => ({
+          reliefItemID: p.reliefItemID ?? p.ReliefItemID,
+          reliefItemName: p.reliefItemName ?? p.ReliefItemName ?? "",
+          categoryID: p.categoryID ?? p.CategoryID,
+          unit: p.unit ?? p.Unit ?? "",
+        }));
+        setProducts(normalized);
+      } else {
+        setProducts([]);
+      }
     } catch (err) {
       console.error("Load relief items failed:", err);
       setProducts([]);
@@ -71,6 +80,55 @@ export default function ManagerDashboard() {
   useEffect(() => {
     loadItems();
   }, []);
+
+  //==Prepare order ==
+  const [orders, setOrders] = useState([]);
+  const [showPrepareModal, setShowPrepareModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [prepareItems, setPrepareItems] = useState([]); // [{reliefItemID, quantity}]
+  // Map reliefItemID -> reliefItemName
+  const itemNameById = useMemo(() => {
+    const map = new Map();
+    (products || []).forEach((p) => {
+      const id = p.reliefItemID ?? p.ReliefItemID;
+      const name = p.reliefItemName ?? p.ReliefItemName;
+      if (id && name) map.set(id, name);
+    });
+    return map;
+  }, [products]);
+  const loadOrders = async () => {
+    try {
+      const res = await reliefOrdersService.getAll(); // hoặc getPending()
+
+      console.log("Orders API response:", res);      // log toàn bộ response
+      console.log("Orders data:", res?.data);        // log riêng data
+
+      if (res?.success) {
+        const normalized = (res.data || []).map((o) => ({
+          reliefOrderID: o.reliefOrderID ?? o.ReliefOrderID ?? o.id,
+          status: o.status ?? o.Status,
+          missionStatus: o.missionStatus ?? o.MissionStatus,
+          warehouseName: o.warehouseName ?? o.WarehouseName ?? "",
+          items: (o.items ?? o.Items ?? []).map((x) => ({
+            reliefItemID: x.reliefItemID ?? x.ReliefItemID,
+            quantity: x.quantity ?? x.Quantity ?? 0,
+          })),
+        }));
+
+        setOrders(normalized);
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.error("Load orders failed:", err);
+      setOrders([]);
+    }
+  };
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+
 
 
   // ====== PRODUCT USAGE HISTORY (mock) ======
@@ -132,6 +190,58 @@ export default function ManagerDashboard() {
   }, [monthlyRescues]);
 
   // ====== ACTIONS ======
+  const openPrepare = (order) => {
+
+    setSelectedOrder(order)
+    setPrepareItems(order.items || []);
+    setShowPrepareModal(true);
+  };
+
+  const closePrepare = () => {
+    setShowPrepareModal(false);
+    setSelectedOrder(null);
+    setPrepareItems([]);
+  };
+
+  const setPrepareQty = (reliefItemID, qty) => {
+    setPrepareItems((prev) =>
+      prev.map((x) =>
+        x.reliefItemID === reliefItemID ? { ...x, quantity: Number(qty) } : x
+      )
+    );
+  };
+
+  const confirmPrepare = async () => {
+    if (!selectedOrder) return;
+
+    const items = prepareItems
+      .filter(x => Number(x.quantity) > 0)
+      .map(x => ({
+        reliefItemID: x.reliefItemID,
+        quantity: Number(x.quantity),
+      }));
+
+    if (items.length === 0) {
+      alert("Bạn chưa nhập số lượng xuất kho");
+      return;
+    }
+
+    const payload = {
+      reliefOrderID: selectedOrder.reliefOrderID,
+      items,
+    };
+
+    const res = await reliefOrdersService.prepareOrder(payload);
+
+    if (!res?.success) {
+      alert(res?.message || "Prepare failed!");
+      return;
+    }
+
+    alert("Soạn hàng thành công!");
+    closePrepare();
+    await loadOrders(); // reload từ API
+  };
   const openAdd = () => {
     setEditingProduct(null);
     setFormData({ reliefItemName: "", categoryID: "", unit: "" });
@@ -153,7 +263,7 @@ export default function ManagerDashboard() {
     setEditingProduct(null);
   };
 
-  const submit = async(e) => {
+  const submit = async (e) => {
     e.preventDefault();
 
     const payload = {
@@ -163,7 +273,8 @@ export default function ManagerDashboard() {
     };
     try {
       if (editingProduct) {
-        await reliefItemsService.update(editingProduct.reliefItemID, payload);
+        const editId = editingProduct.reliefItemID ?? editingProduct.ReliefItemID;
+        await reliefItemsService.update(editId, payload);
       } else {
         await reliefItemsService.create(payload);
       }
@@ -187,13 +298,6 @@ export default function ManagerDashboard() {
     }
   };
 
-  const badgeClass = (st) => {
-    if (st === "available") return "badge badge-available";
-    if (st === "out-of-stock") return "badge badge-outofstock";
-    return "badge";
-  };
-
-  const badgeLabel = (st) => (st === "out-of-stock" ? "out of stock" : "available");
 
 
   function getFilteredUsage() {
@@ -230,8 +334,8 @@ export default function ManagerDashboard() {
       ...products.map((p) => [
         p.reliefItemID,
         p.reliefItemName,
-        p.categoryID ?? p.CategoryID,
-        categoryNameById.get(Number(p.categoryID ?? p.CategoryID)) || "",
+        p.categoryID,
+        categoryNameById.get(Number(p.categoryID)) || "",
         p.unit,
       ]),
     ];
@@ -253,6 +357,21 @@ export default function ManagerDashboard() {
     reportPeriod === "week" ? "Past Week" : reportPeriod === "month" ? "Past Month" : "Past Quarter";
 
   const totalRetrieved = filteredUsage.reduce((s, x) => s + x.quantity, 0);
+
+  const selectedId =
+    selectedOrder?.reliefOrderID ??
+    selectedOrder?.ReliefOrderID ??
+    selectedOrder?.id;
+
+  const selectedMission =
+    selectedOrder?.missionStatus ??
+    selectedOrder?.MissionStatus ??
+    "";
+
+  const selectedWarehouse =
+    selectedOrder?.warehouseName ??
+    selectedOrder?.WarehouseName ??
+    "";
 
   return (
     <div className="manager-root">
@@ -395,7 +514,7 @@ export default function ManagerDashboard() {
                       <div>
                         <div className="product-name">{p.reliefItemName}</div>
                         <div className="product-meta">
-                          <span>{categoryNameById.get(Number(p.categoryID ?? p.CategoryID)) || `Category #${p.categoryID ?? p.CategoryID}`}</span>
+                          <span>{categoryNameById.get(Number(p.categoryID)) || `Category #${p.categoryID ?? p.CategoryID}`}</span>
                           <span className="dot">•</span>
                           <span>Unit: {p.unit}</span>
                         </div>
@@ -406,7 +525,7 @@ export default function ManagerDashboard() {
                           className="link link-danger"
                           onClick={(e) => {
                             e.stopPropagation();
-                            del(p.reliefItemID);
+                            del(p.reliefItemID ?? p.ReliefItemID);
                           }}
                         >
                           Delete
@@ -417,7 +536,53 @@ export default function ManagerDashboard() {
                 </div>
               </div>
             </div>
+            {/* PREPARE ORDERS */}
+            <div className="panel-card report-card">
+              <div className="panel-row">
+                <div className="panel-card-title">Prepare Orders</div>
+                <div style={{ opacity: 0.75, fontSize: 13 }}>
+                  (Pending + Mission InProgress mới soạn được)
+                </div>
+              </div>
 
+              <div className="product-box">
+                <div className="product-list">
+                  {orders.map((o) => {
+                    const canPrepare =
+                      o.status === "Pending" && o.missionStatus === "InProgress";
+
+                    return (
+                      <div className="product-item" key={o.reliefOrderID}>
+                        <div>
+                          <div className="product-name">Order: {o.reliefOrderID}</div>
+                          <div className="product-meta">
+                            <span>Status: {o.status}</span>
+                            <span className="dot">•</span>
+                            <span>Mission: {o.missionStatus}</span>
+                            <span className="dot">•</span>
+                            <span>{o.warehouseName}</span>
+                          </div>
+                        </div>
+
+                        <div className="product-right">
+                          <button
+                            className="btn-yellow"
+                            disabled={!canPrepare}
+                            onClick={() => openPrepare(o)}
+                          >
+                            Soạn hàng
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {orders.length === 0 && (
+                    <div style={{ opacity: 0.7, padding: 12 }}>No orders</div>
+                  )}
+                </div>
+              </div>
+            </div>
             {/* PRODUCT USAGE REPORT (full width) */}
             <div className="panel-card report-card">
               <div className="panel-row">
@@ -492,6 +657,64 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
+          {/* PREPARE MODAL */}
+          {showPrepareModal && (
+            <div className="mp-modal-overlay">
+              <div className="mp-modal">
+                <div className="mp-modal-title">
+                  Soạn hàng cho Order {selectedId}
+                </div>
+
+                <div style={{ marginBottom: 12, opacity: 0.85 }}>
+                  Mission: {selectedMission} • Kho: {selectedWarehouse}
+                </div>
+
+                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Relief Item</th>
+                        <th style={{ width: 140 }}>Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prepareItems.map((x) => (
+                        <tr key={x.reliefItemID}>
+                          <td>{itemNameById.get(x.reliefItemID) || x.reliefItemID}</td>
+                          <td>
+                            <input
+                              type="number"
+                              min={0}
+                              value={x.quantity}
+                              onChange={(e) => setPrepareQty(x.reliefItemID, e.target.value)}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+
+                      {prepareItems.length === 0 && (
+                        <tr>
+                          <td colSpan={2} style={{ textAlign: "center", opacity: 0.7 }}>
+                            No items
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mp-modal-actions">
+                  <button type="button" className="btn-ghost" onClick={closePrepare}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn-red" onClick={confirmPrepare}>
+                    Xuất kho / Xác nhận soạn xong
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* MODAL */}
           {showModal && (
             <div className="mp-modal-overlay">
