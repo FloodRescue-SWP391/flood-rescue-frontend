@@ -4,7 +4,7 @@ import Header from "../../components/common/Header.jsx";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
+import { getAllRescueRequests } from "../../services/rescueRequestService.js";
 /* FIX ICON */
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -40,7 +40,7 @@ const ChangeView = ({ center, zoom }) => {
 
 const Dashboard = () => {
   // State cho danh sách yêu cầu cứu trợ lũ lụt
-  const [allRequests, setAllRequests] = useState([
+  const mockRequest = [
     {
       id: 1,
       requestId: "FLOOD-001",
@@ -161,8 +161,43 @@ const Dashboard = () => {
       isNew: false,
       waterLevel: "0.5m",
       specialNeeds: "Cần đội cứu hộ đặc biệt",
+    },];
+
+
+  const mapStatusToUI = (status) => {
+    const s = (status || "").toLowerCase();
+    if (s === "pending") return "pending";
+    if (s === "processing" || s === "in_progress") return "in_progress";
+    if (s === "completed") return "completed";
+    return "pending";
+  };
+
+  const mapRequestToUI = (r) => ({
+    id: r.rescueRequestID ?? r.RescueRequestID,
+    requestId: r.shortCode ?? r.ShortCode,
+    fullName: "Citizen",
+    phoneNumber: r.citizenPhone ?? r.CitizenPhone ?? "",
+    address: "N/A",
+    location: {
+      lat: r.locationLatitude ?? r.LocationLatitude,
+      lng: r.locationLongitude ?? r.LocationLongitude,
     },
-  ]);
+    emergencyType: r.requestType ?? r.RequestType ?? "",
+    emergencyCategory: "supply",
+    peopleCount: 1,
+    priorityLevel: "Medium",
+    description: r.description ?? r.Description ?? "",
+    status: mapStatusToUI(r.status ?? r.Status),
+    timestamp: new Date(r.createdTime ?? r.CreatedTime).toLocaleString("vi-VN"),
+    contactVia: "Phone Call",
+    imageUrl: (r.imageUrls ?? r.ImageUrls)?.[0] || "https://via.placeholder.com/150",
+    isNew: false,
+    waterLevel: "0m",
+    specialNeeds: "",
+  });
+
+  const [allRequests, setAllRequests] = useState(mockRequest);
+  const [usingRealData, setUsingRealData] = useState(false);
 
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [mapCenter, setMapCenter] = useState([10.775, 106.686]);
@@ -292,9 +327,32 @@ const Dashboard = () => {
     const unread = notifications.filter((n) => !n.read).length;
     setUnreadCount(unread);
   }, [notifications]);
+  //load data thực tế
+  useEffect(() => {
+    const loadRealRequests = async () => {
+      try {
+        const res = await getAllRescueRequests();
+        console.log("GET /RescueRequests:", res);
+
+        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+          const normalized = res.data.map(mapRequestToUI);
+          setAllRequests(normalized); //  replace mock bằng data thật
+          setUsingRealData(true);
+        }
+      } catch (e) {
+        console.warn("API failed -> keep mock:", e?.message);
+        // không setAllRequests gì cả => giữ mock
+      }
+    };
+
+    loadRealRequests();
+  }, []);
+
+
 
   // Giả lập nhận yêu cầu mới cho lũ lụt
   useEffect(() => {
+    if (usingRealData) return;
     const simulateNewFloodRequest = () => {
       const floodTypes = [
         "Người mắc kẹt trong nước",
@@ -401,8 +459,12 @@ const Dashboard = () => {
     // Simulate ngay 1 request để demo
     setTimeout(simulateNewFloodRequest, 3000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(interval);
+    };
+  }, [usingRealData]);
+
 
   // Các hàm xử lý
   const handleRequestClick = (request) => {
@@ -614,35 +676,35 @@ const Dashboard = () => {
             req.priorityLevel === "Critical" &&
             req.status !== "completed",
         ) && (
-          <div className="critical-alert-banner">
-            <div className="alert-content">
-              <span className="alert-icon">🚨</span>
-              <div>
-                <h3>WARNING: Critical life-threatening situation!</h3>
-                <p>
-                  There are{" "}
-                  {
-                    allRequests.filter(
-                      (req) => req.isNew && req.priorityLevel === "Critical",
-                    ).length
-                  }{" "}
-                  critical rescue requests that need immediate handling
-                </p>
+            <div className="critical-alert-banner">
+              <div className="alert-content">
+                <span className="alert-icon">🚨</span>
+                <div>
+                  <h3>WARNING: Critical life-threatening situation!</h3>
+                  <p>
+                    There are{" "}
+                    {
+                      allRequests.filter(
+                        (req) => req.isNew && req.priorityLevel === "Critical",
+                      ).length
+                    }{" "}
+                    critical rescue requests that need immediate handling
+                  </p>
+                </div>
               </div>
+              <button
+                className="alert-action"
+                onClick={() => {
+                  const criticalRequest = allRequests.find(
+                    (req) => req.isNew && req.priorityLevel === "Critical",
+                  );
+                  if (criticalRequest) handleRequestClick(criticalRequest);
+                }}
+              >
+                Handle immediately →
+              </button>
             </div>
-            <button
-              className="alert-action"
-              onClick={() => {
-                const criticalRequest = allRequests.find(
-                  (req) => req.isNew && req.priorityLevel === "Critical",
-                );
-                if (criticalRequest) handleRequestClick(criticalRequest);
-              }}
-            >
-              Handle immediately →
-            </button>
-          </div>
-        )}
+          )}
 
         {/* Filter Controls */}
         <div className="filter-section">
@@ -785,7 +847,7 @@ const Dashboard = () => {
                               : request.emergencyType === "Medicine is needed."
                                 ? "💊"
                                 : request.emergencyType ===
-                                    "Life jackets/boat needed."
+                                  "Life jackets/boat needed."
                                   ? "🛟"
                                   : request.emergencyType === "Landslide"
                                     ? "⛰️"
@@ -1006,22 +1068,22 @@ const Dashboard = () => {
                           Emergency type:{" "}
                           <span className="detail-value badge">
                             {selectedRequest.emergencyType ===
-                            "People trapped in the water"
+                              "People trapped in the water"
                               ? "🌊"
                               : selectedRequest.emergencyType ===
-                                  "The house was flooded."
+                                "The house was flooded."
                                 ? "🏠"
                                 : selectedRequest.emergencyType ===
-                                    "Food/water is needed."
+                                  "Food/water is needed."
                                   ? "📦"
                                   : selectedRequest.emergencyType ===
-                                      "Medicine is needed."
+                                    "Medicine is needed."
                                     ? "💊"
                                     : selectedRequest.emergencyType ===
-                                        "Life jackets/boat needed."
+                                      "Life jackets/boat needed."
                                       ? "🛟"
                                       : selectedRequest.emergencyType ===
-                                          "Landslide"
+                                        "Landslide"
                                         ? "⛰️"
                                         : "🚨"}
                             {selectedRequest.emergencyType}
@@ -1132,7 +1194,7 @@ const Dashboard = () => {
                     </div>
 
                     <div className="action-buttons-group">
-                      
+
 
                       <div className="button-row1">
                         <button

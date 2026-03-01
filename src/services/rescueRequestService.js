@@ -20,5 +20,22 @@ export async function trackRescueRequest(shortCode) {
   );
   const json = await res.json();
   if (!res.ok) throw new Error(json?.message || "Track rescue request failed");
+  return json;//apiResponse
+}
+//  GET: /api/RescueRequests  (Coordinator dùng để lấy list)
+export async function getAllRescueRequests() {
+  const res = await fetch(`${API_BASE_URL}/RescueRequests`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.message || "Get rescue requests failed");
+  return json; // ApiResponse<List>
+}
+
+// optional: nếu BE có hỗ trợ query status
+export async function getRescueRequestsByStatus(status) {
+  const res = await fetch(
+    `${API_BASE_URL}/RescueRequests?status=${encodeURIComponent(status)}`
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.message || "Get rescue requests failed");
   return json;
 }
