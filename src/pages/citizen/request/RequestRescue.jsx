@@ -7,6 +7,9 @@ import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
+//api
+import { createRescueRequest } from "../../../services/rescueRequestService.js";
+
 import { uploadToCloudinary } from "../../../utils/cloudinary.js";
 /* FIX ICON */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -74,11 +77,11 @@ const RequestRescue = () => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?` +
-          `format=json` +
-          `&q=${encodeURIComponent(address)}` +
-          `&countrycodes=vn` +
-          `&addressdetails=1` +
-          `&limit=1`,
+        `format=json` +
+        `&q=${encodeURIComponent(address)}` +
+        `&countrycodes=vn` +
+        `&addressdetails=1` +
+        `&limit=1`,
         {
           headers: {
             "Accept-Language": "vi",
@@ -107,9 +110,9 @@ const RequestRescue = () => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?` +
-          `format=json` +
-          `&lat=${lat}` +
-          `&lon=${lng}`,
+        `format=json` +
+        `&lat=${lat}` +
+        `&lon=${lng}`,
         {
           headers: {
             "Accept-Language": "vi",
@@ -228,52 +231,52 @@ const RequestRescue = () => {
   };
 
   const emergencyTypes = [
-  {
-    value: "Người mắc kẹt trong nước",
-    icon: "🌊",
-    description: "Người bị mắc kẹt do nước lũ dâng cao",
-  },
-  {
-    value: "Nhà bị ngập",
-    icon: "🏠",
-    description: "Nhà cửa bị ngập nước, cần di dời",
-  },
-  {
-    value: "Cần thực phẩm/ nước uống",
-    icon: "📦",
-    description: "Cần tiếp tế lương thực, nước sạch",
-  },
-  {
-    value: "Cần thuốc men",
-    icon: "💊",
-    description: "Cần thuốc men, vật tư y tế",
-  },
-  {
-    value: "Cần áo phao/thuyền",
-    icon: "🛟",
-    description: "Cần phương tiện cứu hộ, thiết bị an toàn",
-  },
-  {
-    value: "Cần di dời khẩn cấp",
-    icon: "🚨",
-    description: "Cần sơ tán đến nơi an toàn",
-  },
-  {
-    value: "Sạt lở đất",
-    icon: "⛰️",
-    description: "Sạt lở đất đá, đe dọa nhà cửa",
-  },
-  {
-    value: "Cây đổ/ đường sá hư hỏng",
-    icon: "🛣️",
-    description: "Cây đổ, đường sá hư hỏng do lũ",
-  },
-  {
-    value: "Mất điện/ mất liên lạc",
-    icon: "📡",
-    description: "Mất điện, mất liên lạc với bên ngoài",
-  },
-];
+    {
+      value: "Người mắc kẹt trong nước",
+      icon: "🌊",
+      description: "Người bị mắc kẹt do nước lũ dâng cao",
+    },
+    {
+      value: "Nhà bị ngập",
+      icon: "🏠",
+      description: "Nhà cửa bị ngập nước, cần di dời",
+    },
+    {
+      value: "Cần thực phẩm/ nước uống",
+      icon: "📦",
+      description: "Cần tiếp tế lương thực, nước sạch",
+    },
+    {
+      value: "Cần thuốc men",
+      icon: "💊",
+      description: "Cần thuốc men, vật tư y tế",
+    },
+    {
+      value: "Cần áo phao/thuyền",
+      icon: "🛟",
+      description: "Cần phương tiện cứu hộ, thiết bị an toàn",
+    },
+    {
+      value: "Cần di dời khẩn cấp",
+      icon: "🚨",
+      description: "Cần sơ tán đến nơi an toàn",
+    },
+    {
+      value: "Sạt lở đất",
+      icon: "⛰️",
+      description: "Sạt lở đất đá, đe dọa nhà cửa",
+    },
+    {
+      value: "Cây đổ/ đường sá hư hỏng",
+      icon: "🛣️",
+      description: "Cây đổ, đường sá hư hỏng do lũ",
+    },
+    {
+      value: "Mất điện/ mất liên lạc",
+      icon: "📡",
+      description: "Mất điện, mất liên lạc với bên ngoài",
+    },
+  ];
 
   const priorityLevels = [
     {
@@ -314,14 +317,14 @@ const RequestRescue = () => {
     }
 
     const agreeChecked = document.querySelector(
-  'input[name="agreeTerms"]'
-)?.checked;
+      'input[name="agreeTerms"]'
+    )?.checked;
 
-if (!agreeChecked) {
-  alert("Please confirm the emergency agreement before submitting.");
-  setIsLoading(false);
-  return;
-}
+    if (!agreeChecked) {
+      alert("Please confirm the emergency agreement before submitting.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       let imageUrls = [];
@@ -335,22 +338,44 @@ if (!agreeChecked) {
         setUploadingImage(false);
       }
 
+      // lat/long lấy từ mapCenter (giữ map không đổi)
+      const lat = mapCenter?.[0];
+      const long = mapCenter?.[1];
+
+      // Map emergencyType -> requestType backend
+      const isSupply =
+        formData.emergencyType === "Cần thực phẩm/ nước uống" ||
+        formData.emergencyType === "Cần thuốc men" ||
+        formData.emergencyType === "Cần áo phao/thuyền";
+
       const payload = {
-        ...formData,
-        image: imageUrls,
-        timestamp: new Date().toISOString(),
-        requestId: `RESCUE-${Date.now()}`,
+        requestType: isSupply ? "SUPPLY_TYPE" : "RESCUE_TYPE",
+        description: formData.description?.trim() || "",
+        lat,
+        long,
+        phoneNumber: formData.phoneNumber.trim(),
+        images: imageUrls,
       };
 
-      console.log("RESCUE PAYLOAD: ", payload);
+      console.log("CREATE RESCUE REQUEST PAYLOAD:", payload);
 
-      //Luu tam (Sau nay thay bang API BE)
-      localStorage.setItem("lastRescueRequest", JSON.stringify(payload));
+      // Gọi API
+      const api = await createRescueRequest(payload);
+
+      // ApiResponse -> shortCode nằm trong api.data
+      const shortCode = api?.data?.shortCode ?? api?.data?.ShortCode;
+      if (!shortCode) throw new Error("Server did not return shortCode");
+
+      // Lưu shortCode để trang status dùng
+      localStorage.setItem("lastShortCode", shortCode);
 
       setShowSuccess(true);
       setIsLoading(false);
 
-      setTimeout(() => navigate("/citizen/request-status"), 2000);
+      // chuyển trang (nếu bạn muốn truyền code thì dùng query)
+      setTimeout(() => {
+        navigate(`/citizen/request-status?code=${shortCode}`);
+      }, 800);
     } catch (error) {
       console.error(error);
       alert("Failed to submit rescue request. Please try again!");
@@ -567,11 +592,10 @@ if (!agreeChecked) {
                       <button
                         key={type.value}
                         type="button"
-                        className={`emergency-type-btn ${
-                          formData.emergencyType === type.value
+                        className={`emergency-type-btn ${formData.emergencyType === type.value
                             ? "selected"
                             : ""
-                        }`}
+                          }`}
                         onClick={() =>
                           setFormData({
                             ...formData,
@@ -641,11 +665,10 @@ if (!agreeChecked) {
                     onChange={handleChange}
                     className="form-select"
                     style={{
-                      borderLeft: `4px solid ${
-                        priorityLevels.find(
-                          (p) => p.value === formData.priorityLevel,
-                        )?.color || "#eab308"
-                      }`,
+                      borderLeft: `4px solid ${priorityLevels.find(
+                        (p) => p.value === formData.priorityLevel,
+                      )?.color || "#eab308"
+                        }`,
                     }}
                   >
                     {priorityLevels.map((level) => (
@@ -841,33 +864,33 @@ if (!agreeChecked) {
                 )}
 
                 {imagePreviews.length > 0 && (
-  <div className="summary-section">
-    <h3 className="summary-title">Emergency Images</h3>
+                  <div className="summary-section">
+                    <h3 className="summary-title">Emergency Images</h3>
 
-    <div
-      style={{
-        display: "flex",
-        gap: "12px",
-        flexWrap: "wrap",
-      }}
-    >
-      {imagePreviews.map((src, index) => (
-        <img
-          key={index}
-          src={src}
-          alt={`Emergency ${index + 1}`}
-          style={{
-            width: "120px",
-            height: "120px",
-            objectFit: "cover",
-            borderRadius: "8px",
-            border: "1px solid #ddd",
-          }}
-        />
-      ))}
-    </div>
-  </div>
-)}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {imagePreviews.map((src, index) => (
+                        <img
+                          key={index}
+                          src={src}
+                          alt={`Emergency ${index + 1}`}
+                          style={{
+                            width: "120px",
+                            height: "120px",
+                            objectFit: "cover",
+                            borderRadius: "8px",
+                            border: "1px solid #ddd",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
 
                 <div className="summary-section">
@@ -891,7 +914,7 @@ if (!agreeChecked) {
                   <input
                     type="checkbox"
                     name="agreeTerms"
-                   
+
                     className="checkbox-input"
                   />
                   <span className="checkbox-custom"></span>
