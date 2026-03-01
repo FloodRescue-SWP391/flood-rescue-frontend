@@ -10,13 +10,13 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  background-color: antiquewhite;
+  background-color: #F0F3F7;
 }
 
 .panel-card {
-  background: #ffe2b3;
+  background: #ffffff;
   border-radius: 12px;
-  border: 2px solid #807676;
+  border: 2px ;
   padding: 16px;
   margin-bottom: 16px;
 }
