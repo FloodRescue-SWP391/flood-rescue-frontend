@@ -6,7 +6,7 @@ import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
 import { categoryService } from "../../services/categoryService.js";
 import { reliefItemsService } from "../../services/reliefItemService.js";
 import { reliefOrdersService } from "../../services/reliefOrdersService.js";
-
+import { inventoryService } from "../../services/inventoryService.js";
 import {
   BarChart,
   Bar,
@@ -56,6 +56,49 @@ export default function ManagerDashboard() {
     });
     return map;
   }, [categories]);
+
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveWarehouseID, setReceiveWarehouseID] = useState("");
+  const [receiveItems, setReceiveItems] = useState([{ reliefItemID: "", quantity: 0 }]);
+
+  const openReceive = () => {
+    setReceiveWarehouseID("");
+    setReceiveItems([{ reliefItemID: "", quantity: 0 }]);
+    setShowReceiveModal(true);
+  };
+
+  const closeReceive = () => setShowReceiveModal(false);
+
+  const addReceiveRow = () =>
+    setReceiveItems((prev) => [...prev, { reliefItemID: "", quantity: 0 }]);
+
+  const removeReceiveRow = (idx) =>
+    setReceiveItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateReceiveRow = (idx, patch) =>
+    setReceiveItems((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const confirmReceive = async () => {
+    const whId = Number(receiveWarehouseID);
+    if (!whId || whId <= 0) return alert("WarehouseID không hợp lệ");
+
+    const items = receiveItems
+      .filter((x) => Number(x.reliefItemID) > 0 && Number(x.quantity) > 0)
+      .map((x) => ({ reliefItemID: Number(x.reliefItemID), quantity: Number(x.quantity) }));
+
+    if (items.length === 0) return alert("Bạn chưa nhập item/quantity hợp lệ");
+
+    try {
+      const res = await inventoryService.receiveInventory({ warehouseID: whId, items });
+      if (!res?.success) return alert(res?.message || "Nhập kho thất bại");
+
+      alert(res?.message || "Nhập kho thành công!");
+      closeReceive();
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Nhập kho thất bại");
+    }
+  };
 
   const [products, setProducts] = useState([]);
   const loadItems = async () => {
@@ -167,15 +210,7 @@ export default function ManagerDashboard() {
     { time: "20+ min", count: 30 },
   ];
 
-  // ====== MODAL ======
-  const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
 
-  const [formData, setFormData] = useState({
-    reliefItemName: "",
-    categoryID: "",
-    unit: "",
-  });
 
   // ====== KPI ======
   const { totalRequests, totalCompleted, successRate } = useMemo(() => {
@@ -242,62 +277,6 @@ export default function ManagerDashboard() {
     closePrepare();
     await loadOrders(); // reload từ API
   };
-  const openAdd = () => {
-    setEditingProduct(null);
-    setFormData({ reliefItemName: "", categoryID: "", unit: "" });
-    setShowModal(true);
-  };
-
-  const openEdit = (p) => {
-    setEditingProduct(p);
-    setFormData({
-      reliefItemName: p.reliefItemName || "",
-      categoryID: Number(p.categoryID ?? p.CategoryID ?? 0),
-      unit: p.unit || "",
-    });
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingProduct(null);
-  };
-
-  const submit = async (e) => {
-    e.preventDefault();
-
-    const payload = {
-      reliefItemName: formData.reliefItemName,
-      categoryID: Number(formData.categoryID),
-      unit: formData.unit,
-    };
-    try {
-      if (editingProduct) {
-        const editId = editingProduct.reliefItemID ?? editingProduct.ReliefItemID;
-        await reliefItemsService.update(editId, payload);
-      } else {
-        await reliefItemsService.create(payload);
-      }
-      await loadItems(); // reload lại list từ API
-      closeModal();
-    } catch (err) {
-      console.error("Save relief item failed:", err);
-      alert("Save failed!");
-    }
-  };
-
-  const del = async (id) => {
-    if (!confirm("Delete this product?")) return;
-
-    try {
-      await reliefItemsService.remove(id);
-      await loadItems();
-    } catch (err) {
-      console.error("Delete relief item failed:", err);
-      alert("Delete failed!");
-    }
-  };
-
 
 
   function getFilteredUsage() {
@@ -351,6 +330,50 @@ export default function ManagerDashboard() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // ===== NEW ITEM (CREATE RELIEF ITEM) MODAL =====
+  const [showNewItemModal, setShowNewItemModal] = useState(false);
+  const [newItemForm2, setNewItemForm2] = useState({
+    reliefItemName: "",
+    categoryID: "",
+    unit: "",
+  });
+
+  const openNewItemModal = () => {
+    setNewItemForm2({ reliefItemName: "", categoryID: "", unit: "" });
+    setShowNewItemModal(true);
+  };
+
+  const closeNewItemModal = () => setShowNewItemModal(false);
+
+  const submitNewItem = async (e) => {
+    e?.preventDefault?.();
+
+    const payload = {
+      reliefItemName: newItemForm2.reliefItemName.trim(),
+      categoryID: Number(newItemForm2.categoryID),
+      unit: newItemForm2.unit.trim(),
+    };
+
+    if (!payload.reliefItemName) return alert("Product name is required");
+    if (!payload.categoryID) return alert("Category is required");
+    if (!payload.unit) return alert("Unit is required");
+
+    try {
+      const res = await reliefItemsService.create(payload);
+      if (!res?.success) {
+        alert(res?.message || "Create item failed");
+        return;
+      }
+
+      alert(res?.message || "Created new item!");
+      closeNewItemModal();
+      await loadItems(); // reload products list
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || "Create item failed");
+    }
   };
 
   const reportPeriodLabel =
@@ -494,9 +517,16 @@ export default function ManagerDashboard() {
             <div className="panel-card">
               <div className="panel-row">
                 <div className="panel-card-title">Rescue Products</div>
-                <button className="btn-yellow" onClick={openAdd}>
-                  Add New Product
-                </button>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <button className="btn-yellow" onClick={openNewItemModal}>
+                    Add New Item
+                  </button>
+
+                  {/*nút này dùng để receive inventory*/}
+                  <button className="btn-yellow" onClick={openReceive}>
+                    Add Products to WareHouse
+                  </button>
+                </div>
               </div>
 
               <div className="product-box">
@@ -505,11 +535,6 @@ export default function ManagerDashboard() {
                     <div
                       className="product-item"
                       key={p.reliefItemID}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => openEdit(p)}
-                      onKeyDown={(e) => e.key === "Enter" && openEdit(p)}
-                      style={{ cursor: "pointer" }}
                     >
                       <div>
                         <div className="product-name">{p.reliefItemName}</div>
@@ -519,20 +544,11 @@ export default function ManagerDashboard() {
                           <span>Unit: {p.unit}</span>
                         </div>
                       </div>
-
-                      <div className="product-right">
-                        <button
-                          className="link link-danger"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            del(p.reliefItemID ?? p.ReliefItemID);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
                     </div>
                   ))}
+                  {products.length === 0 && (
+                    <div style={{ opacity: 0.7, padding: 12 }}>No Products</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -652,6 +668,7 @@ export default function ManagerDashboard() {
                       </tbody>
                     </table>
                   </div>
+
                 </div>
               </div>
             </div>
@@ -675,6 +692,7 @@ export default function ManagerDashboard() {
                       <tr>
                         <th>Relief Item</th>
                         <th style={{ width: 140 }}>Quantity</th>
+                        <th style={{ width: 120 }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -715,19 +733,107 @@ export default function ManagerDashboard() {
               </div>
             </div>
           )}
-          {/* MODAL */}
-          {showModal && (
+          {/*RECEIVEMODAL*/}
+          {showReceiveModal && (
             <div className="mp-modal-overlay">
               <div className="mp-modal">
-                <div className="mp-modal-title">{editingProduct ? "Edit Product" : "Add New Product"}</div>
+                <div className="mp-modal-title">Receive Inventory</div>
 
-                <form onSubmit={submit}>
+                <div className="field">
+                  <label>Warehouse *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={receiveWarehouseID}
+                    onChange={(e) => setReceiveWarehouseID(e.target.value)}
+                  />
+                </div>
+
+                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Relief Item</th>
+                        <th style={{ width: 140 }}>Quantity</th>
+                        <th style={{ width: 90 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receiveItems.map((row, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            <select
+                              value={row.reliefItemID}
+                              onChange={(e) => updateReceiveRow(idx, { reliefItemID: e.target.value })}
+                              style={{ width: "100%" }}
+                            >
+                              <option value="">-- Select item --</option>
+                              {products.map((p) => (
+                                <option key={p.reliefItemID} value={p.reliefItemID}>
+                                  {p.reliefItemName}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          <td>
+                            <input
+                              type="number"
+                              min={0}
+                              value={row.quantity}
+                              onChange={(e) => updateReceiveRow(idx, { quantity: e.target.value })}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              className="link link-danger"
+                              onClick={() => removeReceiveRow(idx)}
+                              disabled={receiveItems.length === 1}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="btn-ghost" onClick={addReceiveRow}>
+                    + Add item
+                  </button>
+                </div>
+
+                <div className="mp-modal-actions">
+                  <button type="button" className="btn-ghost" onClick={closeReceive}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn-red" onClick={confirmReceive}>
+                    Confirm Receive
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* NEW ITEM MODAL (Create Relief Item) */}
+          {showNewItemModal && (
+            <div className="mp-modal-overlay">
+              <div className="mp-modal">
+                <div className="mp-modal-title">Add New Item</div>
+
+                <form onSubmit={submitNewItem}>
                   <div className="field">
                     <label>Product Name *</label>
                     <input
                       required
-                      value={formData.reliefItemName}
-                      onChange={(e) => setFormData({ ...formData, reliefItemName: e.target.value })}
+                      value={newItemForm2.reliefItemName}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, reliefItemName: e.target.value })
+                      }
                     />
                   </div>
 
@@ -735,13 +841,18 @@ export default function ManagerDashboard() {
                     <label>Category *</label>
                     <select
                       required
-                      value={formData.categoryID}
-                      onChange={(e) => setFormData({ ...formData, categoryID: Number(e.target.value) })}
+                      value={newItemForm2.categoryID}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, categoryID: e.target.value })
+                      }
                     >
                       <option value="">Select category</option>
                       {categories.map((c) => (
-                        <option key={c.categoryID} value={c.categoryID}>
-                          {c.categoryName}
+                        <option
+                          key={c.categoryID ?? c.CategoryID}
+                          value={c.categoryID ?? c.CategoryID}
+                        >
+                          {c.categoryName ?? c.CategoryName}
                         </option>
                       ))}
                     </select>
@@ -750,26 +861,26 @@ export default function ManagerDashboard() {
                   <div className="field">
                     <label>Unit *</label>
                     <input
-                      type="text"
                       required
-                      value={formData.unit}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                      value={newItemForm2.unit}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, unit: e.target.value })
+                      }
                     />
                   </div>
 
                   <div className="mp-modal-actions">
-                    <button type="button" className="btn-ghost" onClick={closeModal}>
+                    <button type="button" className="btn-ghost" onClick={closeNewItemModal}>
                       Cancel
                     </button>
                     <button type="submit" className="btn-red">
-                      {editingProduct ? "Update" : "Add"}
+                      Add
                     </button>
                   </div>
                 </form>
               </div>
             </div>
-          )
-          }
+          )}
         </div >
       </main >
     </div >
