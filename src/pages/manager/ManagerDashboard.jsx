@@ -168,9 +168,9 @@ export default function ManagerDashboard() {
     }
   };
   useEffect(() => {
-    loadOrders();
+    //BE Chưa có Get/api/ReliefOrders 
+    //loadOrders();
   }, []);
-
 
 
 
@@ -458,7 +458,7 @@ export default function ManagerDashboard() {
             <div className="panel-card">
               <div className="panel-card-title">Rescue Requests Trend</div>
               <div className="chart-box">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={240}>
                   <LineChart data={monthlyRescues}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
@@ -476,7 +476,7 @@ export default function ManagerDashboard() {
             <div className="panel-card">
               <div className="panel-card-title">Emergency Types Distribution</div>
               <div className="chart-box">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={240}>
                   <RePieChart>
                     <Pie
                       data={emergencyTypes}
@@ -501,7 +501,7 @@ export default function ManagerDashboard() {
             <div className="panel-card">
               <div className="panel-card-title">Response Time Analysis</div>
               <div className="chart-box">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={responseTimeData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="time" />
