@@ -36,6 +36,20 @@ const locationIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
+const toApiRequestType = (uiValue) => {
+  // nếu UI đang lưu key dạng enum/string khác, map về chuẩn BE
+  if (uiValue === "Rescue" || uiValue === "Supply") return uiValue;
+
+  // ví dụ UI đang dùng: "Supplies" hoặc "SUPPLY_TYPE"
+  if (uiValue === "Supplies" || uiValue === "SUPPLY_TYPE") return "Supply";
+
+  // ví dụ UI đang dùng: "RESCUE" hoặc "RESCUE_TYPE"
+  if (uiValue === "RESCUE" || uiValue === "RESCUE_TYPE") return "Rescue";
+
+  // fallback
+  return "Rescue";
+};
+
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
   useEffect(() => {
@@ -339,8 +353,8 @@ const RequestRescue = () => {
       }
 
       // lat/long lấy từ mapCenter (giữ map không đổi)
-      const lat = mapCenter?.[0];
-      const long = mapCenter?.[1];
+      const locationLatitude = mapCenter?.[0];
+      const locationLongitude = mapCenter?.[1];
 
       // Map emergencyType -> requestType backend
       const isSupply =
@@ -349,12 +363,13 @@ const RequestRescue = () => {
         formData.emergencyType === "Cần áo phao/thuyền";
 
       const payload = {
-        requestType: isSupply ? "SUPPLY_TYPE" : "RESCUE_TYPE",
+        requestType: isSupply ? "Supply" : "Rescue",
         description: formData.description?.trim() || "",
-        lat,
-        long,
+        locationLatitude,
+        locationLongitude,
         phoneNumber: formData.phoneNumber.trim(),
-        images: imageUrls,
+        peopleCount: Number(formData.peopleCount) || 1,
+        imageUrls: imageUrls,
       };
 
       console.log("CREATE RESCUE REQUEST PAYLOAD:", payload);
@@ -363,23 +378,23 @@ const RequestRescue = () => {
       const api = await createRescueRequest(payload);
 
       // ApiResponse -> shortCode nằm trong api.data
-      const shortCode = api?.data?.shortCode ?? api?.data?.ShortCode;
+      const shortCode = api?.content?.shortCode ?? api?.content?.ShortCode;
       if (!shortCode) throw new Error("Server did not return shortCode");
 
       // Lưu shortCode để trang status dùng
       localStorage.setItem("lastShortCode", shortCode);
 
       setShowSuccess(true);
-      setIsLoading(false);
-
       // chuyển trang (nếu bạn muốn truyền code thì dùng query)
       setTimeout(() => {
         navigate(`/citizen/request-status?code=${shortCode}`);
       }, 800);
     } catch (error) {
       console.error(error);
-      alert("Failed to submit rescue request. Please try again!");
+      alert(error?.message || "Failed to submit rescue request. Please try again!");
+    } finally {
       setIsLoading(false);
+      setUploadingImage(false);
     }
   };
 
@@ -593,8 +608,8 @@ const RequestRescue = () => {
                         key={type.value}
                         type="button"
                         className={`emergency-type-btn ${formData.emergencyType === type.value
-                            ? "selected"
-                            : ""
+                          ? "selected"
+                          : ""
                           }`}
                         onClick={() =>
                           setFormData({
