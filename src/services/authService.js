@@ -48,14 +48,20 @@ export async function login(username, password) {
   const res = await fetch(`${API_BASE_URL}/Auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({userName:username, password }),
   });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch { }
 
-  const json = await res.json();
   if (!res.ok) {
-    throw new Error(json.message || "Login failed");
+    const msg = json?.message || json?.title || text || "Login Failed";
+    throw new Error(msg);
   }
+  const data = json?.data ?? json;
   //lưu auth để apiClient có thể tự động thêm token vào header khi gọi API sau này
-  localStorage.setItem("auth", JSON.stringify(json.data)); //giả sử backend trả về { data: { accessToken, refreshToken, ... } } 
-  return json.data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
+  localStorage.setItem("auth", JSON.stringify(data)); //giả sử backend trả về { data: { accessToken, refreshToken, ... } } 
+  return data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
 }

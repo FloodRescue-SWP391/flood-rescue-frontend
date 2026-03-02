@@ -32,9 +32,10 @@ const Dashboard = () => {
     try {
       //gọi api login
       const auth = await login(username, password);
+      console.log("Login response:", auth);
+
       const role = auth.role ?? auth.Role; //backend có thể trả về role hoặc Role, nên phải check cả 2
       // auth là AuthResponseDTO: AccessToken, Role, FullName, ...
-
       showToast("Đăng nhập thành công", "success");
 
       setTimeout(() => {
