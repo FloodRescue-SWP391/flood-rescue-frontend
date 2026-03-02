@@ -42,6 +42,12 @@ const AdminDashboard = () => {
           >
             ➕ Add Rescue Team
           </button>
+          <button
+            onClick={() => navigate("/admin/list-rescue-team")}
+            className={location.pathname === "/admin/list-rescue-team" ? "active" : ""}
+          >
+            📋 List Rescue Team
+          </button>
           <h3>⚙️ Setting</h3>
           <button className="logout" onClick={handleLogout}>
             🚪 Logout
