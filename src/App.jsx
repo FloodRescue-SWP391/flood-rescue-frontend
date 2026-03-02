@@ -15,13 +15,18 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ListUser from "./pages/admin/ListUser.jsx";
 import CreateUser from "./pages/admin/CreateUser.jsx";
-
+import CreateRescueTeam from "./pages/admin/CreateRescueTeam"; // đường dẫn đúng theo bạn đặt file
+import ListRescueTeams from "./pages/admin/ListRescueTeams.jsx";
 // ===== MANAGER =====
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 
 import RescueTeam from "./pages/rescueTeam/RescueTeam";
 
 import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
+
+//====unauthorized====
+import Unauthorized from "./pages/common/Unauthorized";
+
 
 function App() {
   return (
@@ -54,7 +59,10 @@ function App() {
           {/* Redirect mặc định đến create-user */}
           <Route index element={<Navigate to="create-user" replace />} />
           <Route path="create-user" element={<CreateUser />} />
+          <Route path="create-rescue-team" element={<CreateRescueTeam />} />
           <Route path="list-user" element={<ListUser />} />
+          <Route path="list-rescue-team" element={<ListRescueTeams />} />
+
         </Route>
 
         {/* ===== MANAGER (PROTECTED) ===== */}
@@ -85,6 +93,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/unauthorized" element={<Unauthorized />} />
       </Routes>
     </BrowserRouter>
   );

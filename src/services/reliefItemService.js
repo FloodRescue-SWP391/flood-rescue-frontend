@@ -1,6 +1,6 @@
 import { API_BASE_URL, fetchWithAuth } from "./apiClient";
 
-const BASE = '${API_BASE_URL}/ReliefItems';
+const BASE  = `${API_BASE_URL}/ReliefItems`;
 
 export const reliefItemsService = {
     async getAll() {

@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
 import { categoryService } from "../../services/categoryService.js";
 import { reliefItemsService } from "../../services/reliefItemService.js";
-
-
+import { reliefOrdersService } from "../../services/reliefOrdersService.js";
+import { inventoryService } from "../../services/inventoryService.js";
 import {
   BarChart,
   Bar,
@@ -57,12 +57,64 @@ export default function ManagerDashboard() {
     return map;
   }, [categories]);
 
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveWarehouseID, setReceiveWarehouseID] = useState("");
+  const [receiveItems, setReceiveItems] = useState([{ reliefItemID: "", quantity: 0 }]);
+
+  const openReceive = () => {
+    setReceiveWarehouseID("");
+    setReceiveItems([{ reliefItemID: "", quantity: 0 }]);
+    setShowReceiveModal(true);
+  };
+
+  const closeReceive = () => setShowReceiveModal(false);
+
+  const addReceiveRow = () =>
+    setReceiveItems((prev) => [...prev, { reliefItemID: "", quantity: 0 }]);
+
+  const removeReceiveRow = (idx) =>
+    setReceiveItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateReceiveRow = (idx, patch) =>
+    setReceiveItems((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const confirmReceive = async () => {
+    const whId = Number(receiveWarehouseID);
+    if (!whId || whId <= 0) return alert("WarehouseID không hợp lệ");
+
+    const items = receiveItems
+      .filter((x) => Number(x.reliefItemID) > 0 && Number(x.quantity) > 0)
+      .map((x) => ({ reliefItemID: Number(x.reliefItemID), quantity: Number(x.quantity) }));
+
+    if (items.length === 0) return alert("Bạn chưa nhập item/quantity hợp lệ");
+
+    try {
+      const res = await inventoryService.receiveInventory({ warehouseID: whId, items });
+      if (!res?.success) return alert(res?.message || "Nhập kho thất bại");
+
+      alert(res?.message || "Nhập kho thành công!");
+      closeReceive();
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Nhập kho thất bại");
+    }
+  };
+
   const [products, setProducts] = useState([]);
   const loadItems = async () => {
     try {
       const res = await reliefItemsService.getAll();
-      if (res?.success) setProducts(res.data || []);
-      else setProducts([]);
+      if (res?.success) {
+        const normalized = (res.data || []).map((p) => ({
+          reliefItemID: p.reliefItemID ?? p.ReliefItemID,
+          reliefItemName: p.reliefItemName ?? p.ReliefItemName ?? "",
+          categoryID: p.categoryID ?? p.CategoryID,
+          unit: p.unit ?? p.Unit ?? "",
+        }));
+        setProducts(normalized);
+      } else {
+        setProducts([]);
+      }
     } catch (err) {
       console.error("Load relief items failed:", err);
       setProducts([]);
@@ -72,8 +124,6 @@ export default function ManagerDashboard() {
     loadItems();
   }, []);
 
-<<<<<<< HEAD
-=======
   //==Prepare order ==
   const [orders, setOrders] = useState([]);
   const [showPrepareModal, setShowPrepareModal] = useState(false);
@@ -124,8 +174,6 @@ export default function ManagerDashboard() {
 
 
 
->>>>>>> 47379bb (feat(manager): integrate relief item/order updates)
-
   // ====== PRODUCT USAGE HISTORY (mock) ======
   const productUsageHistory = [
     { teamId: "T1", productName: "Medical Kit", quantity: 3, dateTaken: "2026-01-26" },
@@ -162,15 +210,7 @@ export default function ManagerDashboard() {
     { time: "20+ min", count: 30 },
   ];
 
-  // ====== MODAL ======
-  const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
 
-  const [formData, setFormData] = useState({
-    reliefItemName: "",
-    categoryID: "",
-    unit: "",
-  });
 
   // ====== KPI ======
   const { totalRequests, totalCompleted, successRate } = useMemo(() => {
@@ -185,68 +225,58 @@ export default function ManagerDashboard() {
   }, [monthlyRescues]);
 
   // ====== ACTIONS ======
-  const openAdd = () => {
-    setEditingProduct(null);
-    setFormData({ reliefItemName: "", categoryID: "", unit: "" });
-    setShowModal(true);
+  const openPrepare = (order) => {
+
+    setSelectedOrder(order)
+    setPrepareItems(order.items || []);
+    setShowPrepareModal(true);
   };
 
-  const openEdit = (p) => {
-    setEditingProduct(p);
-    setFormData({
-      reliefItemName: p.reliefItemName || "",
-      categoryID: Number(p.categoryID ?? p.CategoryID ?? 0),
-      unit: p.unit || "",
-    });
-    setShowModal(true);
+  const closePrepare = () => {
+    setShowPrepareModal(false);
+    setSelectedOrder(null);
+    setPrepareItems([]);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingProduct(null);
+  const setPrepareQty = (reliefItemID, qty) => {
+    setPrepareItems((prev) =>
+      prev.map((x) =>
+        x.reliefItemID === reliefItemID ? { ...x, quantity: Number(qty) } : x
+      )
+    );
   };
 
-  const submit = async(e) => {
-    e.preventDefault();
+  const confirmPrepare = async () => {
+    if (!selectedOrder) return;
+
+    const items = prepareItems
+      .filter(x => Number(x.quantity) > 0)
+      .map(x => ({
+        reliefItemID: x.reliefItemID,
+        quantity: Number(x.quantity),
+      }));
+
+    if (items.length === 0) {
+      alert("Bạn chưa nhập số lượng xuất kho");
+      return;
+    }
 
     const payload = {
-      reliefItemName: formData.reliefItemName,
-      categoryID: Number(formData.categoryID),
-      unit: formData.unit,
+      reliefOrderID: selectedOrder.reliefOrderID,
+      items,
     };
-    try {
-      if (editingProduct) {
-        await reliefItemsService.update(editingProduct.reliefItemID, payload);
-      } else {
-        await reliefItemsService.create(payload);
-      }
-      await loadItems(); // reload lại list từ API
-      closeModal();
-    } catch (err) {
-      console.error("Save relief item failed:", err);
-      alert("Save failed!");
+
+    const res = await reliefOrdersService.prepareOrder(payload);
+
+    if (!res?.success) {
+      alert(res?.message || "Prepare failed!");
+      return;
     }
+
+    alert("Soạn hàng thành công!");
+    closePrepare();
+    await loadOrders(); // reload từ API
   };
-
-  const del = async (id) => {
-    if (!confirm("Delete this product?")) return;
-
-    try {
-      await reliefItemsService.remove(id);
-      await loadItems();
-    } catch (err) {
-      console.error("Delete relief item failed:", err);
-      alert("Delete failed!");
-    }
-  };
-
-  const badgeClass = (st) => {
-    if (st === "available") return "badge badge-available";
-    if (st === "out-of-stock") return "badge badge-outofstock";
-    return "badge";
-  };
-
-  const badgeLabel = (st) => (st === "out-of-stock" ? "out of stock" : "available");
 
 
   function getFilteredUsage() {
@@ -283,8 +313,8 @@ export default function ManagerDashboard() {
       ...products.map((p) => [
         p.reliefItemID,
         p.reliefItemName,
-        p.categoryID ?? p.CategoryID,
-        categoryNameById.get(Number(p.categoryID ?? p.CategoryID)) || "",
+        p.categoryID,
+        categoryNameById.get(Number(p.categoryID)) || "",
         p.unit,
       ]),
     ];
@@ -302,10 +332,69 @@ export default function ManagerDashboard() {
     URL.revokeObjectURL(url);
   };
 
+  // ===== NEW ITEM (CREATE RELIEF ITEM) MODAL =====
+  const [showNewItemModal, setShowNewItemModal] = useState(false);
+  const [newItemForm2, setNewItemForm2] = useState({
+    reliefItemName: "",
+    categoryID: "",
+    unit: "",
+  });
+
+  const openNewItemModal = () => {
+    setNewItemForm2({ reliefItemName: "", categoryID: "", unit: "" });
+    setShowNewItemModal(true);
+  };
+
+  const closeNewItemModal = () => setShowNewItemModal(false);
+
+  const submitNewItem = async (e) => {
+    e?.preventDefault?.();
+
+    const payload = {
+      reliefItemName: newItemForm2.reliefItemName.trim(),
+      categoryID: Number(newItemForm2.categoryID),
+      unit: newItemForm2.unit.trim(),
+    };
+
+    if (!payload.reliefItemName) return alert("Product name is required");
+    if (!payload.categoryID) return alert("Category is required");
+    if (!payload.unit) return alert("Unit is required");
+
+    try {
+      const res = await reliefItemsService.create(payload);
+      if (!res?.success) {
+        alert(res?.message || "Create item failed");
+        return;
+      }
+
+      alert(res?.message || "Created new item!");
+      closeNewItemModal();
+      await loadItems(); // reload products list
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || "Create item failed");
+    }
+  };
+
   const reportPeriodLabel =
     reportPeriod === "week" ? "Past Week" : reportPeriod === "month" ? "Past Month" : "Past Quarter";
 
   const totalRetrieved = filteredUsage.reduce((s, x) => s + x.quantity, 0);
+
+  const selectedId =
+    selectedOrder?.reliefOrderID ??
+    selectedOrder?.ReliefOrderID ??
+    selectedOrder?.id;
+
+  const selectedMission =
+    selectedOrder?.missionStatus ??
+    selectedOrder?.MissionStatus ??
+    "";
+
+  const selectedWarehouse =
+    selectedOrder?.warehouseName ??
+    selectedOrder?.WarehouseName ??
+    "";
 
   return (
     <div className="manager-root">
@@ -428,9 +517,16 @@ export default function ManagerDashboard() {
             <div className="panel-card">
               <div className="panel-row">
                 <div className="panel-card-title">Rescue Products</div>
-                <button className="btn-yellow" onClick={openAdd}>
-                  Add New Product
-                </button>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <button className="btn-yellow" onClick={openNewItemModal}>
+                    Add New Item
+                  </button>
+
+                  {/*nút này dùng để receive inventory*/}
+                  <button className="btn-yellow" onClick={openReceive}>
+                    Add Products to WareHouse
+                  </button>
+                </div>
               </div>
 
               <div className="product-box">
@@ -439,38 +535,70 @@ export default function ManagerDashboard() {
                     <div
                       className="product-item"
                       key={p.reliefItemID}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => openEdit(p)}
-                      onKeyDown={(e) => e.key === "Enter" && openEdit(p)}
-                      style={{ cursor: "pointer" }}
                     >
                       <div>
                         <div className="product-name">{p.reliefItemName}</div>
                         <div className="product-meta">
-                          <span>{categoryNameById.get(Number(p.categoryID ?? p.CategoryID)) || `Category #${p.categoryID ?? p.CategoryID}`}</span>
+                          <span>{categoryNameById.get(Number(p.categoryID)) || `Category #${p.categoryID ?? p.CategoryID}`}</span>
                           <span className="dot">•</span>
                           <span>Unit: {p.unit}</span>
                         </div>
                       </div>
-
-                      <div className="product-right">
-                        <button
-                          className="link link-danger"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            del(p.reliefItemID);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
                     </div>
                   ))}
+                  {products.length === 0 && (
+                    <div style={{ opacity: 0.7, padding: 12 }}>No Products</div>
+                  )}
                 </div>
               </div>
             </div>
+            {/* PREPARE ORDERS */}
+            <div className="panel-card report-card">
+              <div className="panel-row">
+                <div className="panel-card-title">Prepare Orders</div>
+                <div style={{ opacity: 0.75, fontSize: 13 }}>
+                  (Pending + Mission InProgress mới soạn được)
+                </div>
+              </div>
 
+              <div className="product-box">
+                <div className="product-list">
+                  {orders.map((o) => {
+                    const canPrepare =
+                      o.status === "Pending" && o.missionStatus === "InProgress";
+
+                    return (
+                      <div className="product-item" key={o.reliefOrderID}>
+                        <div>
+                          <div className="product-name">Order: {o.reliefOrderID}</div>
+                          <div className="product-meta">
+                            <span>Status: {o.status}</span>
+                            <span className="dot">•</span>
+                            <span>Mission: {o.missionStatus}</span>
+                            <span className="dot">•</span>
+                            <span>{o.warehouseName}</span>
+                          </div>
+                        </div>
+
+                        <div className="product-right">
+                          <button
+                            className="btn-yellow"
+                            disabled={!canPrepare}
+                            onClick={() => openPrepare(o)}
+                          >
+                            Soạn hàng
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {orders.length === 0 && (
+                    <div style={{ opacity: 0.7, padding: 12 }}>No orders</div>
+                  )}
+                </div>
+              </div>
+            </div>
             {/* PRODUCT USAGE REPORT (full width) */}
             <div className="panel-card report-card">
               <div className="panel-row">
@@ -540,24 +668,172 @@ export default function ManagerDashboard() {
                       </tbody>
                     </table>
                   </div>
+
                 </div>
               </div>
             </div>
           </div>
 
-          {/* MODAL */}
-          {showModal && (
+          {/* PREPARE MODAL */}
+          {showPrepareModal && (
             <div className="mp-modal-overlay">
               <div className="mp-modal">
-                <div className="mp-modal-title">{editingProduct ? "Edit Product" : "Add New Product"}</div>
+                <div className="mp-modal-title">
+                  Soạn hàng cho Order {selectedId}
+                </div>
 
-                <form onSubmit={submit}>
+                <div style={{ marginBottom: 12, opacity: 0.85 }}>
+                  Mission: {selectedMission} • Kho: {selectedWarehouse}
+                </div>
+
+                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Relief Item</th>
+                        <th style={{ width: 140 }}>Quantity</th>
+                        <th style={{ width: 120 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prepareItems.map((x) => (
+                        <tr key={x.reliefItemID}>
+                          <td>{itemNameById.get(x.reliefItemID) || x.reliefItemID}</td>
+                          <td>
+                            <input
+                              type="number"
+                              min={0}
+                              value={x.quantity}
+                              onChange={(e) => setPrepareQty(x.reliefItemID, e.target.value)}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+
+                      {prepareItems.length === 0 && (
+                        <tr>
+                          <td colSpan={2} style={{ textAlign: "center", opacity: 0.7 }}>
+                            No items
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mp-modal-actions">
+                  <button type="button" className="btn-ghost" onClick={closePrepare}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn-red" onClick={confirmPrepare}>
+                    Xuất kho / Xác nhận soạn xong
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/*RECEIVEMODAL*/}
+          {showReceiveModal && (
+            <div className="mp-modal-overlay">
+              <div className="mp-modal">
+                <div className="mp-modal-title">Receive Inventory</div>
+
+                <div className="field">
+                  <label>Warehouse *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={receiveWarehouseID}
+                    onChange={(e) => setReceiveWarehouseID(e.target.value)}
+                  />
+                </div>
+
+                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Relief Item</th>
+                        <th style={{ width: 140 }}>Quantity</th>
+                        <th style={{ width: 90 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receiveItems.map((row, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            <select
+                              value={row.reliefItemID}
+                              onChange={(e) => updateReceiveRow(idx, { reliefItemID: e.target.value })}
+                              style={{ width: "100%" }}
+                            >
+                              <option value="">-- Select item --</option>
+                              {products.map((p) => (
+                                <option key={p.reliefItemID} value={p.reliefItemID}>
+                                  {p.reliefItemName}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          <td>
+                            <input
+                              type="number"
+                              min={0}
+                              value={row.quantity}
+                              onChange={(e) => updateReceiveRow(idx, { quantity: e.target.value })}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              className="link link-danger"
+                              onClick={() => removeReceiveRow(idx)}
+                              disabled={receiveItems.length === 1}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="btn-ghost" onClick={addReceiveRow}>
+                    + Add item
+                  </button>
+                </div>
+
+                <div className="mp-modal-actions">
+                  <button type="button" className="btn-ghost" onClick={closeReceive}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn-red" onClick={confirmReceive}>
+                    Confirm Receive
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* NEW ITEM MODAL (Create Relief Item) */}
+          {showNewItemModal && (
+            <div className="mp-modal-overlay">
+              <div className="mp-modal">
+                <div className="mp-modal-title">Add New Item</div>
+
+                <form onSubmit={submitNewItem}>
                   <div className="field">
                     <label>Product Name *</label>
                     <input
                       required
-                      value={formData.reliefItemName}
-                      onChange={(e) => setFormData({ ...formData, reliefItemName: e.target.value })}
+                      value={newItemForm2.reliefItemName}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, reliefItemName: e.target.value })
+                      }
                     />
                   </div>
 
@@ -565,13 +841,18 @@ export default function ManagerDashboard() {
                     <label>Category *</label>
                     <select
                       required
-                      value={formData.categoryID}
-                      onChange={(e) => setFormData({ ...formData, categoryID: Number(e.target.value) })}
+                      value={newItemForm2.categoryID}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, categoryID: e.target.value })
+                      }
                     >
                       <option value="">Select category</option>
                       {categories.map((c) => (
-                        <option key={c.categoryID} value={c.categoryID}>
-                          {c.categoryName}
+                        <option
+                          key={c.categoryID ?? c.CategoryID}
+                          value={c.categoryID ?? c.CategoryID}
+                        >
+                          {c.categoryName ?? c.CategoryName}
                         </option>
                       ))}
                     </select>
@@ -580,26 +861,26 @@ export default function ManagerDashboard() {
                   <div className="field">
                     <label>Unit *</label>
                     <input
-                      type="text"
                       required
-                      value={formData.unit}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                      value={newItemForm2.unit}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, unit: e.target.value })
+                      }
                     />
                   </div>
 
                   <div className="mp-modal-actions">
-                    <button type="button" className="btn-ghost" onClick={closeModal}>
+                    <button type="button" className="btn-ghost" onClick={closeNewItemModal}>
                       Cancel
                     </button>
                     <button type="submit" className="btn-red">
-                      {editingProduct ? "Update" : "Add"}
+                      Add
                     </button>
                   </div>
                 </form>
               </div>
             </div>
-          )
-          }
+          )}
         </div >
       </main >
     </div >

@@ -22,7 +22,7 @@
  *      → Lưu auth mới vào localStorage.
  *      → Retry lại request ban đầu với token mới.
  */
-export const API_BASE_URL = "http://localhost:7142/api"; //đợi đổi đúng theo port backend
+export const API_BASE_URL = "https://apifloodrescue.huydevops.id.vn/api"; //đợi đổi đúng theo port backend
 export async function fetchWithAuth(url, options = {}) {
     // Lấy access token từ localStorage
     const raw = localStorage.getItem("auth");
@@ -30,8 +30,11 @@ export async function fetchWithAuth(url, options = {}) {
     //backend có thể trả về AccessToken hoặc accessToken, nên phải check cả 2
     const accessToken = auth?.accessToken ?? auth?.AccessToken ?? null;
 
+    const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+
+
     //gửi request ban đầu
-    let res = await fetch(url, {
+    let res = await fetch(fullUrl, {
         ...options,
         headers: {
             "Content-Type": "application/json",
@@ -68,7 +71,7 @@ export async function fetchWithAuth(url, options = {}) {
         refreshJson.data.accessToken ??
         refreshJson.data.AccessToken;
     //gửi lại request ban đầu với token mới
-    return fetch(url, {
+    return fetch(fullUrl, {
         ...options,
         headers: {
             "Content-Type": "application/json",
