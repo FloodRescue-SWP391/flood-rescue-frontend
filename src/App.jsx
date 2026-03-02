@@ -23,6 +23,10 @@ import RescueTeam from "./pages/rescueTeam/RescueTeam";
 
 import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
 
+//====unauthorized====
+import Unauthorized from "./pages/common/Unauthorized";
+
+
 function App() {
   return (
     <BrowserRouter>
@@ -85,6 +89,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/unauthorized" element={<Unauthorized />} />
       </Routes>
     </BrowserRouter>
   );
