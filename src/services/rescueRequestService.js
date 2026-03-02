@@ -1,15 +1,43 @@
 import { API_BASE_URL } from "./apiClient";
 
+//fetchWithTimeout dùng để tránh tình trạng request bị treo vô hạn (pending mãi không trả về).
+const fetchWithTimeout = (url, options = {}, ms = 60000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+};
+
+
 // POST: /api/RescueRequests
 export async function createRescueRequest(payload) {
-  const res = await fetch(`${API_BASE_URL}/RescueRequests`, {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/RescueRequests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  const raw = await res.text();
+  let json = null;
+  try { json = raw ? JSON.parse(raw) : null; } catch { }
 
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.message || "Create rescue request failed");
+  if (!res.ok) {
+    // log để gửi BE
+    console.error("CreateRescueRequest FAIL:", {
+      status: res.status,
+      statusText: res.statusText,
+      body: json ?? raw,
+      sent: payload,
+    });
+
+    const msg =
+      (json && (json.message || json.title)) ||
+      raw ||
+      `Create rescue request failed (${res.status})`;
+
+    throw new Error(msg);
+  }
+
   return json; // ApiResponse
 }
 

@@ -15,6 +15,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ListUser from "./pages/admin/ListUser.jsx";
 import CreateUser from "./pages/admin/CreateUser.jsx";
+import CreateRescueTeam from "./pages/admin/CreateRescueTeam"; // đường dẫn đúng theo bạn đặt file
 
 // ===== MANAGER =====
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
@@ -58,6 +59,7 @@ function App() {
           {/* Redirect mặc định đến create-user */}
           <Route index element={<Navigate to="create-user" replace />} />
           <Route path="create-user" element={<CreateUser />} />
+          <Route path="create-rescue-team" element={<CreateRescueTeam />} />
           <Route path="list-user" element={<ListUser />} />
         </Route>
 

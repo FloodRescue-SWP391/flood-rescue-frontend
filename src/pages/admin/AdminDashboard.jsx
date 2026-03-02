@@ -21,19 +21,27 @@ const AdminDashboard = () => {
         {/* SIDEBAR */}
         <aside className="admin-sidebar">
           <h3>👤 Member</h3>
-          <button 
+          <button
             onClick={() => navigate("/admin/create-user")}
             className={location.pathname === "/admin/create-user" ? "active" : ""}
           >
             ➕ Add Member
           </button>
-          <button 
+          <button
             onClick={() => navigate("/admin/list-user")}
             className={location.pathname === "/admin/list-user" ? "active" : ""}
           >
             📋 List Account
           </button>
-
+          <h3>🛟 Rescue Team</h3>
+          <button
+            onClick={() => navigate("/admin/create-rescue-team")}
+            className={
+              location.pathname === "/admin/create-rescue-team" ? "active" : ""
+            }
+          >
+            ➕ Add Rescue Team
+          </button>
           <h3>⚙️ Setting</h3>
           <button className="logout" onClick={handleLogout}>
             🚪 Logout
