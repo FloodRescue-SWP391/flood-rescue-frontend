@@ -4,6 +4,9 @@ import Header from "../../components/common/Header.jsx";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { getAllRescueRequests } from "../../services/rescueRequestService.js";
+import { getAllRescueTeams } from "../../services/rescueTeamService.js";
+import { rescueMissionService } from "../../services/rescueMissionService.js";
 
 /* FIX ICON */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -40,7 +43,7 @@ const ChangeView = ({ center, zoom }) => {
 
 const Dashboard = () => {
   // State cho danh sách yêu cầu cứu trợ lũ lụt
-  const [allRequests, setAllRequests] = useState([
+  const mockRequest = [
     {
       id: 1,
       requestId: "FLOOD-001",
@@ -161,8 +164,51 @@ const Dashboard = () => {
       isNew: false,
       waterLevel: "0.5m",
       specialNeeds: "Cần đội cứu hộ đặc biệt",
+    },];
+
+
+  const mapStatusToUI = (status) => {
+    const s = (status || "").toLowerCase();
+    if (s === "pending") return "pending";
+    if (s === "processing" || s === "in_progress") return "in_progress";
+    if (s === "completed") return "completed";
+    return "pending";
+  };
+
+  const mapRequestToUI = (r) => ({
+    id: r.rescueRequestID ?? r.RescueRequestID,
+    requestId: r.shortCode ?? r.ShortCode,
+    fullName: "Citizen",
+    phoneNumber: r.citizenPhone ?? r.CitizenPhone ?? "",
+    address: "N/A",
+    location: {
+      lat: r.locationLatitude ?? r.LocationLatitude,
+      lng: r.locationLongitude ?? r.LocationLongitude,
     },
-  ]);
+    emergencyType: r.requestType ?? r.RequestType ?? "",
+    emergencyCategory: "supply",
+    peopleCount: 1,
+    priorityLevel: "Medium",
+    description: r.description ?? r.Description ?? "",
+    status: mapStatusToUI(r.status ?? r.Status),
+    timestamp: new Date(r.createdTime ?? r.CreatedTime).toLocaleString("vi-VN"),
+    contactVia: "Phone Call",
+    imageUrl: (r.imageUrls ?? r.ImageUrls)?.[0] || "https://via.placeholder.com/150",
+    isNew: false,
+    waterLevel: "0m",
+    specialNeeds: "",
+  });
+
+  const [allRequests, setAllRequests] = useState(mockRequest);
+  const [usingRealData, setUsingRealData] = useState(false);
+  const [teams, setTeams] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [teamsError, setTeamsError] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchError, setDispatchError] = useState("");
+  const [dispatchSuccess, setDispatchSuccess] = useState("");
+
 
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [mapCenter, setMapCenter] = useState([10.775, 106.686]);
@@ -287,14 +333,66 @@ const Dashboard = () => {
 
   const filteredRequests = getFilteredRequests();
 
+
+
+  //load team
+  useEffect(() => {
+    const loadTeams = async () => {
+      setTeamsLoading(true);
+      setTeamsError("");
+      try {
+        const res = await getAllRescueTeams(); // ApiResponse<List<...>>
+        if (res?.success && Array.isArray(res.data)) {
+          setTeams(res.data);
+          setSelectedTeamId("");
+          setDispatchError("");
+          setDispatchSuccess("");
+        } else {
+          setTeams([]);
+          setTeamsError(res?.message || "Failed to load rescue teams");
+        }
+      } catch (e) {
+        setTeamsError(e?.message || "Failed to load rescue teams");
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
+
+    loadTeams();
+  }, []);
+
+
   // Cập nhật unread count
   useEffect(() => {
     const unread = notifications.filter((n) => !n.read).length;
     setUnreadCount(unread);
   }, [notifications]);
+  //load data thực tế
+  useEffect(() => {
+    const loadRealRequests = async () => {
+      try {
+        const res = await getAllRescueRequests();
+        console.log("GET /RescueRequests:", res);
+
+        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+          const normalized = res.data.map(mapRequestToUI);
+          setAllRequests(normalized); //  replace mock bằng data thật
+          setUsingRealData(true);
+        }
+      } catch (e) {
+        console.warn("API failed -> keep mock:", e?.message);
+        // không setAllRequests gì cả => giữ mock
+      }
+    };
+
+    loadRealRequests();
+  }, []);
+
+
 
   // Giả lập nhận yêu cầu mới cho lũ lụt
   useEffect(() => {
+    if (usingRealData) return;
     const simulateNewFloodRequest = () => {
       const floodTypes = [
         "Người mắc kẹt trong nước",
@@ -399,16 +497,26 @@ const Dashboard = () => {
     const interval = setInterval(simulateNewFloodRequest, 180000);
 
     // Simulate ngay 1 request để demo
-    setTimeout(simulateNewFloodRequest, 3000);
+    const timeoutId = setTimeout(simulateNewFloodRequest, 3000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeoutId);
+    };
+  }, [usingRealData]);
+
 
   // Các hàm xử lý
   const handleRequestClick = (request) => {
     setSelectedRequest(request);
     setMapCenter([request.location.lat, request.location.lng]);
     setMapZoom(16);
+    // reset dispatch messages mỗi lần chọn request
+    setDispatchError("");
+    setDispatchSuccess("");
+    // nếu đã assign team thì set dropdown theo
+    if (request?.assignedTeamId) setSelectedTeamId(String(request.assignedTeamId));
+    else setSelectedTeamId("");
 
     if (request.isNew) {
       setAllRequests((prev) =>
@@ -416,6 +524,68 @@ const Dashboard = () => {
           req.id === request.id ? { ...req, isNew: false } : req,
         ),
       );
+    }
+  };
+  const handleDispatchMission = async () => {
+    setDispatchError("");
+    setDispatchSuccess("");
+
+    if (!selectedRequest?.id) {
+      setDispatchError("Please select a rescue request first.");
+      return;
+    }
+
+    // chỉ dispatch khi pending
+    if (selectedRequest.status !== "pending") {
+      setDispatchError("Only PENDING requests can be dispatched.");
+      return;
+    }
+
+    if (!selectedTeamId) {
+      setDispatchError("Please select a rescue team.");
+      return;
+    }
+
+    try {
+      setDispatching(true);
+
+      const teamIdNum = Number(selectedTeamId);
+
+      const res = await rescueMissionService.dispatch({
+        rescueRequestID: selectedRequest.id,
+        rescueTeamID: teamIdNum,
+      });
+
+      if (!res?.success) {
+        setDispatchError(res?.message || "Dispatch mission failed.");
+        return;
+      }
+
+      // backend có thể trả DispatchMissionResponseDTO, mình đọc kiểu “defensive”
+      const data = res?.data || {};
+      const missionId =
+        data?.rescueMissionID ??
+        data?.RescueMissionID ??
+        data?.missionId ??
+        data?.MissionId ??
+        null;
+
+      const assignedTeamName = findTeamLabelById(teamIdNum);
+
+      updateRequestAfterDispatch(selectedRequest.id, {
+        assignedTeamId: teamIdNum,
+        assignedTeamName,
+        rescueMissionId: missionId,
+      });
+
+      setDispatchSuccess(
+        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
+        (missionId ? ` (Mission #${missionId})` : "")
+      );
+    } catch (e) {
+      setDispatchError(e?.message || "Dispatch mission failed.");
+    } finally {
+      setDispatching(false);
     }
   };
 
@@ -436,7 +606,35 @@ const Dashboard = () => {
       }));
     }
   };
+  const updateRequestAfterDispatch = (requestId, payload) => {
+    setAllRequests((prev) =>
+      prev.map((req) => {
+        if (req.id !== requestId) return req;
 
+        return {
+          ...req,
+          status: "in_progress",
+          isNew: false,
+
+          // lưu thông tin assign để UI dùng lại
+          assignedTeamId: payload.assignedTeamId ?? req.assignedTeamId,
+          assignedTeamName: payload.assignedTeamName ?? req.assignedTeamName,
+          rescueMissionId: payload.rescueMissionId ?? req.rescueMissionId,
+        };
+      })
+    );
+
+    if (selectedRequest?.id === requestId) {
+      setSelectedRequest((prev) => ({
+        ...prev,
+        status: "in_progress",
+        isNew: false,
+        assignedTeamId: payload.assignedTeamId ?? prev.assignedTeamId,
+        assignedTeamName: payload.assignedTeamName ?? prev.assignedTeamName,
+        rescueMissionId: payload.rescueMissionId ?? prev.rescueMissionId,
+      }));
+    }
+  };
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((noti) => ({ ...noti, read: true })));
   };
@@ -476,7 +674,21 @@ const Dashboard = () => {
     "all",
     ...new Set(allRequests.map((req) => req.emergencyType)),
   ];
+  //team Id
+  const getTeamId = (t) => t?.rescueTeamID ?? t?.RescueTeamID ?? t?.id ?? t?.Id;
+  //teamLabel
+  const getTeamLabel = (t) =>
+    t?.teamName ??
+    t?.name ??
+    t?.rescueTeamName ??
+    t?.RescueTeamName ??
+    `Team #${getTeamId(t)}`;
 
+  const findTeamLabelById = (id) => {
+    if (!id) return "";
+    const team = teams.find((t) => String(getTeamId(t)) === String(id));
+    return team ? getTeamLabel(team) : `Team #${id}`;
+  };
   return (
     <div className="dashboard-container">
       <Header />
@@ -614,35 +826,35 @@ const Dashboard = () => {
             req.priorityLevel === "Critical" &&
             req.status !== "completed",
         ) && (
-          <div className="critical-alert-banner">
-            <div className="alert-content">
-              <span className="alert-icon">🚨</span>
-              <div>
-                <h3>WARNING: Critical life-threatening situation!</h3>
-                <p>
-                  There are{" "}
-                  {
-                    allRequests.filter(
-                      (req) => req.isNew && req.priorityLevel === "Critical",
-                    ).length
-                  }{" "}
-                  critical rescue requests that need immediate handling
-                </p>
+            <div className="critical-alert-banner">
+              <div className="alert-content">
+                <span className="alert-icon">🚨</span>
+                <div>
+                  <h3>WARNING: Critical life-threatening situation!</h3>
+                  <p>
+                    There are{" "}
+                    {
+                      allRequests.filter(
+                        (req) => req.isNew && req.priorityLevel === "Critical",
+                      ).length
+                    }{" "}
+                    critical rescue requests that need immediate handling
+                  </p>
+                </div>
               </div>
+              <button
+                className="alert-action"
+                onClick={() => {
+                  const criticalRequest = allRequests.find(
+                    (req) => req.isNew && req.priorityLevel === "Critical",
+                  );
+                  if (criticalRequest) handleRequestClick(criticalRequest);
+                }}
+              >
+                Handle immediately →
+              </button>
             </div>
-            <button
-              className="alert-action"
-              onClick={() => {
-                const criticalRequest = allRequests.find(
-                  (req) => req.isNew && req.priorityLevel === "Critical",
-                );
-                if (criticalRequest) handleRequestClick(criticalRequest);
-              }}
-            >
-              Handle immediately →
-            </button>
-          </div>
-        )}
+          )}
 
         {/* Filter Controls */}
         <div className="filter-section">
@@ -785,7 +997,7 @@ const Dashboard = () => {
                               : request.emergencyType === "Medicine is needed."
                                 ? "💊"
                                 : request.emergencyType ===
-                                    "Life jackets/boat needed."
+                                  "Life jackets/boat needed."
                                   ? "🛟"
                                   : request.emergencyType === "Landslide"
                                     ? "⛰️"
@@ -1006,22 +1218,22 @@ const Dashboard = () => {
                           Emergency type:{" "}
                           <span className="detail-value badge">
                             {selectedRequest.emergencyType ===
-                            "People trapped in the water"
+                              "People trapped in the water"
                               ? "🌊"
                               : selectedRequest.emergencyType ===
-                                  "The house was flooded."
+                                "The house was flooded."
                                 ? "🏠"
                                 : selectedRequest.emergencyType ===
-                                    "Food/water is needed."
+                                  "Food/water is needed."
                                   ? "📦"
                                   : selectedRequest.emergencyType ===
-                                      "Medicine is needed."
+                                    "Medicine is needed."
                                     ? "💊"
                                     : selectedRequest.emergencyType ===
-                                        "Life jackets/boat needed."
+                                      "Life jackets/boat needed."
                                       ? "🛟"
                                       : selectedRequest.emergencyType ===
-                                          "Landslide"
+                                        "Landslide"
                                         ? "⛰️"
                                         : "🚨"}
                             {selectedRequest.emergencyType}
@@ -1132,7 +1344,69 @@ const Dashboard = () => {
                     </div>
 
                     <div className="action-buttons-group">
-                      
+
+                      {/* DISPATCH SECTION */}
+                      <div className="dispatch-section">
+                        {selectedRequest?.assignedTeamId && (
+                          <div className="dispatch-assigned">
+                            Assigned: <b>{selectedRequest.assignedTeamName || `Team #${selectedRequest.assignedTeamId}`}</b>
+                            {selectedRequest.rescueMissionId && (
+                              <span className="dispatch-mission"> • Mission #{selectedRequest.rescueMissionId}</span>
+                            )}
+                          </div>
+                        )}
+                        <div className="dispatch-row">
+                          <select
+                            className="dispatch-select"
+                            value={selectedTeamId}
+                            onChange={(e) => setSelectedTeamId(e.target.value)}
+                            disabled={teamsLoading || !selectedRequest || selectedRequest.status !== "pending"}
+                          >
+                            <option value="">
+                              {teamsLoading ? "Loading teams..." : "Select rescue team"}
+                            </option>
+
+                            {teams.map((t) => {
+                              const id = t.rescueTeamID ?? t.RescueTeamID ?? t.id ?? t.Id;
+                              const label =
+                                t.teamName ??
+                                t.name ??
+                                t.rescueTeamName ??
+                                t.RescueTeamName ??
+                                `Team #${id}`;
+                              return (
+                                <option key={id} value={id}>
+                                  {label}
+                                </option>
+                              );
+                            })}
+                          </select>
+
+                          <button
+                            className="btn btn-dispatch"
+                            onClick={handleDispatchMission}
+                            disabled={
+                              dispatching ||
+                              !selectedTeamId ||
+                              !selectedRequest ||
+                              selectedRequest.status !== "pending"}
+                          >
+                            {dispatching ? "Dispatching..." : "🚑 Dispatch Team"}
+                          </button>
+                        </div>
+
+                        {teamsError && <div className="dispatch-msg error">{teamsError}</div>}
+                        {dispatchError && <div className="dispatch-msg error">{dispatchError}</div>}
+                        {dispatchSuccess && (
+                          <div className="dispatch-msg success"> {dispatchSuccess}</div>
+                        )}
+                      </div>
+
+                      {/* OLD BUTTONS */}
+                      <div className="button-row1">
+                        ...
+                      </div>
+
 
                       <div className="button-row1">
                         <button

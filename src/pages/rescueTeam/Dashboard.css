@@ -530,3 +530,78 @@
         }
     }
 }
+
+/* ===== CRUD Form (Create/Update Team) ===== */
+.team-crud-panel {
+    margin-top: 18px;
+}
+
+.team-crud-form {
+    display: grid;
+    gap: 10px;
+}
+
+.team-crud-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.team-crud-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+}
+
+.team-crud-form input,
+.team-crud-form select {
+    width: 100%;
+    border: 2px solid #e7d7c3;
+    border-radius: 10px;
+    padding: 10px 12px;
+    outline: none;
+    font-size: 13px;
+    background: #ffffff;
+}
+
+.team-crud-form input:focus,
+.team-crud-form select:focus {
+    border-color: #fb923c;
+    box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.25);
+}
+
+.team-crud-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* small helper text / errors */
+.team-crud-error {
+    margin-top: 8px;
+    color: #b91c1c;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* ===== Extra action buttons inside request card ===== */
+.request-actions-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* Optional: make edit/delete look "secondary" but consistent */
+.btn-edit {
+    background: #2563eb;
+    color: #fff;
+}
+
+/* Responsive for CRUD form */
+@media (max-width: 1024px) {
+
+    .team-crud-row-2,
+    .team-crud-row-3 {
+        grid-template-columns: 1fr;
+    }
+}

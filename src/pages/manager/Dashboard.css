@@ -10,13 +10,13 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  background-color: antiquewhite;
+  background-color: #F0F3F7;
 }
 
 .panel-card {
-  background: #ffe2b3;
+  background: #ffffff;
   border-radius: 12px;
-  border: 2px solid #807676;
+  border: 2px;
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -128,11 +128,14 @@
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .panel-row.panel-card-title {
   margin-bottom: 0;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .panel-row .btn-yellow {

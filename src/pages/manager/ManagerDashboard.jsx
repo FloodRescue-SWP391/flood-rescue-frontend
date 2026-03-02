@@ -1,9 +1,12 @@
 import "./Dashboard.css";
 import Header from "../../components/common/Header.jsx"
 import "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
-
+import { categoryService } from "../../services/categoryService.js";
+import { reliefItemsService } from "../../services/reliefItemService.js";
+import { reliefOrdersService } from "../../services/reliefOrdersService.js";
+import { inventoryService } from "../../services/inventoryService.js";
 import {
   BarChart,
   Bar,
@@ -25,7 +28,151 @@ export default function ManagerDashboard() {
   const [reportTeam, setReportTeam] = useState("");
   const [reportPeriod, setReportPeriod] = useState("week");
 
- 
+  //category STATE
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await categoryService.getAll();
+        if (res?.success) {
+          setCategories(res.data || []);
+        }
+      } catch (err) {
+        console.error("Load categories failed: ", err);
+        setCategories([]);
+      }
+    };
+    loadCategories();
+  }, []);
+  const categoryNameById = useMemo(() => {
+    const map = new Map();
+    (categories || []).forEach((c) => {
+      const id = c.categoryID ?? c.CategoryID;
+      const name = c.categoryName ?? c.CategoryName;
+      if (id != null && name) {
+        map.set(Number(id), name);
+      }
+    });
+    return map;
+  }, [categories]);
+
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveWarehouseID, setReceiveWarehouseID] = useState("");
+  const [receiveItems, setReceiveItems] = useState([{ reliefItemID: "", quantity: 0 }]);
+
+  const openReceive = () => {
+    setReceiveWarehouseID("");
+    setReceiveItems([{ reliefItemID: "", quantity: 0 }]);
+    setShowReceiveModal(true);
+  };
+
+  const closeReceive = () => setShowReceiveModal(false);
+
+  const addReceiveRow = () =>
+    setReceiveItems((prev) => [...prev, { reliefItemID: "", quantity: 0 }]);
+
+  const removeReceiveRow = (idx) =>
+    setReceiveItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateReceiveRow = (idx, patch) =>
+    setReceiveItems((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const confirmReceive = async () => {
+    const whId = Number(receiveWarehouseID);
+    if (!whId || whId <= 0) return alert("WarehouseID không hợp lệ");
+
+    const items = receiveItems
+      .filter((x) => Number(x.reliefItemID) > 0 && Number(x.quantity) > 0)
+      .map((x) => ({ reliefItemID: Number(x.reliefItemID), quantity: Number(x.quantity) }));
+
+    if (items.length === 0) return alert("Bạn chưa nhập item/quantity hợp lệ");
+
+    try {
+      const res = await inventoryService.receiveInventory({ warehouseID: whId, items });
+      if (!res?.success) return alert(res?.message || "Nhập kho thất bại");
+
+      alert(res?.message || "Nhập kho thành công!");
+      closeReceive();
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Nhập kho thất bại");
+    }
+  };
+
+  const [products, setProducts] = useState([]);
+  const loadItems = async () => {
+    try {
+      const res = await reliefItemsService.getAll();
+      if (res?.success) {
+        const normalized = (res.data || []).map((p) => ({
+          reliefItemID: p.reliefItemID ?? p.ReliefItemID,
+          reliefItemName: p.reliefItemName ?? p.ReliefItemName ?? "",
+          categoryID: p.categoryID ?? p.CategoryID,
+          unit: p.unit ?? p.Unit ?? "",
+        }));
+        setProducts(normalized);
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      console.error("Load relief items failed:", err);
+      setProducts([]);
+    }
+  };
+  useEffect(() => {
+    loadItems();
+  }, []);
+
+  //==Prepare order ==
+  const [orders, setOrders] = useState([]);
+  const [showPrepareModal, setShowPrepareModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [prepareItems, setPrepareItems] = useState([]); // [{reliefItemID, quantity}]
+  // Map reliefItemID -> reliefItemName
+  const itemNameById = useMemo(() => {
+    const map = new Map();
+    (products || []).forEach((p) => {
+      const id = p.reliefItemID ?? p.ReliefItemID;
+      const name = p.reliefItemName ?? p.ReliefItemName;
+      if (id && name) map.set(id, name);
+    });
+    return map;
+  }, [products]);
+  const loadOrders = async () => {
+    try {
+      const res = await reliefOrdersService.getAll(); // hoặc getPending()
+
+      console.log("Orders API response:", res);      // log toàn bộ response
+      console.log("Orders data:", res?.data);        // log riêng data
+
+      if (res?.success) {
+        const normalized = (res.data || []).map((o) => ({
+          reliefOrderID: o.reliefOrderID ?? o.ReliefOrderID ?? o.id,
+          status: o.status ?? o.Status,
+          missionStatus: o.missionStatus ?? o.MissionStatus,
+          warehouseName: o.warehouseName ?? o.WarehouseName ?? "",
+          items: (o.items ?? o.Items ?? []).map((x) => ({
+            reliefItemID: x.reliefItemID ?? x.ReliefItemID,
+            quantity: x.quantity ?? x.Quantity ?? 0,
+          })),
+        }));
+
+        setOrders(normalized);
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.error("Load orders failed:", err);
+      setOrders([]);
+    }
+  };
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+
+
 
   // ====== PRODUCT USAGE HISTORY (mock) ======
   const productUsageHistory = [
@@ -63,22 +210,7 @@ export default function ManagerDashboard() {
     { time: "20+ min", count: 30 },
   ];
 
-  // ====== PRODUCTS ======
-  const [products, setProducts] = useState([
-    { id: "1", name: "Medical Kit", category: "Equipment", quantity: 15, status: "available" },
-    { id: "2", name: "First Aid Kit", category: "Equipment", quantity: 30, status: "available" },
-    { id: "3", name: "Stretcher", category: "Equipment", quantity: 0, status: "out-of-stock" },
-  ]);
 
-  // ====== MODAL ======
-  const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    quantity: 1,
-  });
 
   // ====== KPI ======
   const { totalRequests, totalCompleted, successRate } = useMemo(() => {
@@ -93,50 +225,58 @@ export default function ManagerDashboard() {
   }, [monthlyRescues]);
 
   // ====== ACTIONS ======
-  const openAdd = () => {
-    setEditingProduct(null);
-    setFormData({ name: "", category: "", quantity: 1 });
-    setShowModal(true);
+  const openPrepare = (order) => {
+
+    setSelectedOrder(order)
+    setPrepareItems(order.items || []);
+    setShowPrepareModal(true);
   };
 
-  const openEdit = (p) => {
-    setEditingProduct(p);
-    setFormData({ name: p.name, category: p.category, quantity: p.quantity });
-    setShowModal(true);
+  const closePrepare = () => {
+    setShowPrepareModal(false);
+    setSelectedOrder(null);
+    setPrepareItems([]);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingProduct(null);
+  const setPrepareQty = (reliefItemID, qty) => {
+    setPrepareItems((prev) =>
+      prev.map((x) =>
+        x.reliefItemID === reliefItemID ? { ...x, quantity: Number(qty) } : x
+      )
+    );
   };
 
-  const submit = (e) => {
-    e.preventDefault();
+  const confirmPrepare = async () => {
+    if (!selectedOrder) return;
 
-    const status = formData.quantity > 0 ? "available" : "out-of-stock";
+    const items = prepareItems
+      .filter(x => Number(x.quantity) > 0)
+      .map(x => ({
+        reliefItemID: x.reliefItemID,
+        quantity: Number(x.quantity),
+      }));
 
-    if (editingProduct) {
-      setProducts(
-        products.map((p) => (p.id === editingProduct.id ? { ...p, ...formData, status } : p))
-      );
-    } else {
-      setProducts([...products, { id: Date.now().toString(), ...formData, status }]);
+    if (items.length === 0) {
+      alert("Bạn chưa nhập số lượng xuất kho");
+      return;
     }
 
-    closeModal();
-  };
+    const payload = {
+      reliefOrderID: selectedOrder.reliefOrderID,
+      items,
+    };
 
-  const del = (id) => {
-    if (confirm("Delete this product?")) setProducts(products.filter((p) => p.id !== id));
-  };
+    const res = await reliefOrdersService.prepareOrder(payload);
 
-  const badgeClass = (st) => {
-    if (st === "available") return "badge badge-available";
-    if (st === "out-of-stock") return "badge badge-outofstock";
-    return "badge";
-  };
+    if (!res?.success) {
+      alert(res?.message || "Prepare failed!");
+      return;
+    }
 
-  const badgeLabel = (st) => (st === "out-of-stock" ? "out of stock" : "available");
+    alert("Soạn hàng thành công!");
+    closePrepare();
+    await loadOrders(); // reload từ API
+  };
 
 
   function getFilteredUsage() {
@@ -163,21 +303,20 @@ export default function ManagerDashboard() {
 
   const escapeCSV = (v = "") => `"${String(v).replaceAll('"', '""')}"`;
 
-  const handleExportUsageCSV = () => {
-    const selectedTeam = teams.find((t) => t.id === reportTeam);
-    const periodLabel =
-      reportPeriod === "week" ? "Past Week" : reportPeriod === "month" ? "Past Month" : "Past Quarter";
-
+  const handleExportProductsCSV = () => {
     const rows = [
       ["RESCUE MANAGEMENT SYSTEM"],
-      ["Product Usage Report"],
+      ["Relief Items Report"],
       ["Generated", new Date().toLocaleString()],
-      ["Team ID", reportTeam || "All Teams"],
-      ["Team Name", selectedTeam ? selectedTeam.name : "All Teams"],
-      ["Time Period", periodLabel],
       [],
-      ["Product Name", "Quantity", "Date Taken", "Team ID"],
-      ...filteredUsage.map((x) => [x.productName, x.quantity, x.dateTaken, x.teamId]),
+      ["ReliefItemID", "ReliefItemName", "CategoryID", "CategoryName", "Unit"],
+      ...products.map((p) => [
+        p.reliefItemID,
+        p.reliefItemName,
+        p.categoryID,
+        categoryNameById.get(Number(p.categoryID)) || "",
+        p.unit,
+      ]),
     ];
 
     const csv = rows.map((r) => r.map(escapeCSV).join(",")).join("\n");
@@ -186,11 +325,55 @@ export default function ManagerDashboard() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `product-usage-report-${reportTeam || "all"}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `relief-items-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // ===== NEW ITEM (CREATE RELIEF ITEM) MODAL =====
+  const [showNewItemModal, setShowNewItemModal] = useState(false);
+  const [newItemForm2, setNewItemForm2] = useState({
+    reliefItemName: "",
+    categoryID: "",
+    unit: "",
+  });
+
+  const openNewItemModal = () => {
+    setNewItemForm2({ reliefItemName: "", categoryID: "", unit: "" });
+    setShowNewItemModal(true);
+  };
+
+  const closeNewItemModal = () => setShowNewItemModal(false);
+
+  const submitNewItem = async (e) => {
+    e?.preventDefault?.();
+
+    const payload = {
+      reliefItemName: newItemForm2.reliefItemName.trim(),
+      categoryID: Number(newItemForm2.categoryID),
+      unit: newItemForm2.unit.trim(),
+    };
+
+    if (!payload.reliefItemName) return alert("Product name is required");
+    if (!payload.categoryID) return alert("Category is required");
+    if (!payload.unit) return alert("Unit is required");
+
+    try {
+      const res = await reliefItemsService.create(payload);
+      if (!res?.success) {
+        alert(res?.message || "Create item failed");
+        return;
+      }
+
+      alert(res?.message || "Created new item!");
+      closeNewItemModal();
+      await loadItems(); // reload products list
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || "Create item failed");
+    }
   };
 
   const reportPeriodLabel =
@@ -198,11 +381,26 @@ export default function ManagerDashboard() {
 
   const totalRetrieved = filteredUsage.reduce((s, x) => s + x.quantity, 0);
 
+  const selectedId =
+    selectedOrder?.reliefOrderID ??
+    selectedOrder?.ReliefOrderID ??
+    selectedOrder?.id;
+
+  const selectedMission =
+    selectedOrder?.missionStatus ??
+    selectedOrder?.MissionStatus ??
+    "";
+
+  const selectedWarehouse =
+    selectedOrder?.warehouseName ??
+    selectedOrder?.WarehouseName ??
+    "";
+
   return (
     <div className="manager-root">
       {/* HEADER */}
-    
-    <Header />
+
+      <Header />
 
       {/* MAIN */}
       <main className="manager-content">
@@ -319,9 +517,16 @@ export default function ManagerDashboard() {
             <div className="panel-card">
               <div className="panel-row">
                 <div className="panel-card-title">Rescue Products</div>
-                <button className="btn-yellow" onClick={openAdd}>
-                  Add New Product
-                </button>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <button className="btn-yellow" onClick={openNewItemModal}>
+                    Add New Item
+                  </button>
+
+                  {/*nút này dùng để receive inventory*/}
+                  <button className="btn-yellow" onClick={openReceive}>
+                    Add Products to WareHouse
+                  </button>
+                </div>
               </div>
 
               <div className="product-box">
@@ -329,47 +534,77 @@ export default function ManagerDashboard() {
                   {products.map((p) => (
                     <div
                       className="product-item"
-                      key={p.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => openEdit(p)}
-                      onKeyDown={(e) => e.key === "Enter" && openEdit(p)}
-                      style={{ cursor: "pointer" }}
+                      key={p.reliefItemID}
                     >
                       <div>
-                        <div className="product-name">{p.name}</div>
+                        <div className="product-name">{p.reliefItemName}</div>
                         <div className="product-meta">
-                          <span>{p.category}</span>
+                          <span>{categoryNameById.get(Number(p.categoryID)) || `Category #${p.categoryID ?? p.CategoryID}`}</span>
                           <span className="dot">•</span>
-                          <span>Qty: {p.quantity}</span>
+                          <span>Unit: {p.unit}</span>
                         </div>
-                      </div>
-
-                      <div className="product-right">
-                        <span className={badgeClass(p.status)}>{badgeLabel(p.status)}</span>
-
-                        <button
-                          className="link link-danger"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            del(p.id);
-                          }}
-                        >
-                          Delete
-                        </button>
                       </div>
                     </div>
                   ))}
+                  {products.length === 0 && (
+                    <div style={{ opacity: 0.7, padding: 12 }}>No Products</div>
+                  )}
                 </div>
               </div>
             </div>
+            {/* PREPARE ORDERS */}
+            <div className="panel-card report-card">
+              <div className="panel-row">
+                <div className="panel-card-title">Prepare Orders</div>
+                <div style={{ opacity: 0.75, fontSize: 13 }}>
+                  (Pending + Mission InProgress mới soạn được)
+                </div>
+              </div>
 
+              <div className="product-box">
+                <div className="product-list">
+                  {orders.map((o) => {
+                    const canPrepare =
+                      o.status === "Pending" && o.missionStatus === "InProgress";
+
+                    return (
+                      <div className="product-item" key={o.reliefOrderID}>
+                        <div>
+                          <div className="product-name">Order: {o.reliefOrderID}</div>
+                          <div className="product-meta">
+                            <span>Status: {o.status}</span>
+                            <span className="dot">•</span>
+                            <span>Mission: {o.missionStatus}</span>
+                            <span className="dot">•</span>
+                            <span>{o.warehouseName}</span>
+                          </div>
+                        </div>
+
+                        <div className="product-right">
+                          <button
+                            className="btn-yellow"
+                            disabled={!canPrepare}
+                            onClick={() => openPrepare(o)}
+                          >
+                            Soạn hàng
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {orders.length === 0 && (
+                    <div style={{ opacity: 0.7, padding: 12 }}>No orders</div>
+                  )}
+                </div>
+              </div>
+            </div>
             {/* PRODUCT USAGE REPORT (full width) */}
             <div className="panel-card report-card">
               <div className="panel-row">
                 <div className="panel-card-title">Product Usage Report</div>
 
-                <button className="btn-yellow" onClick={handleExportUsageCSV}>
+                <button className="btn-yellow" onClick={handleExportProductsCSV}>
                   Export File
                 </button>
               </div>
@@ -433,24 +668,172 @@ export default function ManagerDashboard() {
                       </tbody>
                     </table>
                   </div>
+
                 </div>
               </div>
             </div>
           </div>
 
-          {/* MODAL */}
-          {showModal && (
+          {/* PREPARE MODAL */}
+          {showPrepareModal && (
             <div className="mp-modal-overlay">
               <div className="mp-modal">
-                <div className="mp-modal-title">{editingProduct ? "Edit Product" : "Add New Product"}</div>
+                <div className="mp-modal-title">
+                  Soạn hàng cho Order {selectedId}
+                </div>
 
-                <form onSubmit={submit}>
+                <div style={{ marginBottom: 12, opacity: 0.85 }}>
+                  Mission: {selectedMission} • Kho: {selectedWarehouse}
+                </div>
+
+                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Relief Item</th>
+                        <th style={{ width: 140 }}>Quantity</th>
+                        <th style={{ width: 120 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prepareItems.map((x) => (
+                        <tr key={x.reliefItemID}>
+                          <td>{itemNameById.get(x.reliefItemID) || x.reliefItemID}</td>
+                          <td>
+                            <input
+                              type="number"
+                              min={0}
+                              value={x.quantity}
+                              onChange={(e) => setPrepareQty(x.reliefItemID, e.target.value)}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+
+                      {prepareItems.length === 0 && (
+                        <tr>
+                          <td colSpan={2} style={{ textAlign: "center", opacity: 0.7 }}>
+                            No items
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mp-modal-actions">
+                  <button type="button" className="btn-ghost" onClick={closePrepare}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn-red" onClick={confirmPrepare}>
+                    Xuất kho / Xác nhận soạn xong
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/*RECEIVEMODAL*/}
+          {showReceiveModal && (
+            <div className="mp-modal-overlay">
+              <div className="mp-modal">
+                <div className="mp-modal-title">Receive Inventory</div>
+
+                <div className="field">
+                  <label>Warehouse *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={receiveWarehouseID}
+                    onChange={(e) => setReceiveWarehouseID(e.target.value)}
+                  />
+                </div>
+
+                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Relief Item</th>
+                        <th style={{ width: 140 }}>Quantity</th>
+                        <th style={{ width: 90 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receiveItems.map((row, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            <select
+                              value={row.reliefItemID}
+                              onChange={(e) => updateReceiveRow(idx, { reliefItemID: e.target.value })}
+                              style={{ width: "100%" }}
+                            >
+                              <option value="">-- Select item --</option>
+                              {products.map((p) => (
+                                <option key={p.reliefItemID} value={p.reliefItemID}>
+                                  {p.reliefItemName}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          <td>
+                            <input
+                              type="number"
+                              min={0}
+                              value={row.quantity}
+                              onChange={(e) => updateReceiveRow(idx, { quantity: e.target.value })}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              className="link link-danger"
+                              onClick={() => removeReceiveRow(idx)}
+                              disabled={receiveItems.length === 1}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="btn-ghost" onClick={addReceiveRow}>
+                    + Add item
+                  </button>
+                </div>
+
+                <div className="mp-modal-actions">
+                  <button type="button" className="btn-ghost" onClick={closeReceive}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn-red" onClick={confirmReceive}>
+                    Confirm Receive
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* NEW ITEM MODAL (Create Relief Item) */}
+          {showNewItemModal && (
+            <div className="mp-modal-overlay">
+              <div className="mp-modal">
+                <div className="mp-modal-title">Add New Item</div>
+
+                <form onSubmit={submitNewItem}>
                   <div className="field">
                     <label>Product Name *</label>
                     <input
                       required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      value={newItemForm2.reliefItemName}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, reliefItemName: e.target.value })
+                      }
                     />
                   </div>
 
@@ -458,40 +841,48 @@ export default function ManagerDashboard() {
                     <label>Category *</label>
                     <select
                       required
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      value={newItemForm2.categoryID}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, categoryID: e.target.value })
+                      }
                     >
                       <option value="">Select category</option>
-                      <option value="Equipment">Equipment</option>
-                      <option value="Medical">Medical</option>
+                      {categories.map((c) => (
+                        <option
+                          key={c.categoryID ?? c.CategoryID}
+                          value={c.categoryID ?? c.CategoryID}
+                        >
+                          {c.categoryName ?? c.CategoryName}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="field">
-                    <label>Quantity *</label>
+                    <label>Unit *</label>
                     <input
-                      type="number"
-                      min="0"
                       required
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                      value={newItemForm2.unit}
+                      onChange={(e) =>
+                        setNewItemForm2({ ...newItemForm2, unit: e.target.value })
+                      }
                     />
                   </div>
 
                   <div className="mp-modal-actions">
-                    <button type="button" className="btn-ghost" onClick={closeModal}>
+                    <button type="button" className="btn-ghost" onClick={closeNewItemModal}>
                       Cancel
                     </button>
                     <button type="submit" className="btn-red">
-                      {editingProduct ? "Update" : "Add"}
+                      Add
                     </button>
                   </div>
                 </form>
               </div>
             </div>
           )}
-        </div>
-      </main>
-    </div>
+        </div >
+      </main >
+    </div >
   );
 }

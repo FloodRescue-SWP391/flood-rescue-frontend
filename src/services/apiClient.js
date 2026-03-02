@@ -22,7 +22,7 @@
  *      → Lưu auth mới vào localStorage.
  *      → Retry lại request ban đầu với token mới.
  */
-export const API_BASE_URL = "http://localhost:7142/api"; //đợi đổi đúng theo port backend
+export const API_BASE_URL = "https://apifloodrescue.huydevops.id.vn/api"; //đợi đổi đúng theo port backend
 export async function fetchWithAuth(url, options = {}) {
     // Lấy access token từ localStorage
     const raw = localStorage.getItem("auth");
