@@ -25,11 +25,12 @@
  * 4) Nếu lỗi → throw Error để UI hiển thị thông báo.
  *
  */
-import { API_BASE_URL } from "./apiClient";
+import { API_BASE_URL, fetchWithAuth } from "./apiClient";
 
-
+// nếu register public thì giữ fetch như bạn đang làm
+// nếu register cần auth thì dùng fetchWithAuth:
 export async function register(payload) {
-  const res = await fetch(`${API_BASE_URL}/Auth/register`, {
+  const res = await fetchWithAuth(`${API_BASE_URL}/Auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -48,7 +49,7 @@ export async function login(username, password) {
   const res = await fetch(`${API_BASE_URL}/Auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({userName:username, password }),
+    body: JSON.stringify({ userName: username, password }),
   });
   const text = await res.text();
   let json = null;
