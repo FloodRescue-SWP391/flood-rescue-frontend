@@ -156,4 +156,20 @@
   .submit-btn {
     padding: 12px;
   }
+}/* --- Fix checkbox Is Leader --- */
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inline-check label {
+  margin-bottom: 0; /* override label block style */
+}
+
+.inline-check input[type="checkbox"] {
+  width: auto;      /* override width: 100% */
+  padding: 0;       /* checkbox không cần padding */
+  margin: 0;
+  box-shadow: none; /* tránh shadow focus lạ */
 }
