@@ -17,11 +17,11 @@ import ListUser from "./pages/admin/ListUser.jsx";
 import CreateUser from "./pages/admin/CreateUser.jsx";
 import CreateRescueTeam from "./pages/admin/CreateRescueTeam"; // đường dẫn đúng theo bạn đặt file
 import ListRescueTeams from "./pages/admin/ListRescueTeams.jsx";
+
 // ===== MANAGER =====
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 
 import RescueTeam from "./pages/rescueTeam/RescueTeam";
-
 import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
 
 //====unauthorized====
@@ -32,8 +32,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* ===== DEFAULT: CITIZEN HOME ===== */}
+        <Route path="/" element={<Hero />} />
+
         {/* ===== HOME ===== */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
 
         {/* ===== HEADER ===== */}
         <Route path="/introduce" element={<Introduce />} />
@@ -43,7 +46,6 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* ===== CITIZEN ===== */}
-        <Route path="/citizen/hero" element={<Hero />} />
         <Route path="/citizen/request" element={<RequestRescue />} />
         <Route path="/citizen/request-status" element={<RequestStatus />} />
 

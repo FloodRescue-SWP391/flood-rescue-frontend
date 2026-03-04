@@ -11,10 +11,10 @@ const Hero = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const texts = [
-    "Emergency Rescue System",
-    "24/7 Rescue Service",
-    "Immediate Response",
-    "Your Safety Matters"
+    "Emergency Rescue",
+    "24/7 Support",
+    "Fast Response",
+    "Stay Safe",
   ];
 
   useEffect(() => {
@@ -57,11 +57,15 @@ const Hero = () => {
         <div className="hero-container">
           <div className="hero-content">
             {/* Emergency Badge */}
-            <div className="emergency-badge">
-              <span className="badge-icon">🚨</span>
-              <span className="badge-text">24/7 EMERGENCY SERVICE</span>
-            </div>
 
+       
+              <div className="emergency-badge">
+                <span className="badge-icon">🚨</span>
+                <span className="badge-text">24/7 EMERGENCY SERVICE</span>
+              </div>
+
+             
+            
             {/* Animated Typing Title */}
             <h1 className="hero-title">
               <span className="typed-text">{typedText}</span>
@@ -92,25 +96,25 @@ const Hero = () => {
               </div>
             </div>
 
-            {/* Main CTA Button */}
-            <button
-              className="hero-btn"
-              onClick={() => navigate("/citizen/request")}
-            >
-              <span className="btn-icon">🚨</span>
-              <span className="btn-text">Request Emergency Rescue</span>
-            </button>
+             {/* Main CTA Button */}
+              <button
+                className="hero-btn"
+                onClick={() => navigate("/citizen/request")}
+              >
+                <span className="btn-icon">🚨</span>
+                <span className="btn-text">Request Emergency Rescue</span>
+              </button>
 
             {/* Secondary Options */}
             <div className="hero-secondary-actions">
-              <button 
+              <button
                 className="secondary-btn"
                 onClick={() => navigate("/contact")}
               >
                 <span className="secondary-icon">📞</span>
                 <span>Contact Emergency Hotline</span>
               </button>
-              <button 
+              <button
                 className="secondary-btn"
                 onClick={() => navigate("/introduce")}
               >

@@ -22,7 +22,6 @@ const Introduce = () => {
           ⬅ Back
         </button>
 
-        <div className="ngang"></div>
 
         <section className="hp-intro">
           <h4>Introducing the RESCUE system</h4>
@@ -34,9 +33,8 @@ const Introduce = () => {
         <div className="content1">
           <h7>Who are we ?</h7>
           <p>
-            <strong>RESCUE</strong> It is an emergency rescue coordination support system,
-
-helping to connect people with rescue teams.
+            <strong>RESCUE</strong> It is an emergency rescue coordination
+            support system, helping to connect people with rescue teams.
           </p>
         </div>
 
@@ -44,9 +42,7 @@ helping to connect people with rescue teams.
 
         <div className="content2">
           <h7>Mission</h7>
-          <p>
-           Providing fast, accurate, and effective rescue solutions.
-          </p>
+          <p>Providing fast, accurate, and effective rescue solutions.</p>
         </div>
 
         <div className="ngang"></div>
@@ -67,12 +63,33 @@ helping to connect people with rescue teams.
           <h7>Development team</h7>
 
           <div className="team-list">
-            {[ 
-              { img: beai, name: "Đặng Hoàng Trúc Vy", role: "Frontend" },
-              { img: gialuan, name: "Lương Gia Luân", role: "Backend" },
-              { img: quochuy, name: "Chung Quốc Huy", role: "Database" },
-              { img: minh, name: "Trương Trần Anh Minh", role: "UI/UX" },
-              { img: hoanghuy, name: "Lê Hoàng Huy", role: "Backend" },
+            {[
+              {
+                img: beai,
+                name: "Đặng Hoàng Trúc Vy",
+                role: "Frontend + UI/UX Lead",
+              },
+              {
+                img: minh,
+                name: "Trương Trần Anh Minh",
+                role: "Frontend + API integration",
+              },
+              {
+                img: gialuan,
+                name: "Lương Gia Luân",
+                role: "Backend - Core API",
+              },
+              {
+                img: quochuy,
+                name: "Chung Quốc Huy",
+                role: "Backend - Database Engineer",
+              },
+
+              {
+                img: hoanghuy,
+                name: "Lê Hoàng Huy",
+                role: "Backend - System logic",
+              },
             ].map((m, i) => (
               <div className="team-card" key={i}>
                 <img src={m.img} alt={m.name} />
@@ -84,17 +101,17 @@ helping to connect people with rescue teams.
             ))}
           </div>
         </div>
-
-        
       </div>
 
-       <footer className="homepage-footer">
+      <footer className="homepage-footer">
         <div className="footer-content">
           <div className="footer-section">
             <h3>Emergency Rescue System</h3>
-            <p>Smart rescue connection, 
+            <p>
+              Smart rescue connection,
               <br />
-              fast and effective</p>
+              fast and effective
+            </p>
           </div>
           <div className="footer-section">
             <h3>Contact</h3>

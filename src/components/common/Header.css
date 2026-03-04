@@ -29,7 +29,7 @@ header {
 .logo .a {
   color: white;
   margin-left: -16px;
-    font-size: 28px;
+  font-size: 28px;
 }
 
 .title {
@@ -44,9 +44,27 @@ header {
   font-weight: 700;
   font-size: 23px;
   font-family: 'Times New Roman', Times, serif;
-
 }
 
+/* Login button */
+.title button { 
+  color: rgb(255, 255, 255);
+  background-color: transparent;
+  margin-right: 16px;
+  margin-left: 20px;
+  font-weight: 600;
+  font-size: 23px;
+  font-family: 'Times New Roman', Times, serif;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.title button:hover {
+  color: rgb(55, 43, 43);
+  transform: translateY(-1px);
+  
+}
 nav .nav-btn:hover {
   color: rgba(34, 25, 25, 0.9);
 }

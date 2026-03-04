@@ -1,12 +1,17 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header";
 import "./HomePage.css";
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="homepage-container">
       <Header />
+       <button className="back-btn1" onClick={() => navigate("/")}>
+          ⬅ Back
+        </button>
         <h1 className="slogan">When emergencies strike, help arrives.</h1>
           <p className="caption">
             Smart system connects people, rescue teams and coordinators in emergency situations
@@ -18,12 +23,7 @@ const HomePage = () => {
         <h2 className="section-title">Access the system by role</h2>
     
         <div className="role-grid">
-          <div className="role-card">
-            <div className="role-icon">👤</div>
-            <h3 className="role-title">Citizen</h3>
-            <p className="role-description">Report incidents, request rescue, track progress</p>
-            <Link to="/citizen/hero" className="role-link">Access now →</Link>
-          </div>
+          
           
           <div className="role-card">
             <div className="role-icon">🎯</div>

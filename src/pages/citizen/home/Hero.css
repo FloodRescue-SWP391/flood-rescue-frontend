@@ -11,6 +11,7 @@
   padding: 80px 20px;
 }
 
+
 /* Animated Background */
 .hero-background {
   position: absolute;
@@ -128,6 +129,8 @@
 .typed-text {
   min-height: 4rem;
   display: inline-block;
+   white-space: nowrap;
+   font-size: 65px;
 }
 
 .cursor {
@@ -148,13 +151,14 @@
   color: #cbd5e1;
   margin-bottom: 40px;
   max-width: 500px;
+  text-align: justify;
 }
 
 /* Stats */
 .hero-stats {
   display: flex;
   align-items: center;
-  gap: 30px;
+
   margin-bottom: 40px;
   flex-wrap: wrap;
 }
@@ -200,7 +204,7 @@
   box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
   margin-bottom: 24px;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
   position: relative;
   overflow: hidden;
 }
@@ -244,7 +248,7 @@
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  max-width: 400px;
+  max-width: 500px;
 }
 
 .secondary-btn {
@@ -258,7 +262,8 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 0.875rem;
+  font-size: 0.775rem;
+  text-align:start;
   flex: 1;
   min-width: 180px;
 }
@@ -270,8 +275,9 @@
 }
 
 .secondary-icon {
-  font-size: 18px;
+  font-size: 22px;
 }
+
 
 /* Hero Illustration */
 .hero-illustration {
@@ -468,3 +474,4 @@
     width: 100%;
   }
 }
+
