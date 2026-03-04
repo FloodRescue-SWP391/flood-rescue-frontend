@@ -146,12 +146,12 @@
 
 /* Subtitle */
 .hero-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   line-height: 1.6;
   color: #cbd5e1;
   margin-bottom: 40px;
   max-width: 500px;
-  text-align: justify;
+  text-align: start;
 }
 
 /* Stats */
