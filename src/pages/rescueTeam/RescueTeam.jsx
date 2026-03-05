@@ -8,7 +8,7 @@ import {
   updateRescueTeam,
   deleteRescueTeam,
 } from "../../services/rescueTeamService";
-
+import { completeMission } from "../../services/rescueMissionService";
 
 export default function RescueTeam() {
   // Dùng teams làm nguồn dữ liệu, giữ tên requests để không phải đụng UI nhiều
@@ -263,15 +263,41 @@ export default function RescueTeam() {
     addHistory("REJECTED", req);
   };
 
-  const completeRequest = (id) => {
+  const completeRequest = async (id) => {
     const req = requests.find((r) => r.id === id);
     if (!req) return;
+    const raw = req.__raw || {};
 
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "completed" } : r))
-    );
+    //  missionId phải là RescueMissionID (GUID) từ backend
+    const missionId =
+      raw.rescueMissionID ?? raw.rescueMissionId ?? raw.missionId;
 
-    addHistory("COMPLETED", req);
+    if (!missionId) {
+      alert("Thiếu RescueMissionID để complete. (Hiện item này chưa phải data mission thật)");
+      return;
+    }
+    try {
+      setLoading(true);
+      setErr("");
+
+      const result = await completeMission(missionId);
+
+      // update UI
+      setRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "completed" } : r))
+      );
+
+      addHistory("COMPLETED", req);
+
+      alert(result?.message || result?.Message || "Mission completed successfully!");
+    } catch (e) {
+      console.error(e);
+      setErr(e.message || "Complete mission failed.");
+      alert(e.message || "Complete mission failed.");
+    } finally {
+      setLoading(false);
+    }
+
   };
 
   const confirmPickup = async (id) => {
@@ -295,8 +321,8 @@ export default function RescueTeam() {
       setErr("");
 
       await rescueMissionService.confirmPickup({
-        rescueMissionId,
-        reliefOrderId,
+        rescueMissionID:rescueMissionId,
+        reliefOrderID: reliefOrderId,
       });
 
       // update UI local

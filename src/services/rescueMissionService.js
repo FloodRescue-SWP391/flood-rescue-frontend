@@ -2,6 +2,23 @@
 import { fetchWithAuth } from "./apiClient";
 
 const BASE = "/RescueMission";
+/**
+ * Complete Rescue Mission
+ * API: PUT /api/RescueMission/complete
+ * Body: { rescueMissionID: "GUID" }
+ * Response: { success, message, statusCode, content: {...} }
+ */
+export const completeMission = async (rescueMissionID) => {
+    if (!rescueMissionID) throw new Error("rescueMissionID is required");
+
+    const json = await fetchWithAuth(`${BASE}/complete`, {
+        method: "PUT",
+        body: JSON.stringify({ rescueMissionID }),
+    });
+
+    if (!json?.success) throw new Error(json?.message || "Complete mission failed");
+    return json.content;
+};
 
 export const rescueMissionService = {
     dispatch: ({ rescueRequestID, rescueTeamID }) => {
@@ -21,12 +38,17 @@ export const rescueMissionService = {
             }),
         });
     },
-    confirmPickup: ({ rescueMissionID, reliefOrderID }) =>
-        fetchWithAuth(`${BASE}/confirm-pickup`, {
+    // Confirm pickup (PUT /api/RescueMission/confirm-pickup)
+    confirmPickup: ({ rescueMissionID, reliefOrderID }) => {
+        if (!rescueMissionID || !reliefOrderID) {
+            throw new Error("rescueMissionID và reliefOrderID là bắt buộc");
+        }
+
+        return fetchWithAuth(`${BASE}/confirm-pickup`, {
             method: "PUT",
             body: JSON.stringify({ rescueMissionID, reliefOrderID }),
-        }),
-
+        });
+    },
     // Option A (nếu BE làm GET /team/{teamId}?status=...)
     getByTeam: ({ teamId, status }) => {
         const qs = status ? `?status=${encodeURIComponent(status)}` : "";
@@ -38,18 +60,4 @@ export const rescueMissionService = {
         return fetchWithAuth(`${BASE}/assigned/${teamId}`, { method: "GET" });
     },
 
-    confirmPickup: async ({ rescueMissionId, reliefOrderId }) => {
-        if (!rescueMissionId || !reliefOrderId) {
-            throw new Error("rescueMissionId và reliefOrderId là bắt buộc");
-        }
-
-        return fetchWithAuth(`/RescueMission/confirm-pickup`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                rescueMissionID: rescueMissionId, //  chú ý key theo BE: RescueMissionID
-                reliefOrderID: reliefOrderId,     //  ReliefOrderID
-            }),
-        });
-    },
 };
