@@ -9,6 +9,8 @@ import {
   deleteRescueTeam,
 } from "../../services/rescueTeamService";
 import { completeMission } from "../../services/rescueMissionService";
+import useSignalR from "../../hooks/useSignalR";
+import { CLIENT_EVENTS } from "../../data/signalrConstants";
 
 export default function RescueTeam() {
   // Dùng teams làm nguồn dữ liệu, giữ tên requests để không phải đụng UI nhiều
@@ -384,6 +386,20 @@ export default function RescueTeam() {
     () => filteredRequests.filter((r) => r.status === "completed"),
     [filteredRequests]
   );
+
+  // ===== SIGNALR REALTIME =====
+  // Dùng custom hook useSignalR để lắng nghe sự kiện realtime từ backend (SignalR Hub) khi có update về rescue mission hoặc relief order để tự động reload data mà không cần F5.
+  useSignalR({
+    [CLIENT_EVENTS.RECEIVE_MISSION_NOTIFICATION]: () => {
+      loadTeams();
+    },
+    [CLIENT_EVENTS.ORDER_PREPARED]: () => {
+      loadTeams();
+    },
+    [CLIENT_EVENTS.INCIDENT_RESOLVED]: () => {
+      loadTeams();
+    },
+  });
 
   return (
     <div className="rescue-team-page">

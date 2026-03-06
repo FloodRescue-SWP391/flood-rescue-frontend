@@ -22,7 +22,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
+import useSignalR from "../../hooks/useSignalR";
+import { CLIENT_EVENTS } from "../../data/signalrConstants";
 export default function ManagerDashboard() {
   // ====== TEAMS & USAGE FILTER STATE ======
   const [reportTeam, setReportTeam] = useState("");
@@ -395,6 +396,14 @@ export default function ManagerDashboard() {
     selectedOrder?.warehouseName ??
     selectedOrder?.WarehouseName ??
     "";
+
+ // Sử dụng custom hook useSignalR để lắng nghe sự kiện realtime khi có order mới được tạo (dành cho coordinator) để tự động reload orders list và items list.
+useSignalR({
+  [CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR]: () => {
+    loadOrders();
+    loadItems();
+  },
+});
 
   return (
     <div className="manager-root">

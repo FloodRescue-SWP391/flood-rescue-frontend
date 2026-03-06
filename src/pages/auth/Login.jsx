@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header";
 import "./login.css";
 import { login } from "../../services/authService";
-
+import signalRService from "../../services/signalrService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -76,6 +76,9 @@ const Dashboard = () => {
       localStorage.setItem("role", role);      // lưu role đã map (FE role)
       localStorage.setItem("isAuth", "true");
 
+      // Login xong thì mở kết nối realtime luôn để backend có thể join group theo role (OnConnectedAsync) và nhận notification.
+      await signalRService.startConnection(); // Mới thêm nha
+      
       showToast("Đăng nhập thành công", "success");
 
       console.log("NAVIGATE TO ROLE:", role);

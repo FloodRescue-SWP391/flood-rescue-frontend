@@ -26,9 +26,20 @@ import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
 
 //====unauthorized====
 import Unauthorized from "./pages/common/Unauthorized";
-
+// ===== SIGNALR SERVICE =====
+import signalRService from "./services/signalrService";
 
 function App() {
+ // Nếu user reload (F5) trang mà vẫn còn login thì SignalR tự nối lại
+  useEffect(() => {
+      const token = localStorage.getItem("token");
+      const isAuth = localStorage.getItem("isAuth") === "true";
+
+      if (token && isAuth) {
+        signalRService.startConnection();
+      }
+    }, []);
+
   return (
     <BrowserRouter>
       <Routes>

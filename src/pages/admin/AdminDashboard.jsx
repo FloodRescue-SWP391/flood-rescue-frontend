@@ -7,7 +7,8 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signalRService.stopConnection();
     // Xử lý logout
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");

@@ -7,7 +7,8 @@ import "leaflet/dist/leaflet.css";
 import { getAllRescueRequests } from "../../services/rescueRequestService.js";
 import { getAllRescueTeams } from "../../services/rescueTeamService.js";
 import { rescueMissionService } from "../../services/rescueMissionService.js";
-
+import useSignalR from "../../hooks/useSignalR";
+import { CLIENT_EVENTS } from "../../data/signalrConstants";
 /* FIX ICON */
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -689,6 +690,27 @@ const Dashboard = () => {
     const team = teams.find((t) => String(getTeamId(t)) === String(id));
     return team ? getTeamLabel(team) : `Team #${id}`;
   };
+
+
+  // Khởi tạo kết nối SignalR và đăng ký sự kiện
+  useSignalR({
+    [CLIENT_EVENTS.NEW_RESCUE_REQUEST]: () => {
+      loadRequests();
+    },
+    [CLIENT_EVENTS.INCIDENT_REPORTED]: () => {
+      loadRequests();
+    },
+    [CLIENT_EVENTS.DELIVERY_STARTED]: () => {
+      loadRequests();
+    },
+    [CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE]: () => {
+      loadRequests();
+    },
+    [CLIENT_EVENTS.MISSION_COMPLETED]: () => {
+      loadRequests();
+    },
+  });
+
   return (
     <div className="dashboard-container">
       <Header />
