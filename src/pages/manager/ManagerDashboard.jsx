@@ -499,7 +499,8 @@ export default function ManagerDashboard() {
 
  // Sử dụng custom hook useSignalR để lắng nghe sự kiện realtime khi có order mới được tạo (dành cho coordinator) để tự động reload orders list và items list.
 useSignalR({
-  [CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR]: () => {
+  [CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR]: (data) => {
+    alert(data?.message || data?.Message || "Có đơn hàng cứu trợ mới cần chuẩn bị!");
     loadOrders();
     loadItems();
   },

@@ -8,6 +8,7 @@ const AdminDashboard = () => {
   const location = useLocation();
 
   const handleLogout = async () => {
+    //Ngắt realtime trước khi xóa token để tránh connection cũ còn sống và backend vẫn nhận được user info cũ (OnConnectedAsync) dẫn đến không leave group được.
     await signalRService.stopConnection();
     // Xử lý logout
     localStorage.removeItem("token");

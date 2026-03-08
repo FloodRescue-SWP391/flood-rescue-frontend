@@ -390,13 +390,16 @@ export default function RescueTeam() {
   // ===== SIGNALR REALTIME =====
   // Dùng custom hook useSignalR để lắng nghe sự kiện realtime từ backend (SignalR Hub) khi có update về rescue mission hoặc relief order để tự động reload data mà không cần F5.
   useSignalR({
-    [CLIENT_EVENTS.RECEIVE_MISSION_NOTIFICATION]: () => {
+    [CLIENT_EVENTS.RECEIVE_MISSION_NOTIFICATION]: (data) => {
+      alert(data?.message || data?.Message || "Bạn có nhiệm vụ mới!");
       loadTeams();
     },
-    [CLIENT_EVENTS.ORDER_PREPARED]: () => {
+    [CLIENT_EVENTS.ORDER_PREPARED]: (data) => {
+      alert(data?.message || data?.Message || "Order đã sẵn sàng để lấy!");
       loadTeams();
     },
-    [CLIENT_EVENTS.INCIDENT_RESOLVED]: () => {
+    [CLIENT_EVENTS.INCIDENT_RESOLVED]: (data) => {
+      alert(data?.message || data?.Message || "Nhiệm vụ đã bị hủy!");
       loadTeams();
     },
   });

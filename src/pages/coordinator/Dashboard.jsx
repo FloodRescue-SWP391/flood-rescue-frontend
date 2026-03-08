@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./Dashboard.css";
 import Header from "../../components/common/Header.jsx";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
@@ -165,8 +165,8 @@ const Dashboard = () => {
       isNew: false,
       waterLevel: "0.5m",
       specialNeeds: "Cần đội cứu hộ đặc biệt",
-    },];
-
+    },
+  ];
 
   const mapStatusToUI = (status) => {
     const s = (status || "").toLowerCase();
@@ -194,7 +194,8 @@ const Dashboard = () => {
     status: mapStatusToUI(r.status ?? r.Status),
     timestamp: new Date(r.createdTime ?? r.CreatedTime).toLocaleString("vi-VN"),
     contactVia: "Phone Call",
-    imageUrl: (r.imageUrls ?? r.ImageUrls)?.[0] || "https://via.placeholder.com/150",
+    imageUrl:
+      (r.imageUrls ?? r.ImageUrls)?.[0] || "https://via.placeholder.com/150",
     isNew: false,
     waterLevel: "0m",
     specialNeeds: "",
@@ -209,7 +210,6 @@ const Dashboard = () => {
   const [dispatching, setDispatching] = useState(false);
   const [dispatchError, setDispatchError] = useState("");
   const [dispatchSuccess, setDispatchSuccess] = useState("");
-
 
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [mapCenter, setMapCenter] = useState([10.775, 106.686]);
@@ -334,8 +334,6 @@ const Dashboard = () => {
 
   const filteredRequests = getFilteredRequests();
 
-
-
   //load team
   useEffect(() => {
     const loadTeams = async () => {
@@ -362,34 +360,31 @@ const Dashboard = () => {
     loadTeams();
   }, []);
 
-
   // Cập nhật unread count
   useEffect(() => {
     const unread = notifications.filter((n) => !n.read).length;
     setUnreadCount(unread);
   }, [notifications]);
   //load data thực tế
-  useEffect(() => {
-    const loadRealRequests = async () => {
-      try {
-        const res = await getAllRescueRequests();
-        console.log("GET /RescueRequests:", res);
+  // Dùng useCallback để tránh re-create mỗi render khiến useEffect gọi lại không cần thiết.
+  const loadRealRequests = useCallback(async () => {
+    try {
+      const res = await getAllRescueRequests();
+      console.log("GET /RescueRequests:", res);
 
-        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
-          const normalized = res.data.map(mapRequestToUI);
-          setAllRequests(normalized); //  replace mock bằng data thật
-          setUsingRealData(true);
-        }
-      } catch (e) {
-        console.warn("API failed -> keep mock:", e?.message);
-        // không setAllRequests gì cả => giữ mock
+      if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+        const normalized = res.data.map(mapRequestToUI);
+        setAllRequests(normalized); //  replace mock bằng data thật
+        setUsingRealData(true);
       }
-    };
-
-    loadRealRequests();
+    } catch (e) {
+      console.warn("API failed -> keep mock:", e?.message);
+      // không setAllRequests gì cả => giữ mock
+    }
   }, []);
-
-
+  useEffect(() => {
+    loadRealRequests();
+  }, [loadRealRequests]);
 
   // Giả lập nhận yêu cầu mới cho lũ lụt
   useEffect(() => {
@@ -506,7 +501,6 @@ const Dashboard = () => {
     };
   }, [usingRealData]);
 
-
   // Các hàm xử lý
   const handleRequestClick = (request) => {
     setSelectedRequest(request);
@@ -516,7 +510,8 @@ const Dashboard = () => {
     setDispatchError("");
     setDispatchSuccess("");
     // nếu đã assign team thì set dropdown theo
-    if (request?.assignedTeamId) setSelectedTeamId(String(request.assignedTeamId));
+    if (request?.assignedTeamId)
+      setSelectedTeamId(String(request.assignedTeamId));
     else setSelectedTeamId("");
 
     if (request.isNew) {
@@ -581,7 +576,7 @@ const Dashboard = () => {
 
       setDispatchSuccess(
         `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
-        (missionId ? ` (Mission #${missionId})` : "")
+          (missionId ? ` (Mission #${missionId})` : ""),
       );
     } catch (e) {
       setDispatchError(e?.message || "Dispatch mission failed.");
@@ -622,7 +617,7 @@ const Dashboard = () => {
           assignedTeamName: payload.assignedTeamName ?? req.assignedTeamName,
           rescueMissionId: payload.rescueMissionId ?? req.rescueMissionId,
         };
-      })
+      }),
     );
 
     if (selectedRequest?.id === requestId) {
@@ -691,23 +686,32 @@ const Dashboard = () => {
     return team ? getTeamLabel(team) : `Team #${id}`;
   };
 
-
   // Khởi tạo kết nối SignalR và đăng ký sự kiện
   useSignalR({
-    [CLIENT_EVENTS.NEW_RESCUE_REQUEST]: () => {
-      loadRequests();
+    [CLIENT_EVENTS.NEW_RESCUE_REQUEST]: (data) => {
+      alert(data?.Message || "Có yêu cầu cứu hộ mới!");
+      loadRealRequests();
     },
-    [CLIENT_EVENTS.INCIDENT_REPORTED]: () => {
-      loadRequests();
+    [CLIENT_EVENTS.INCIDENT_REPORTED]: (data) => {
+      alert(data?.message || data?.Message || "URGENT: Team báo cáo sự cố!");
+      loadRealRequests();
     },
-    [CLIENT_EVENTS.DELIVERY_STARTED]: () => {
-      loadRequests();
+    [CLIENT_EVENTS.DELIVERY_STARTED]: (data) => {
+      alert(data?.message || data?.Message || "Đơn hàng đang được giao!");
+      loadRealRequests();
     },
-    [CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE]: () => {
-      loadRequests();
+    [CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE]: (data) => {
+      alert(
+        data?.message ||
+          data?.Message ||
+          data?.actionMessage ||
+          "Team đã phản hồi!",
+      );
+      loadRealRequests();
     },
-    [CLIENT_EVENTS.MISSION_COMPLETED]: () => {
-      loadRequests();
+    [CLIENT_EVENTS.MISSION_COMPLETED]: (data) => {
+      alert(data?.message || data?.Message || "Nhiệm vụ hoàn thành!");
+      loadRealRequests();
     },
   });
 
@@ -848,35 +852,35 @@ const Dashboard = () => {
             req.priorityLevel === "Critical" &&
             req.status !== "completed",
         ) && (
-            <div className="critical-alert-banner">
-              <div className="alert-content">
-                <span className="alert-icon">🚨</span>
-                <div>
-                  <h3>WARNING: Critical life-threatening situation!</h3>
-                  <p>
-                    There are{" "}
-                    {
-                      allRequests.filter(
-                        (req) => req.isNew && req.priorityLevel === "Critical",
-                      ).length
-                    }{" "}
-                    critical rescue requests that need immediate handling
-                  </p>
-                </div>
+          <div className="critical-alert-banner">
+            <div className="alert-content">
+              <span className="alert-icon">🚨</span>
+              <div>
+                <h3>WARNING: Critical life-threatening situation!</h3>
+                <p>
+                  There are{" "}
+                  {
+                    allRequests.filter(
+                      (req) => req.isNew && req.priorityLevel === "Critical",
+                    ).length
+                  }{" "}
+                  critical rescue requests that need immediate handling
+                </p>
               </div>
-              <button
-                className="alert-action"
-                onClick={() => {
-                  const criticalRequest = allRequests.find(
-                    (req) => req.isNew && req.priorityLevel === "Critical",
-                  );
-                  if (criticalRequest) handleRequestClick(criticalRequest);
-                }}
-              >
-                Handle immediately →
-              </button>
             </div>
-          )}
+            <button
+              className="alert-action"
+              onClick={() => {
+                const criticalRequest = allRequests.find(
+                  (req) => req.isNew && req.priorityLevel === "Critical",
+                );
+                if (criticalRequest) handleRequestClick(criticalRequest);
+              }}
+            >
+              Handle immediately →
+            </button>
+          </div>
+        )}
 
         {/* Filter Controls */}
         <div className="filter-section">
@@ -1019,7 +1023,7 @@ const Dashboard = () => {
                               : request.emergencyType === "Medicine is needed."
                                 ? "💊"
                                 : request.emergencyType ===
-                                  "Life jackets/boat needed."
+                                    "Life jackets/boat needed."
                                   ? "🛟"
                                   : request.emergencyType === "Landslide"
                                     ? "⛰️"
@@ -1240,22 +1244,22 @@ const Dashboard = () => {
                           Emergency type:{" "}
                           <span className="detail-value badge">
                             {selectedRequest.emergencyType ===
-                              "People trapped in the water"
+                            "People trapped in the water"
                               ? "🌊"
                               : selectedRequest.emergencyType ===
-                                "The house was flooded."
+                                  "The house was flooded."
                                 ? "🏠"
                                 : selectedRequest.emergencyType ===
-                                  "Food/water is needed."
+                                    "Food/water is needed."
                                   ? "📦"
                                   : selectedRequest.emergencyType ===
-                                    "Medicine is needed."
+                                      "Medicine is needed."
                                     ? "💊"
                                     : selectedRequest.emergencyType ===
-                                      "Life jackets/boat needed."
+                                        "Life jackets/boat needed."
                                       ? "🛟"
                                       : selectedRequest.emergencyType ===
-                                        "Landslide"
+                                          "Landslide"
                                         ? "⛰️"
                                         : "🚨"}
                             {selectedRequest.emergencyType}
@@ -1366,14 +1370,20 @@ const Dashboard = () => {
                     </div>
 
                     <div className="action-buttons-group">
-
                       {/* DISPATCH SECTION */}
                       <div className="dispatch-section">
                         {selectedRequest?.assignedTeamId && (
                           <div className="dispatch-assigned">
-                            Assigned: <b>{selectedRequest.assignedTeamName || `Team #${selectedRequest.assignedTeamId}`}</b>
+                            Assigned:{" "}
+                            <b>
+                              {selectedRequest.assignedTeamName ||
+                                `Team #${selectedRequest.assignedTeamId}`}
+                            </b>
                             {selectedRequest.rescueMissionId && (
-                              <span className="dispatch-mission"> • Mission #{selectedRequest.rescueMissionId}</span>
+                              <span className="dispatch-mission">
+                                {" "}
+                                • Mission #{selectedRequest.rescueMissionId}
+                              </span>
                             )}
                           </div>
                         )}
@@ -1382,14 +1392,24 @@ const Dashboard = () => {
                             className="dispatch-select"
                             value={selectedTeamId}
                             onChange={(e) => setSelectedTeamId(e.target.value)}
-                            disabled={teamsLoading || !selectedRequest || selectedRequest.status !== "pending"}
+                            disabled={
+                              teamsLoading ||
+                              !selectedRequest ||
+                              selectedRequest.status !== "pending"
+                            }
                           >
                             <option value="">
-                              {teamsLoading ? "Loading teams..." : "Select rescue team"}
+                              {teamsLoading
+                                ? "Loading teams..."
+                                : "Select rescue team"}
                             </option>
 
                             {teams.map((t) => {
-                              const id = t.rescueTeamID ?? t.RescueTeamID ?? t.id ?? t.Id;
+                              const id =
+                                t.rescueTeamID ??
+                                t.RescueTeamID ??
+                                t.id ??
+                                t.Id;
                               const label =
                                 t.teamName ??
                                 t.name ??
@@ -1411,24 +1431,33 @@ const Dashboard = () => {
                               dispatching ||
                               !selectedTeamId ||
                               !selectedRequest ||
-                              selectedRequest.status !== "pending"}
+                              selectedRequest.status !== "pending"
+                            }
                           >
-                            {dispatching ? "Dispatching..." : "🚑 Dispatch Team"}
+                            {dispatching
+                              ? "Dispatching..."
+                              : "🚑 Dispatch Team"}
                           </button>
                         </div>
 
-                        {teamsError && <div className="dispatch-msg error">{teamsError}</div>}
-                        {dispatchError && <div className="dispatch-msg error">{dispatchError}</div>}
+                        {teamsError && (
+                          <div className="dispatch-msg error">{teamsError}</div>
+                        )}
+                        {dispatchError && (
+                          <div className="dispatch-msg error">
+                            {dispatchError}
+                          </div>
+                        )}
                         {dispatchSuccess && (
-                          <div className="dispatch-msg success"> {dispatchSuccess}</div>
+                          <div className="dispatch-msg success">
+                            {" "}
+                            {dispatchSuccess}
+                          </div>
                         )}
                       </div>
 
                       {/* OLD BUTTONS */}
-                      <div className="button-row1">
-                        ...
-                      </div>
-
+                      <div className="button-row1">...</div>
 
                       <div className="button-row1">
                         <button
