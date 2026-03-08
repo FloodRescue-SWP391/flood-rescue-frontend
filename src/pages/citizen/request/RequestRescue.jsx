@@ -69,6 +69,7 @@ const RequestRescue = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
+    email: "",
     address: "",
     emergencyType: "Medical Emergency",
     peopleCount: 1,
@@ -91,11 +92,11 @@ const RequestRescue = () => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?` +
-        `format=json` +
-        `&q=${encodeURIComponent(address)}` +
-        `&countrycodes=vn` +
-        `&addressdetails=1` +
-        `&limit=1`,
+          `format=json` +
+          `&q=${encodeURIComponent(address)}` +
+          `&countrycodes=vn` +
+          `&addressdetails=1` +
+          `&limit=1`,
         {
           headers: {
             "Accept-Language": "vi",
@@ -124,9 +125,9 @@ const RequestRescue = () => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?` +
-        `format=json` +
-        `&lat=${lat}` +
-        `&lon=${lng}`,
+          `format=json` +
+          `&lat=${lat}` +
+          `&lon=${lng}`,
         {
           headers: {
             "Accept-Language": "vi",
@@ -331,7 +332,7 @@ const RequestRescue = () => {
     }
 
     const agreeChecked = document.querySelector(
-      'input[name="agreeTerms"]'
+      'input[name="agreeTerms"]',
     )?.checked;
 
     if (!agreeChecked) {
@@ -363,16 +364,19 @@ const RequestRescue = () => {
         formData.emergencyType === "Cần áo phao/thuyền";
 
       const payload = {
+        citizenName: formData.fullName.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        citizenEmail: formData.email.trim(),
+        address: formData.address.trim(),
         requestType: isSupply ? "Supply" : "Rescue",
         description: formData.description?.trim() || "",
-        locationLatitude,
-        locationLongitude,
-        phoneNumber: formData.phoneNumber.trim(),
+        locationLatitude: Number(locationLatitude),
+        locationLongitude: Number(locationLongitude),
         peopleCount: Number(formData.peopleCount) || 1,
         imageUrls: imageUrls,
       };
 
-      console.log("CREATE RESCUE REQUEST PAYLOAD:", payload);
+      console.log("CREATE RESCUE REQUEST PAYLOAD:", JSON.stringify(payload, null, 2));
 
       // Gọi API
       const api = await createRescueRequest(payload);
@@ -381,7 +385,7 @@ const RequestRescue = () => {
       const shortCode =
         api?.content?.shortCode ??
         api?.content?.ShortCode ??
-        api?.data?.shortCode ??      // fallback nếu BE/FE từng dùng data
+        api?.data?.shortCode ?? // fallback nếu BE/FE từng dùng data
         api?.data?.ShortCode ??
         api?.shortCode ??
         api?.ShortCode;
@@ -396,10 +400,11 @@ const RequestRescue = () => {
       navigate(`/citizen/request-status?code=${encodeURIComponent(shortCode)}`);
       return;
       // chuyển trang (nếu bạn muốn truyền code thì dùng query)
-      
     } catch (error) {
       console.error(error);
-      alert(error?.message || "Failed to submit rescue request. Please try again!");
+      alert(
+        error?.message || "Failed to submit rescue request. Please try again!",
+      );
     } finally {
       setIsLoading(false);
       setUploadingImage(false);
@@ -511,6 +516,21 @@ const RequestRescue = () => {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label className="form-label">
+                    Email <span className="label-required">Required</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your email"
+                    className="form-input"
+                    required
+                  />
+                </div>
+
                 <div className="form-group full-width">
                   <label className="form-label">
                     Address / Location{" "}
@@ -615,10 +635,11 @@ const RequestRescue = () => {
                       <button
                         key={type.value}
                         type="button"
-                        className={`emergency-type-btn ${formData.emergencyType === type.value
-                          ? "selected"
-                          : ""
-                          }`}
+                        className={`emergency-type-btn ${
+                          formData.emergencyType === type.value
+                            ? "selected"
+                            : ""
+                        }`}
                         onClick={() =>
                           setFormData({
                             ...formData,
@@ -675,31 +696,6 @@ const RequestRescue = () => {
                     </button>
                   </div>
                   <p className="helper-text">Including yourself</p>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    Priority Level{" "}
-                    <span className="label-required">Required</span>
-                  </label>
-                  <select
-                    name="priorityLevel"
-                    value={formData.priorityLevel}
-                    onChange={handleChange}
-                    className="form-select"
-                    style={{
-                      borderLeft: `4px solid ${priorityLevels.find(
-                        (p) => p.value === formData.priorityLevel,
-                      )?.color || "#eab308"
-                        }`,
-                    }}
-                  >
-                    {priorityLevels.map((level) => (
-                      <option key={level.value} value={level.value}>
-                        {level.value} - {level.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="form-group full-width">
@@ -822,6 +818,12 @@ const RequestRescue = () => {
                         {formData.phoneNumber}
                       </span>
                     </div>
+
+                    <div className="summary-item">
+                      <span className="summary-label">Email:</span>
+                      <span className="summary-value">{formData.email}</span>
+                    </div>
+
                     <div className="summary-item">
                       <span className="summary-label">Address:</span>
                       <span className="summary-value">{formData.address}</span>
@@ -852,26 +854,6 @@ const RequestRescue = () => {
                           👥 {formData.peopleCount} person
                           {formData.peopleCount !== 1 ? "s" : ""}
                         </span>
-                      </span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Priority Level:</span>
-                      <span
-                        className="summary-value priority-badge"
-                        style={{
-                          backgroundColor:
-                            priorityLevels.find(
-                              (p) => p.value === formData.priorityLevel,
-                            )?.color + "20",
-                          color: priorityLevels.find(
-                            (p) => p.value === formData.priorityLevel,
-                          )?.color,
-                          borderColor: priorityLevels.find(
-                            (p) => p.value === formData.priorityLevel,
-                          )?.color,
-                        }}
-                      >
-                        {formData.priorityLevel}
                       </span>
                     </div>
                   </div>
@@ -915,7 +897,6 @@ const RequestRescue = () => {
                   </div>
                 )}
 
-
                 <div className="summary-section">
                   <h3 className="summary-title">Contact Preferences</h3>
                   <div className="summary-grid">
@@ -937,7 +918,6 @@ const RequestRescue = () => {
                   <input
                     type="checkbox"
                     name="agreeTerms"
-
                     className="checkbox-input"
                   />
                   <span className="checkbox-custom"></span>
@@ -977,10 +957,10 @@ const RequestRescue = () => {
               ) : (
                 <button
                   type="submit"
-                  className="submit-btn"
+                  className="submit-btn1"
                   disabled={isLoading || uploadingImage}
                 >
-                  {(isLoading || uploadingImage) ? (
+                  {isLoading || uploadingImage ? (
                     <>
                       <span className="spinner"></span>
                       {uploadingImage
