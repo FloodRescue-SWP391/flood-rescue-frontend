@@ -1,10 +1,10 @@
 // src/services/inventoryService.js
 import { fetchWithAuth } from "./apiClient";
 
-const BASE_PATH = "/Inventorys";
+const BASE_PATH = "/Inventories";
 
 /**
- * GET /api/inventorys?warehouseId=1
+ * GET /api/Inventories?warehouseId=1
  */
 export async function getInventoryByWarehouse(warehouseId) {
   if (!warehouseId || Number(warehouseId) <= 0) {
@@ -25,7 +25,7 @@ export async function getInventoryByWarehouse(warehouseId) {
 }
 
 /**
- * POST /api/inventorys/receive
+ * POST /api/Inventories/receive
  * body: { warehouseID, items: [{ reliefItemID, quantity }] }
  */
 export async function receiveInventory(payload) {
@@ -62,8 +62,53 @@ export async function receiveInventory(payload) {
 
   return res; // UI lấy res.content
 }
+/**
+ * PUT /api/Inventories/adjust
+ * body: { warehouseID, items: [{ reliefItemID, adjustmentQuantity }] }
+ */
+export async function adjustInventory(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("payload is required.");
+  }
+
+  const { warehouseID, items } = payload;
+
+  if (!warehouseID || Number(warehouseID) <= 0) {
+    throw new Error("warehouseID must be a positive number.");
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error("items must be a non-empty array.");
+  }
+
+  for (const it of items) {
+    if (!it?.reliefItemID || Number(it.reliefItemID) <= 0) {
+      throw new Error("Each item must have a valid reliefItemID > 0.");
+    }
+
+    if (
+      it?.adjustmentQuantity == null ||
+      Number(it.adjustmentQuantity) === 0
+    ) {
+      throw new Error("Each item must have adjustmentQuantity different from 0.");
+    }
+  }
+
+  const res = await fetchWithAuth(`${BASE_PATH}/adjust`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (res?.success === false) {
+    throw new Error(res?.message || "Adjust inventory failed.");
+  }
+
+  return res; // UI lấy res.content
+}
 
 export const inventoryService = {
   getInventoryByWarehouse,
   receiveInventory,
+  adjustInventory,
 };

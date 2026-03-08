@@ -1,6 +1,5 @@
 import "./Dashboard.css";
 import Header from "../../components/common/Header.jsx"
-import "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, TrendingUp, Activity, PieChart } from "lucide-react";
 import { categoryService } from "../../services/categoryService.js";
@@ -37,7 +36,7 @@ export default function ManagerDashboard() {
       try {
         const res = await categoryService.getAll();
         if (res?.success) {
-          setCategories(res.data || []);
+          setCategories(res.content ||res.data|| []);
         }
       } catch (err) {
         console.error("Load categories failed: ", err);
@@ -61,6 +60,19 @@ export default function ManagerDashboard() {
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receiveWarehouseID, setReceiveWarehouseID] = useState("");
   const [receiveItems, setReceiveItems] = useState([{ reliefItemID: "", quantity: 0 }]);
+  // ===== INVENTORY VIEW STATE =====
+  const [selectedWarehouseID, setSelectedWarehouseID] = useState("");
+  const [inventoryList, setInventoryList] = useState([]);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState("");
+
+  // ===== ADJUST INVENTORY STATE =====
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [adjustWarehouseID, setAdjustWarehouseID] = useState("");
+  const [adjustItems, setAdjustItems] = useState([
+    { reliefItemID: "", adjustmentQuantity: 0 },
+  ]);
+
 
   const openReceive = () => {
     setReceiveWarehouseID("");
@@ -95,9 +107,72 @@ export default function ManagerDashboard() {
 
       alert(res?.message || "Nhập kho thành công!");
       closeReceive();
+      // reload lại danh sách tồn kho nếu đang xem đúng kho vừa nhập
+      if (Number(selectedWarehouseID) === whId) {
+        await loadInventoryByWarehouse(whId);
+      }
     } catch (e) {
       console.error(e);
       alert(e?.message || "Nhập kho thất bại");
+    }
+  };
+  // ===== ADJUST INVENTORY FUNCTIONS =====
+  const openAdjust = () => {
+    setAdjustWarehouseID(selectedWarehouseID || "");
+    setAdjustItems([{ reliefItemID: "", adjustmentQuantity: 0 }]);
+    setShowAdjustModal(true);
+  };
+
+  const closeAdjust = () => setShowAdjustModal(false);
+
+  const addAdjustRow = () =>
+    setAdjustItems((prev) => [...prev, { reliefItemID: "", adjustmentQuantity: 0 }]);
+
+  const removeAdjustRow = (idx) =>
+    setAdjustItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateAdjustRow = (idx, patch) =>
+    setAdjustItems((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const confirmAdjust = async () => {
+    const whId = Number(adjustWarehouseID);
+    if (!whId || whId <= 0) return alert("WarehouseID không hợp lệ");
+
+    const items = adjustItems
+      .filter(
+        (x) =>
+          Number(x.reliefItemID) > 0 &&
+          Number(x.adjustmentQuantity) !== 0
+      )
+      .map((x) => ({
+        reliefItemID: Number(x.reliefItemID),
+        adjustmentQuantity: Number(x.adjustmentQuantity),
+      }));
+
+    if (items.length === 0) {
+      return alert("Bạn chưa nhập item/adjustment hợp lệ");
+    }
+
+    try {
+      const res = await inventoryService.adjustInventory({
+        warehouseID: whId,
+        items,
+      });
+
+      if (!res?.success) {
+        return alert(res?.message || "Điều chỉnh tồn kho thất bại");
+      }
+
+      alert(res?.message || "Điều chỉnh tồn kho thành công!");
+      closeAdjust();
+
+      // reload lại danh sách tồn kho nếu đang xem đúng kho vừa chỉnh
+      if (Number(selectedWarehouseID) === whId) {
+        await loadInventoryByWarehouse(whId);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Điều chỉnh tồn kho thất bại");
     }
   };
 
@@ -105,8 +180,11 @@ export default function ManagerDashboard() {
   const loadItems = async () => {
     try {
       const res = await reliefItemsService.getAll();
+      console.log("reliefItemsService: ", res);
+
       if (res?.success) {
-        const normalized = (res.data || []).map((p) => ({
+        const rawList = res.content || res.data || [];
+        const normalized = rawList.map((p) => ({
           reliefItemID: p.reliefItemID ?? p.ReliefItemID,
           reliefItemName: p.reliefItemName ?? p.ReliefItemName ?? "",
           categoryID: p.categoryID ?? p.CategoryID,
@@ -124,7 +202,29 @@ export default function ManagerDashboard() {
   useEffect(() => {
     loadItems();
   }, []);
+  // ===== LOAD INVENTORY BY WAREHOUSE =====
+  const loadInventoryByWarehouse = async (warehouseId) => {
+    try {
+      setInventoryLoading(true);
+      setInventoryError("");
 
+      const res = await inventoryService.getInventoryByWarehouse(warehouseId);
+
+      if (!res?.success) {
+        setInventoryList([]);
+        setInventoryError(res?.message || "Load inventory failed");
+        return;
+      }
+
+      setInventoryList(Array.isArray(res.content) ? res.content : []);
+    } catch (err) {
+      console.error("Load inventory failed:", err);
+      setInventoryList([]);
+      setInventoryError(err?.message || "Load inventory failed");
+    } finally {
+      setInventoryLoading(false);
+    }
+  };
   //==Prepare order ==
   const [orders, setOrders] = useState([]);
   const [showPrepareModal, setShowPrepareModal] = useState(false);
@@ -526,14 +626,17 @@ useSignalR({
             <div className="panel-card">
               <div className="panel-row">
                 <div className="panel-card-title">Rescue Products</div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <div className="inventory-toolbar">
                   <button className="btn-yellow" onClick={openNewItemModal}>
                     Add New Item
                   </button>
-
-                  {/*nút này dùng để receive inventory*/}
+                  {/* nút nhập kho */}
                   <button className="btn-yellow" onClick={openReceive}>
                     Add Products to WareHouse
+                  </button>
+                  {/*nút này dùng để receive inventory*/}
+                  <button className="btn-yellow" onClick={openAdjust}>
+                    Adjust Inventory
                   </button>
                 </div>
               </div>
@@ -559,6 +662,74 @@ useSignalR({
                     <div style={{ opacity: 0.7, padding: 12 }}>No Products</div>
                   )}
                 </div>
+              </div>
+            </div>
+            {/* ===== WAREHOUSE INVENTORY ===== */}
+            <div className="panel-card report-card">
+              <div className="panel-row">
+                <div className="panel-card-title">Warehouse Inventory</div>
+
+                <div className="inventory-toolbar">
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="Warehouse ID"
+                    value={selectedWarehouseID}
+                    onChange={(e) => setSelectedWarehouseID(e.target.value)}
+                  />
+                  <button
+                    className="btn-yellow"
+                    onClick={() => {
+                      const id = Number(selectedWarehouseID);
+                      if (!id || id <= 0) {
+                        alert("WarehouseID không hợp lệ");
+                        return;
+                      }
+                      loadInventoryByWarehouse(id);
+                    }}
+                  >
+                    View Inventory
+                  </button>
+                </div>
+              </div>
+
+              {inventoryLoading && (
+                <div className="inventory-loading">Loading inventory...</div>
+              )}
+
+              {inventoryError && (
+                <div className="inventory-error">{inventoryError}</div>
+              )}
+
+              <div className="inventory-table-wrap">
+                <table className="report-table">
+                  <thead>
+                    <tr>
+                      <th>Relief Item</th>
+                      <th>Unit</th>
+                      <th>Quantity</th>
+                      <th>Last Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventoryList.map((item) => (
+                      <tr key={item.inventoryID}>
+                        <td>{item.reliefItemName}</td>
+                        <td>{item.unit}</td>
+                        <td>{item.quantity}</td>
+                        <td>{new Date(item.lastUpdated).toLocaleString()}</td>
+                      </tr>
+                    ))}
+
+                    {!inventoryLoading && inventoryList.length === 0 && (
+                      <tr>
+                        <td colSpan={4} style={{ textAlign: "center", opacity: 0.7 }}>
+                          No inventory data
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
             {/* PREPARE ORDERS */}
@@ -650,7 +821,7 @@ useSignalR({
                     <div className="report-sub">Total products retrieved: {totalRetrieved}</div>
                   </div>
 
-                  <div className="report-tablewrap">
+                  <div className="modal-table-wrap">
                     <table className="report-table">
                       <thead>
                         <tr>
@@ -695,7 +866,7 @@ useSignalR({
                   Mission: {selectedMission} • Kho: {selectedWarehouse}
                 </div>
 
-                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                <div className="modal-table-wrap">
                   <table className="report-table">
                     <thead>
                       <tr>
@@ -710,11 +881,11 @@ useSignalR({
                           <td>{itemNameById.get(x.reliefItemID) || x.reliefItemID}</td>
                           <td>
                             <input
+                              className="modal-table-input"
                               type="number"
                               min={0}
                               value={x.quantity}
                               onChange={(e) => setPrepareQty(x.reliefItemID, e.target.value)}
-                              style={{ width: "100%" }}
                             />
                           </td>
                         </tr>
@@ -758,7 +929,7 @@ useSignalR({
                   />
                 </div>
 
-                <div className="report-tablewrap" style={{ maxHeight: 320, overflow: "auto" }}>
+                <div className="report-tablewrap">
                   <table className="report-table">
                     <thead>
                       <tr>
@@ -772,9 +943,9 @@ useSignalR({
                         <tr key={idx}>
                           <td>
                             <select
+                              className="modal-table-input"
                               value={row.reliefItemID}
                               onChange={(e) => updateReceiveRow(idx, { reliefItemID: e.target.value })}
-                              style={{ width: "100%" }}
                             >
                               <option value="">-- Select item --</option>
                               {products.map((p) => (
@@ -787,11 +958,11 @@ useSignalR({
 
                           <td>
                             <input
+                              className="modal-table-input"
                               type="number"
                               min={0}
                               value={row.quantity}
                               onChange={(e) => updateReceiveRow(idx, { quantity: e.target.value })}
-                              style={{ width: "100%" }}
                             />
                           </td>
 
@@ -823,6 +994,95 @@ useSignalR({
                   </button>
                   <button type="button" className="btn-red" onClick={confirmReceive}>
                     Confirm Receive
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* ===== ADJUST INVENTORY MODAL ===== */}
+          {showAdjustModal && (
+            <div className="mp-modal-overlay">
+              <div className="mp-modal">
+                <div className="mp-modal-title">Adjust Inventory</div>
+
+                <div className="field">
+                  <label>Warehouse *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={adjustWarehouseID}
+                    onChange={(e) => setAdjustWarehouseID(e.target.value)}
+                  />
+                </div>
+
+                <div className="modal-table-wrap">
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Relief Item</th>
+                        <th style={{ width: 160 }}>Adjustment Qty</th>
+                        <th style={{ width: 90 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adjustItems.map((row, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            <select
+                              className="modal-table-input"
+                              value={row.reliefItemID}
+                              onChange={(e) =>
+                                updateAdjustRow(idx, { reliefItemID: e.target.value })
+                              }
+                            >
+                              <option value="">-- Select item --</option>
+                              {products.map((p) => (
+                                <option key={p.reliefItemID} value={p.reliefItemID}>
+                                  {p.reliefItemName}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          <td>
+                            <input
+                              className="modal-table-input"
+                              type="number"
+                              value={row.adjustmentQuantity}
+                              onChange={(e) =>
+                                updateAdjustRow(idx, { adjustmentQuantity: e.target.value })
+                              }
+                            />
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              className="link link-danger"
+                              onClick={() => removeAdjustRow(idx)}
+                              disabled={adjustItems.length === 1}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="btn-ghost" onClick={addAdjustRow}>
+                    + Add item
+                  </button>
+                </div>
+
+                <div className="mp-modal-actions">
+                  <button type="button" className="btn-ghost" onClick={closeAdjust}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn-red" onClick={confirmAdjust}>
+                    Confirm Adjust
                   </button>
                 </div>
               </div>

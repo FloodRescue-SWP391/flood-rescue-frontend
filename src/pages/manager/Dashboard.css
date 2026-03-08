@@ -117,7 +117,7 @@
   height: 260px;
   min-height: 260px;
   background: #fff8ed;
-  border: 1px solid #e0d0b8;
+  border: 1px solid white;
   border-radius: 10px;
   padding: 10px;
 }
@@ -173,7 +173,7 @@
 
 .product-item {
   background: #fff8ed;
-  border: 1px solid #e0d0b8;
+  border: 1px solid white;
   border-radius: 10px;
   padding: 10px;
   display: flex;
@@ -253,7 +253,7 @@
 
 .mp-modal {
   width: min(520px, 92vw);
-  background: #f9ecd7;
+  background: white;
   border: 2px solid #807676;
   border-radius: 12px;
   padding: 16px;
@@ -281,7 +281,7 @@
   width: 100%;
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid #e0d0b8;
+  border: 1px solid white;
   background: #fff8ed;
   outline: none;
 }
@@ -326,7 +326,7 @@
 }
 
 .product-box {
-  background: #fff8ed;
+  background: white;
   border-radius: 10px;
   padding: 10px;
   height: 260px;
@@ -336,7 +336,7 @@
 .product-item {
   width: 100%;
   background: #fff8ed;
-  border: 1px solid #e0d0b8;
+  border: 1px solid white;
   border-radius: 20px;
   padding: 12px;
   display: flex;
@@ -415,14 +415,14 @@
 
 .report-tablebox {
   background: #fff;
-  border: 1px solid #e0d0b8;
+  border: 1px solid white;
   border-radius: 10px;
   overflow: hidden;
 }
 
 .report-tablehead {
   padding: 12px;
-  border-bottom: 1px solid #e0d0b8;
+  border-bottom: 1px solid white;
   text-align: center;
 }
 
@@ -462,5 +462,108 @@
 @media (max-width: 900px) {
   .report-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== INVENTORY PANEL ===== */
+.inventory-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inventory-toolbar input {
+  width: 140px;
+}
+
+.inventory-loading,
+.inventory-error,
+.inventory-empty {
+  padding: 12px;
+}
+
+.inventory-error {
+  color: #ff3b3b;
+}
+
+.inventory-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* ===== ADJUST / RECEIVE TABLE IN MODAL ===== */
+.modal-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.modal-table-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===== BUTTON GROUP IN PRODUCT PANEL ===== */
+.product-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ===== RESPONSIVE FOR INVENTORY TOOLBAR ===== */
+@media (max-width: 900px) {
+  .inventory-toolbar {
+    width: 100%;
+  }
+
+  .inventory-toolbar input {
+    width: 100%;
+  }
+}
+/* ===== INVENTORY PANEL ===== */
+.inventory-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inventory-toolbar input {
+  width: 140px;
+}
+
+.inventory-loading,
+.inventory-error {
+  padding: 12px;
+}
+
+.inventory-error {
+  color: #ff3b3b;
+}
+
+.inventory-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* ===== MODAL TABLE ===== */
+.modal-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.modal-table-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .inventory-toolbar {
+    width: 100%;
+  }
+
+  .inventory-toolbar input {
+    width: 100%;
   }
 }

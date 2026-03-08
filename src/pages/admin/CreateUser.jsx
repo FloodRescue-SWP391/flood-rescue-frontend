@@ -46,9 +46,14 @@ const CreateUser = () => {
     (async () => {
       try {
         setLoadingTeams(true);
-        const data = await getAllRescueTeams();
-        const list = Array.isArray(data) ? data : data?.data || [];
-        setTeams(list);
+        const res = await getAllRescueTeams();          // res là Response
+        console.log("getAllRescueTeams raw:", res);
+
+        const json = await res.json();                 // ✅ đọc body
+        console.log("getAllRescueTeams json:", json);
+
+        const list = json?.content || json?.data || []; // backend bạn đang có content
+        setTeams(Array.isArray(list) ? list : []);
       } catch (e) {
         setTeams([]);
       } finally {
@@ -127,6 +132,9 @@ const CreateUser = () => {
         }
         : {}),
     };
+    
+    await register(payload);
+
 
     try {
       setIsSubmitting(true);
