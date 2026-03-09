@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import Header from "../../../components/common/Header";
 import { trackRescueRequest } from "../../../services/rescueRequestService";
 import "./RequestStatus.css";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import "../../../pages/home/Introduce.css";
 
 const RequestStatus = () => {
   const [request, setRequest] = useState(null);
@@ -23,25 +24,23 @@ const RequestStatus = () => {
     return (qs.get("code") || qs.get("shortCode") || "").trim();
   }, [location.search]);
 
-  // Status flow simulation
-  const statusFlow = [
-    {
-      status: "received",
-      label: "Request Received",
-      time: "2 min ago",
-      icon: "📥",
-    },
-    {
-      status: "processing",
-      label: "Processing",
-      time: "1 min ago",
-      icon: "⚙️",
-    },
-    { status: "assigned", label: "Team Assigned", time: "Now", icon: "👨‍🚒" },
-    { status: "dispatched", label: "Dispatched", time: "Soon", icon: "🚑" },
-    { status: "enroute", label: "En Route", time: "Upcoming", icon: "📍" },
-    { status: "arrived", label: "Arrived", time: "Upcoming", icon: "✅" },
-  ];
+  const getStatusFlow = (requestType) => {
+    const type = (requestType || "").toLowerCase();
+
+    if (type === "rescue") {
+      return [
+        { status: "Pending", label: "Pending", icon: "🕒" },
+        { status: "Processing", label: "Processing", icon: "⚙️" },
+        { status: "Completed", label: "Completed", icon: "✅" },
+      ];
+    }
+
+    return [
+      { status: "Pending", label: "Pending", icon: "🕒" },
+      { status: "Processing", label: "Processing", icon: "⚙️" },
+      { status: "Delivered", label: "Delivered", icon: "📦" },
+    ];
+  };
 
   // Rescue team members
   const rescueTeams = [
@@ -104,7 +103,6 @@ const RequestStatus = () => {
           dto?.createdTime || dto?.createdAt || new Date().toISOString(),
         emergencyType: dto?.requestType || "Rescue",
         description: dto?.description || "",
-        priorityLevel: dto?.priority || "Medium",
         peopleCount: dto?.PeopleCount ?? 1,
         fullName: dto?.fullName || dto?.citizenName || "",
         phoneNumber: dto?.citizenPhone || dto?.phoneNumber || "",
@@ -201,56 +199,18 @@ const RequestStatus = () => {
     alert("Location update feature would open here");
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "received":
-        return "📥";
-      case "processing":
-        return "⚙️";
-      case "assigned":
-        return "👨‍🚒";
-      case "dispatched":
-        return "🚑";
-      case "enroute":
-        return "📍";
-      case "arrived":
-        return "✅";
-      default:
-        return "⏳";
-    }
-  };
-
   const getStatusColor = (status) => {
-    switch (status) {
-      case "received":
-        return "#3b82f6";
-      case "processing":
-        return "#8b5cf6";
-      case "assigned":
+    switch ((status || "").toLowerCase()) {
+      case "pending":
         return "#f59e0b";
-      case "dispatched":
+      case "processing":
+        return "#3b82f6";
+      case "completed":
+        return "#22c55e";
+      case "delivered":
         return "#10b981";
-      case "enroute":
-        return "#06b6d4";
-      case "arrived":
-        return "#22c55e";
       default:
-        return "#64748b";
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "Critical":
-        return "#ef4444";
-      case "High":
-        return "#f97316";
-      case "Medium":
-        return "#eab308";
-      case "Low":
-        return "#22c55e";
-      default:
-        return "#64748b";
+        return "#94a3b8";
     }
   };
 
@@ -289,7 +249,15 @@ const RequestStatus = () => {
     );
   }
 
-  const currentStatusIndex = 2; // Simulating "assigned" status
+  const statusFlow = getStatusFlow(
+    request?.emergencyType || request?.requestType,
+  );
+
+
+  const currentStatusIndex = Math.max(
+    statusFlow.findIndex((step) => step.status === request?.status),
+    0,
+  );
 
   return (
     <>
@@ -313,96 +281,49 @@ const RequestStatus = () => {
           </div>
         </div>
 
-        {/* Status Summary Card */}
-        <div className="status-summary-card">
-          <div className="summary-header">
-            <div className="emergency-type">
-              <span className="type-icon">🚨</span>
-              <div>
-                <h3>{request.emergencyType}</h3>
-                <p className="type-description">
-                  {request.description || "No additional description provided"}
-                </p>
-              </div>
-            </div>
-            <div
-              className="priority-badge"
-              style={{
-                backgroundColor: getPriorityColor(request.priorityLevel) + "20",
-                color: getPriorityColor(request.priorityLevel),
-                borderColor: getPriorityColor(request.priorityLevel),
-              }}
-            >
-              {request.priorityLevel} Priority
-            </div>
-          </div>
-
-          <div className="summary-stats">
-            <div className="stat-item">
-              <div className="stat-label">Estimated Arrival</div>
-              <div className="stat-value eta">
-                {eta === "Arriving" ? eta : `${eta} minutes`}
-              </div>
-            </div>
-            
-            <div className="stat-item">
-              <div className="stat-label">People</div>
-              <div className="stat-value">
-                <span className="people-count">{request.peopleCount}</span>
-                <span className="people-label">
-                  person{request.peopleCount !== 1 ? "s" : ""}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Timeline */}
+        {/* Request Status */}
         <div className="status-timeline">
-          <h2 className="section-title">Request Status</h2>
-          <div className="timeline">
-            {statusFlow.map((step, index) => (
-              <div
-                key={step.status}
-                className={`timeline-step ${index <= currentStatusIndex ? "completed" : ""} ${index === currentStatusIndex ? "current" : ""}`}
-              >
-                <div className="timeline-marker">
-                  <div
-                    className="marker-circle"
-                    style={{
-                      backgroundColor:
-                        index <= currentStatusIndex
-                          ? getStatusColor(step.status)
-                          : "#e2e8f0",
-                      borderColor: getStatusColor(step.status),
-                    }}
-                  >
-                    {getStatusIcon(step.status)}
-                  </div>
+          <h2 className="section-title status-title-center">Request Status</h2>
+
+          <div className="modern-timeline">
+            {statusFlow.map((step, index) => {
+              const isCompleted = index < currentStatusIndex;
+              const isCurrent = index === currentStatusIndex;
+
+              return (
+                <div key={step.status} className="modern-step">
                   {index < statusFlow.length - 1 && (
-                    <div
-                      className="timeline-line"
-                      style={{
-                        backgroundColor:
-                          index < currentStatusIndex
-                            ? getStatusColor(step.status)
-                            : "#e2e8f0",
-                      }}
-                    ></div>
-                  )}
-                </div>
-                <div className="timeline-content">
-                  <h4>{step.label}</h4>
-                  <p className="timeline-time">{step.time}</p>
-                  {index === currentStatusIndex && (
-                    <div className="current-status">
-                      <span className="status-pulse"></span>
-                      <span className="status-text">Active</span>
+                    <div className="modern-line">
+                      <div
+                        className={`modern-line-fill ${isCompleted ? "filled" : ""}`}
+                      />
                     </div>
                   )}
+
+                  <div
+                    className={`modern-icon ${
+                      isCompleted ? "completed" : isCurrent ? "current" : ""
+                    }`}
+                  >
+                    <span>{step.icon}</span>
+                  </div>
+
+                  <div className="modern-content">
+                    <h4
+                      className={`${
+                        isCompleted || isCurrent ? "active-text" : ""
+                      }`}
+                    >
+                      {step.label}
+                    </h4>
+
+                    {isCurrent && (
+                      <p className="modern-current-text">Current status</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -419,7 +340,6 @@ const RequestStatus = () => {
             <div className="team-info">
               <div className="team-overview">
                 <div className="team-name">
-                  <span className="team-icon">👨‍🚒</span>
                   <h3>{rescueTeam.name}</h3>
                 </div>
                 <div className="team-details">
@@ -469,6 +389,10 @@ const RequestStatus = () => {
               <span className="detail-value">{request.email}</span>
             </div>
             <div className="detail-item">
+              <span className="detail-label">People Count</span>
+              <span className="detail-value">{request.peopleCount}</span>
+            </div>
+            <div className="detail-item">
               <span className="detail-label">Location</span>
               <span className="detail-value">{request.address}</span>
             </div>
@@ -478,33 +402,11 @@ const RequestStatus = () => {
                 <span className="type-tag">{request.emergencyType}</span>
               </span>
             </div>
-            <div className="detail-item">
-              <span className="detail-label">Location Sharing</span>
-              <span className="detail-value">
-                <span
-                  className={`status-tag ${request.shareLocation ? "active" : "inactive"}`}
-                >
-                  {request.shareLocation ? "📍 Enabled" : "❌ Disabled"}
-                </span>
-              </span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Preferred Contact</span>
-              <span className="detail-value">{request.contactVia}</span>
-            </div>
+           
+            
           </div>
 
-          <div className="action-buttons">
-            <button
-              className="action-btn secondary"
-              onClick={handleUpdateLocation}
-            >
-              📍 Update Location
-            </button>
-            <button className="action-btn primary" onClick={handleContactTeam}>
-              🚑 Request Urgent Update
-            </button>
-          </div>
+         
         </div>
 
         {/* Safety Tips */}
@@ -540,6 +442,34 @@ const RequestStatus = () => {
             </div>
           </div>
         </div>
+
+
+        <footer className="homepage-footer">
+        <div className="footer-content">
+          <div className="footer-section">
+            <h3>Emergency Rescue System</h3>
+            <p>
+              Smart rescue connection,
+              <br />
+              fast and effective
+            </p>
+          </div>
+          <div className="footer-section">
+            <h3>Contact</h3>
+            <p>Email: rescue@gmail.com</p>
+            <p>Hotline: 0965 782 358</p>
+          </div>
+          <div className="footer-section">
+            <h3>Support</h3>
+            <Link to="/guide">Instructions for use</Link>
+            <Link to="/faq">Frequently asked questions</Link>
+            <Link to="/contact">Contact support</Link>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          © 2026 Rescue System. All rights reserved.
+        </div>
+      </footer>
       </div>
     </>
   );
