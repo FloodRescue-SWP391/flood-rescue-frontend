@@ -52,9 +52,16 @@ const toApiRequestType = (uiValue) => {
 
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
-  useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom]);
+   useEffect(() => {
+    if (!center || center.length !== 2) return;
+
+    map.invalidateSize();
+    map.flyTo(center, zoom, {
+      animate: true,
+      duration: 1.2,
+    });
+  }, [map, center, zoom]);
+
   return null;
 };
 
@@ -163,6 +170,7 @@ const RequestRescue = () => {
         const { latitude, longitude } = position.coords;
         setMapCenter([latitude, longitude]);
         setUserLocation([latitude, longitude]);
+        setMapZoom(16);
 
         // Lấy địa chỉ từ tọa độ
         const address = await getAddressFromCoordinates(latitude, longitude);
@@ -366,7 +374,10 @@ const RequestRescue = () => {
         imageUrls: imageUrls,
       };
 
-      console.log("CREATE RESCUE REQUEST PAYLOAD:", JSON.stringify(payload, null, 2));
+      console.log(
+        "CREATE RESCUE REQUEST PAYLOAD:",
+        JSON.stringify(payload, null, 2),
+      );
 
       // Gọi API
       const api = await createRescueRequest(payload);
@@ -387,7 +398,7 @@ const RequestRescue = () => {
       localStorage.setItem("lastShortCode", shortCode);
 
       setShowSuccess(true);
-      navigate(`/citizen/request-status?code=${encodeURIComponent(shortCode)}`);
+      navigate(`/citizen/request-status`);
       return;
       // chuyển trang (nếu bạn muốn truyền code thì dùng query)
     } catch (error) {
@@ -591,7 +602,7 @@ const RequestRescue = () => {
                       </Popup>
                     </Marker>
                     {userLocation && (
-                      <Marker position={userLocation}>
+                      <Marker position={userLocation} icon={locationIcon}>
                         <Popup>
                           <strong>Your Current Location</strong>
                           <br />

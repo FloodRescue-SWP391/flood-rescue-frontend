@@ -20,13 +20,9 @@ const RequestStatus = () => {
 
   const shortCode = useMemo(() => {
     const qs = new URLSearchParams(location.search);
-    return (
-      qs.get("code") ||
-      qs.get("shortCode") ||
-      localStorage.getItem("lastShortCode") ||
-      ""
-    ).trim();
+    return (qs.get("code") || qs.get("shortCode") || "").trim();
   }, [location.search]);
+
   // Status flow simulation
   const statusFlow = [
     {
@@ -109,7 +105,7 @@ const RequestStatus = () => {
         emergencyType: dto?.requestType || "Rescue",
         description: dto?.description || "",
         priorityLevel: dto?.priority || "Medium",
-        peopleCount: dto?.peopleCount ?? 1,
+        peopleCount: dto?.PeopleCount ?? 1,
         fullName: dto?.fullName || dto?.citizenName || "",
         phoneNumber: dto?.citizenPhone || dto?.phoneNumber || "",
         email: dto?.citizenEmail || dto?.email || "",
@@ -159,11 +155,21 @@ const RequestStatus = () => {
   };
 
   useEffect(() => {
-    if (shortCode) {
-      setInputCode(shortCode);
-      loadRequestByShortCode(shortCode);
+    const savedCode = localStorage.getItem("lastShortCode") || "";
+
+    if (savedCode) {
+      const confirmFill = window.confirm(
+        "A Request ID was generated for your rescue request.\n\nDo you want to auto-fill it in the search box?",
+      );
+
+      if (confirmFill) {
+        setInputCode(savedCode);
+      }
+
+      // xóa sau khi hỏi để không hỏi lại lần sau
+      localStorage.removeItem("lastShortCode");
     }
-  }, [shortCode]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -255,7 +261,7 @@ const RequestStatus = () => {
         <div className="request-status-container">
           <div className="lookup-card">
             <h2>Track Your Rescue Request</h2>
-            <p>Please enter your ShortCode to view the request status.</p>
+            <p>Please enter your Request ID to view the request status.</p>
 
             <div className="lookup-form">
               <input
@@ -334,12 +340,11 @@ const RequestStatus = () => {
           <div className="summary-stats">
             <div className="stat-item">
               <div className="stat-label">Estimated Arrival</div>
-              <div className="stat-value eta">{eta === "Arriving" ? eta : `${eta} minutes`}</div>
+              <div className="stat-value eta">
+                {eta === "Arriving" ? eta : `${eta} minutes`}
+              </div>
             </div>
-            <div className="stat-item">
-              <div className="stat-label">Distance</div>
-              <div className="stat-value">{distance} km</div>
-            </div>
+            
             <div className="stat-item">
               <div className="stat-label">People</div>
               <div className="stat-value">
