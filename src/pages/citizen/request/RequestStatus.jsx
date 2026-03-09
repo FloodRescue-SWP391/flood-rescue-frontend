@@ -24,6 +24,13 @@ const RequestStatus = () => {
     return (qs.get("code") || qs.get("shortCode") || "").trim();
   }, [location.search]);
 
+  useEffect(() => {
+    if (shortCode) {
+      setInputCode(shortCode);
+      loadRequestByShortCode(shortCode);
+    }
+  }, [shortCode]);
+
   const getStatusFlow = (requestType) => {
     const type = (requestType || "").toLowerCase();
 
@@ -42,44 +49,6 @@ const RequestStatus = () => {
     ];
   };
 
-  // Rescue team members
-  const rescueTeams = [
-    {
-      id: 1,
-      name: "Alpha Rescue Team",
-      members: [
-        { name: "John Smith", role: "Team Leader", badge: "👨‍🚒" },
-        { name: "Sarah Johnson", role: "Medical Officer", badge: "👩‍⚕️" },
-        { name: "Mike Chen", role: "Rescue Specialist", badge: "🛠️" },
-        { name: "Lisa Wang", role: "Communications", badge: "📞" },
-      ],
-      vehicle: "Rescue Vehicle #RV-7",
-      equipment: [
-        "Medical Kit",
-        "Rescue Tools",
-        "Oxygen Tanks",
-        "Communication Gear",
-      ],
-    },
-    {
-      id: 2,
-      name: "Bravo Rescue Team",
-      members: [
-        { name: "David Lee", role: "Team Leader", badge: "👨‍🚒" },
-        { name: "Emma Wilson", role: "Medical Officer", badge: "👩‍⚕️" },
-        { name: "Alex Brown", role: "Rescue Specialist", badge: "🛠️" },
-        { name: "Maria Garcia", role: "Communications", badge: "📞" },
-      ],
-      vehicle: "Ambulance #AMB-12",
-      equipment: [
-        "Defibrillator",
-        "First Aid",
-        "Extrication Tools",
-        "GPS Tracker",
-      ],
-    },
-  ];
-
   const loadRequestByShortCode = async (code) => {
     if (!code?.trim()) {
       setLookupError("Please enter a ShortCode.");
@@ -94,34 +63,41 @@ const RequestStatus = () => {
       setDistance("3.2");
 
       const res = await trackRescueRequest(code.trim());
-      const dto = res?.data ?? res;
+      const dto = res?.content;
+
+      if (!dto) {
+        throw new Error("No request data found.");
+      }
+
+      console.log("TRACK API RESPONSE:", res);
+      console.log("TRACK CONTENT:", dto);
 
       setRequest({
-        requestId:
-          dto?.rescueRequestID || dto?.rescueRequestId || dto?.id || code,
-        timestamp:
-          dto?.createdTime || dto?.createdAt || new Date().toISOString(),
-        emergencyType: dto?.requestType || "Rescue",
-        description: dto?.description || "",
-        peopleCount: dto?.PeopleCount ?? 1,
-        fullName: dto?.fullName || dto?.citizenName || "",
-        phoneNumber: dto?.citizenPhone || dto?.phoneNumber || "",
-        email: dto?.citizenEmail || dto?.email || "",
-        address: dto?.address || "",
-        contactVia: dto?.contactVia || "Phone Call",
-        shareLocation: true,
+        requestId: dto?.rescueRequestID || "",
+        shortCode: dto?.shortCode || "",
+        timestamp: dto?.createdTime || "",
+        emergencyType: dto?.requestType || "",
+        status: dto?.status || "",
+        missionStatus: dto?.missionStatus || "",
+        rejectedNote: dto?.rejectedNote || "",
+        peopleCount: dto?.peopleCount ?? 0,
+        fullName: dto?.citizenName || "",
+        phoneNumber: dto?.citizenPhone || "",
+        teamName: dto?.teamName || "",
       });
 
-      const randomTeam =
-        rescueTeams[Math.floor(Math.random() * rescueTeams.length)];
-      setRescueTeam(randomTeam);
+      setRescueTeam({
+        name: dto?.teamName,
+        leader: dto?.teamLeader,
+        members: dto?.members || [],
+      });
 
       localStorage.setItem("lastShortCode", code.trim());
       startCountdown();
     } catch (error) {
       console.error("Error loading request:", error);
       setLookupError(
-        error?.response?.data?.message ||
+        error?.message ||
           "Failed to load request. Please check the ShortCode and try again.",
       );
       setRequest(null);
@@ -153,21 +129,26 @@ const RequestStatus = () => {
   };
 
   useEffect(() => {
-    const savedCode = localStorage.getItem("lastShortCode") || "";
+    if (shortCode) return; // nếu URL đã có code thì không hỏi nữa
 
-    if (savedCode) {
+    const savedCode = localStorage.getItem("lastShortCode") || "";
+    if (!savedCode) return;
+
+    const timer = setTimeout(() => {
       const confirmFill = window.confirm(
-        "A Request ID was generated for your rescue request.\n\nDo you want to auto-fill it in the search box?",
+        "A ShortCode was generated for your rescue request.\n\nDo you want to auto-fill it in the search box?",
       );
 
       if (confirmFill) {
         setInputCode(savedCode);
+        loadRequestByShortCode(savedCode); // tự load luôn sau khi đồng ý ko cần bấm enter nữa. Không thì bỏ rồi nhấn Enter
       }
 
-      // xóa sau khi hỏi để không hỏi lại lần sau
       localStorage.removeItem("lastShortCode");
-    }
-  }, []);
+    }, 300); // đợi trang render xong rồi mới hỏi
+
+    return () => clearTimeout(timer);
+  }, [shortCode]);
 
   useEffect(() => {
     return () => {
@@ -221,7 +202,7 @@ const RequestStatus = () => {
         <div className="request-status-container">
           <div className="lookup-card">
             <h2>Track Your Rescue Request</h2>
-            <p>Please enter your Request ID to view the request status.</p>
+            <p>Please enter your ShortCode to view the request status.</p>
 
             <div className="lookup-form">
               <input
@@ -253,9 +234,11 @@ const RequestStatus = () => {
     request?.emergencyType || request?.requestType,
   );
 
-
   const currentStatusIndex = Math.max(
-    statusFlow.findIndex((step) => step.status === request?.status),
+    statusFlow.findIndex(
+      (step) =>
+        step.status.toLowerCase() === (request?.status || "").toLowerCase(),
+    ),
     0,
   );
 
@@ -269,7 +252,7 @@ const RequestStatus = () => {
           <div className="header-content">
             <h1>Emergency Request Status</h1>
             <p className="request-id">
-              Request ID: <span>{request.requestId}</span>
+              ShortCode: <span>{request.shortCode}</span>
             </p>
             <p className="timestamp">
               Submitted:{" "}
@@ -339,74 +322,103 @@ const RequestStatus = () => {
 
             <div className="team-info">
               <div className="team-overview">
-                <div className="team-name">
-                  <h3>{rescueTeam.name}</h3>
-                </div>
-                <div className="team-details">
-                  <p>
-                    <strong>Vehicle:</strong> {rescueTeam.vehicle}
-                  </p>
-                  <p>
-                    <strong>Equipment:</strong>{" "}
-                    {rescueTeam.equipment.join(", ")}
-                  </p>
+                <div className="team-name-card">
+                  <p className="team-label">Team Name</p>
+                  <h3>{rescueTeam.name || "Not assigned yet"}</h3>
+
+                  {rescueTeam.leader ? (
+                    <div className="team-leader-box">
+                      <p>
+                        <strong>Leader:</strong>{" "}
+                        {rescueTeam.leader.fullName || "N/A"}
+                      </p>
+                      <p>
+                        <strong>Phone:</strong>{" "}
+                        {rescueTeam.leader.phone || "N/A"}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="empty-text">No leader information yet.</p>
+                  )}
                 </div>
               </div>
 
               <div className="team-members">
                 <h4>Team Members</h4>
-                <div className="members-grid">
-                  {rescueTeam.members.map((member, index) => (
-                    <div key={index} className="member-card">
-                      <div className="member-badge">{member.badge}</div>
-                      <div className="member-info">
-                        <h5>{member.name}</h5>
-                        <p>{member.role}</p>
+
+                {rescueTeam.members?.length > 0 ? (
+                  <div className="members-grid">
+                    {rescueTeam.members.map((member, index) => (
+                      <div key={member.userID || index} className="member-card">
+                        <div className="member-badge">
+                          {member.isLeader ? "👨‍🚒" : "👤"}
+                        </div>
+                        <div className="member-info">
+                          <h5>{member.fullName || "Unnamed member"}</h5>
+                          <p>
+                            {member.isLeader ? "Team Leader" : "Team Member"}
+                          </p>
+                          <p>{member.phone || "No phone"}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-members">
+                    <p>No team members assigned yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {/* Request Details */}
-        <div className="details-card">
-          <h2 className="section-title">Request Details</h2>
+
+        <div className="request-details-card">
+          <h2 className="details-title">Request Details</h2>
+
           <div className="details-grid">
             <div className="detail-item">
               <span className="detail-label">Full Name</span>
-              <span className="detail-value">{request.fullName}</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Phone Number</span>
-              <span className="detail-value">{request.phoneNumber}</span>
+              <span className="detail-value">{request.fullName || "N/A"}</span>
             </div>
 
             <div className="detail-item">
-              <span className="detail-label">Email</span>
-              <span className="detail-value">{request.email}</span>
+              <span className="detail-label">Phone Number</span>
+              <span className="detail-value">
+                {request.phoneNumber || "N/A"}
+              </span>
             </div>
+
             <div className="detail-item">
               <span className="detail-label">People Count</span>
-              <span className="detail-value">{request.peopleCount}</span>
+              <span className="detail-value">
+                {request.peopleCount ?? "N/A"}
+              </span>
             </div>
+
             <div className="detail-item">
-              <span className="detail-label">Location</span>
-              <span className="detail-value">{request.address}</span>
+              <span className="detail-label">Short Code</span>
+              <span className="detail-value">{request.shortCode || "N/A"}</span>
             </div>
+
             <div className="detail-item">
               <span className="detail-label">Emergency Type</span>
               <span className="detail-value">
-                <span className="type-tag">{request.emergencyType}</span>
+                <span className="type-tag">
+                  {request.emergencyType || "N/A"}
+                </span>
               </span>
             </div>
-           
-            
-          </div>
 
-         
+            <div className="detail-item">
+              <span className="detail-label">Status</span>
+              <span className="detail-value status-text">
+                {request.status || "N/A"}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Safety Tips */}
@@ -443,33 +455,32 @@ const RequestStatus = () => {
           </div>
         </div>
 
-
         <footer className="homepage-footer">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h3>Emergency Rescue System</h3>
-            <p>
-              Smart rescue connection,
-              <br />
-              fast and effective
-            </p>
+          <div className="footer-content">
+            <div className="footer-section">
+              <h3>Emergency Rescue System</h3>
+              <p>
+                Smart rescue connection,
+                <br />
+                fast and effective
+              </p>
+            </div>
+            <div className="footer-section">
+              <h3>Contact</h3>
+              <p>Email: rescue@gmail.com</p>
+              <p>Hotline: 0965 782 358</p>
+            </div>
+            <div className="footer-section">
+              <h3>Support</h3>
+              <Link to="/guide">Instructions for use</Link>
+              <Link to="/faq">Frequently asked questions</Link>
+              <Link to="/contact">Contact support</Link>
+            </div>
           </div>
-          <div className="footer-section">
-            <h3>Contact</h3>
-            <p>Email: rescue@gmail.com</p>
-            <p>Hotline: 0965 782 358</p>
+          <div className="footer-bottom">
+            © 2026 Rescue System. All rights reserved.
           </div>
-          <div className="footer-section">
-            <h3>Support</h3>
-            <Link to="/guide">Instructions for use</Link>
-            <Link to="/faq">Frequently asked questions</Link>
-            <Link to="/contact">Contact support</Link>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          © 2026 Rescue System. All rights reserved.
-        </div>
-      </footer>
+        </footer>
       </div>
     </>
   );

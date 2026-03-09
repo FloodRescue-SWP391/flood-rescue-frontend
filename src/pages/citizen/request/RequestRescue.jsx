@@ -52,7 +52,7 @@ const toApiRequestType = (uiValue) => {
 
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
-   useEffect(() => {
+  useEffect(() => {
     if (!center || center.length !== 2) return;
 
     map.invalidateSize();
@@ -383,14 +383,8 @@ const RequestRescue = () => {
       const api = await createRescueRequest(payload);
       console.log("API RESPONSE:", api);
       // ApiResponse -> shortCode nằm trong api.data
-      const shortCode =
-        api?.content?.shortCode ??
-        api?.content?.ShortCode ??
-        api?.data?.shortCode ?? // fallback nếu BE/FE từng dùng data
-        api?.data?.ShortCode ??
-        api?.shortCode ??
-        api?.ShortCode;
-      console.log("SHORT CODE:", shortCode);
+      const created = api?.content;
+      const shortCode = created?.shortCode;
 
       if (!shortCode) throw new Error("Server did not return shortCode");
 
@@ -398,6 +392,7 @@ const RequestRescue = () => {
       localStorage.setItem("lastShortCode", shortCode);
 
       setShowSuccess(true);
+      localStorage.setItem("lastShortCode", shortCode);
       navigate(`/citizen/request-status`);
       return;
       // chuyển trang (nếu bạn muốn truyền code thì dùng query)
