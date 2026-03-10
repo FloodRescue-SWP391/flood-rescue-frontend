@@ -1,5 +1,5 @@
 .list-user-container {
-  width: 100%;  
+  width: 100%;
 }
 
 .list-user-container h2 {
@@ -184,7 +184,7 @@
 .password-horizontal {
   display: flex;
   align-items: center;
-  justify-content: flex-end; 
+  justify-content: flex-end;
 }
 
 .password-value {
@@ -206,7 +206,7 @@
 
 
 
-.eye-btn:hover { 
+.eye-btn:hover {
   transform: scale(1.05);
 }
 
@@ -222,7 +222,8 @@
   border-top: 1px solid #eee;
 }
 
-.reset-btn, .delete-btn {
+.reset-btn,
+.delete-btn {
   flex: 1;
   padding: 10px 15px;
   border: none;
@@ -259,7 +260,8 @@
   box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
 
-.reset-btn:active, .delete-btn:active {
+.reset-btn:active,
+.delete-btn:active {
   transform: translateY(0);
 }
 
@@ -341,16 +343,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
- 
+
 }
 
 .table-password button,
-.password-horizontal button{
+.password-horizontal button {
   background-color: rgb(237, 237, 237, 0.1);
 }
 
 .table-eye-btn,
-.eye-btn { 
+.eye-btn {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
@@ -399,6 +401,7 @@
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -411,52 +414,52 @@
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-container,
   .filter-container {
     min-width: 100%;
   }
-  
+
   .view-indicator {
     margin-left: 0;
     align-self: flex-start;
   }
-  
+
   .user-list {
     grid-template-columns: 1fr;
   }
-  
+
   .info-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
-  
+
   .label {
     min-width: auto;
   }
-  
+
   .value {
     text-align: left;
     width: 100%;
     margin-left: 0;
   }
-  
+
   .password-horizontal {
     justify-content: flex-start;
     width: 100%;
     margin-top: 5px;
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }
-  
+
   .user-table {
     font-size: 13px;
     min-width: 600px;
   }
-  
+
   .user-table th,
   .user-table td {
     padding: 10px 8px;
@@ -467,19 +470,53 @@
   .user-card {
     padding: 15px;
   }
-  
+
   .user-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
-  
-  .reset-btn, .delete-btn {
+
+  .reset-btn,
+  .delete-btn {
     padding: 12px;
   }
-  
+
   .indicator {
     font-size: 12px;
     padding: 6px 12px;
   }
+}
+
+/* ===== ACTION BUTTONS ===== */
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.edit-btn:hover {
+  background: #2563eb;
+}
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
 }
