@@ -1,13 +1,15 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import "./ListUser.css";
 import { getUsers, deactivateUser } from "../../services/userService";
 
 const ListUser = () => {
+  const navigate = useNavigate();
+
+
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
-  const [showPassword, setShowPassword] = useState({});
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
   const [pageNumber] = useState(1);
@@ -18,7 +20,7 @@ const ListUser = () => {
 
   // Lấy danh sách role duy nhất
   const uniqueRoles = useMemo(() => {
-    return["All", ...new Set(users.map(user => user.roleName).filter(Boolean))];
+    return ["All", ...new Set(users.map(user => user.roleName).filter(Boolean))];
   }, [users]);
 
   const showToast = (message) => {
@@ -34,7 +36,7 @@ const ListUser = () => {
       // Nếu backend yêu cầu RoleID thật sự (AD, MN, RT...) thì
       // roleFilter phải lưu roleID chứ không phải roleName.
       // Còn nếu backend vẫn nhận string role name thì giữ như này.
-      const roleId = roleFilter === "All" ? "" : roleFilter;
+      const roleId = "";
       const isActive = "";
 
       const res = await getUsers({
@@ -91,29 +93,24 @@ const ListUser = () => {
       showToast(`❌ Failed to deactivate "${username}"`);
     }
   };
-
-
-  const handleResetPassword = (username) => {
-    showToast(`⚠️ Reset password API chưa có cho "${username}"`);
+  // ===== ADD: hàm chuyển sang trang sửa user =====
+  const handleEdit = (user) => {
+    navigate(`/admin/edit-user/${user.userID}`);
   };
-
-
-
-  const togglePasswordVisibility = (username) => {
-    setShowPassword(prev => ({
-      ...prev,
-      [username]: !prev[username]
-    }));
-  };
-
 
   const filteredUsers = users.filter((user) => {
+    const fullName = String(user.fullName || "").toLowerCase();
+    const username = String(user.username || "").toLowerCase();
+    const keyword = search.toLowerCase();
+
     const matchesSearch =
-      user.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      user.username.toLowerCase().includes(search.toLowerCase());
+      fullName.includes(keyword) ||
+      username.includes(keyword);
 
     const matchesRole =
-      roleFilter === "All" || user.roleName === roleFilter;
+      roleFilter === "All" ||
+      String(user.roleName || "").trim().toLowerCase() ===
+      String(roleFilter || "").trim().toLowerCase();
 
     return matchesSearch && matchesRole;
   });
@@ -184,7 +181,6 @@ const ListUser = () => {
                 <div key={user.userID || index} className="user-card">
                   <div className="user-header">
                     <span className="user-role">{user.roleName}</span>
-                    <span className="user-id">ID: {user.userID || index + 1}</span>
                   </div>
 
                   <div className="user-info">
@@ -200,33 +196,18 @@ const ListUser = () => {
                       <span className="label">Phone:</span>
                       <span className="value">{user.phone}</span>
                     </div>
-                    <div className="info-row">
-                      <span className="label">Password:</span>
-                      <div className="password-horizontal">
-                        <span className="password-value">
-                          {showPassword[user.username] ? "N/A" : "••••••••"}
-                        </span>
-                        <button
-                          className="eye-btn"
-                          onClick={() => togglePasswordVisibility(user.username)}
-                          title={showPassword[user.username] ? "Hide password" : "Show password"}
-                        >
-                          {showPassword[user.username] ? "👁️" : "👁️‍🗨️"}
-                        </button>
-                      </div>
-                    </div>
                   </div>
-                  
+
                   <div className="action-buttons">
                     <button
-                      className="reset-btn"
-                      onClick={() => handleResetPassword(user.username)}
+                      className="edit-btn"
+                      onClick={() => handleEdit(user)}
                     >
-                      🔄 Reset Password
+                      Edit
                     </button>
                     <button
                       className="delete-btn"
-                      onClick={() => handleDelete(user.userID,user.username)}
+                      onClick={() => handleDelete(user.userID, user.username)}
                     >
                       🗑️ Delete
                     </button>
@@ -243,47 +224,48 @@ const ListUser = () => {
             <table className="user-table">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Full Name</th>
                   <th>Username</th>
                   <th>Phone</th>
                   <th>Role</th>
-                  <th>Password</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="no-data">
+                    <td colSpan="6" className="no-data">
                       No users found
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((user, index) => (
                     <tr key={index}>
-                      <td className="cell-id">{user.userID || index + 1}</td>
                       <td>{user.fullName}</td>
                       <td>{user.username}</td>
                       <td>{user.phone}</td>
                       <td>
                         <span className="table-role">{user.roleName}</span>
                       </td>
+                      <td>{user.isActive ? "Active" : "Inactive"}</td>
                       <td>
-                        <div className="table-password">
-                          <span className="password-display">
-                            {showPassword[user.username] ? "N/A" : "••••••••"}
-                          </span>
+                        <div className="table-actions">
                           <button
-                            className="table-eye-btn"
-                            onClick={() => togglePasswordVisibility(user.username)}
-                            title={showPassword[user.username] ? "Hide password" : "Show password"}
+                            className="edit-btn"
+                            onClick={() => handleEdit(user)}
                           >
-                            {showPassword[user.username] ? "👁️" : "👁️‍🗨️"}
+                            Edit
+                          </button>
+
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDelete(user.userID, user.username)}
+                          >
+                            Delete
                           </button>
                         </div>
                       </td>
-                      <td>{user.isActive?"Active":"Inactive"}</td>
                     </tr>
                   ))
                 )}
