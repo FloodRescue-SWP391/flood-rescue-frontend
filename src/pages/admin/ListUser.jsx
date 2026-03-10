@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 import "./ListUser.css";
-import { getUsers, deactivateUser } from "../../services/userService";
+import { getUsers, deactivateUser, updateUser } from "../../services/userService";
 
 const ListUser = () => {
-  const navigate = useNavigate();
 
+  const [editingUserId, setEditingUserId] = useState(null);
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -17,6 +17,11 @@ const ListUser = () => {
 
   const { handleLogout } = useOutletContext();
 
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    phone: "",
+    roleID: "",
+  });
 
   // Lấy danh sách role duy nhất
   const uniqueRoles = useMemo(() => {
@@ -95,9 +100,53 @@ const ListUser = () => {
   };
   // ===== ADD: hàm chuyển sang trang sửa user =====
   const handleEdit = (user) => {
-    navigate(`/admin/edit-user/${user.userID}`);
+    setEditingUserId(user.userID);
+    setEditForm({
+      fullName: user.fullName || "",
+      phone: user.phone || "",
+      roleID: user.roleID || "",
+    });
   };
 
+  // ===== ADD: cập nhật form edit =====
+  const handleEditChange = (field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+  // ===== ADD: hủy edit =====
+  const handleCancelEdit = () => {
+    setEditingUserId(null);
+    setEditForm({
+      fullName: "",
+      phone: "",
+      roleID: "",
+    });
+  };
+  // ===== ADD: save tạm ở frontend trước, sau nối API sau =====
+  const handleSaveEdit = async (userId) => {
+    try {
+      const payload = {
+        fullName: editForm.fullName,
+        phone: editForm.phone,
+        roleID: editForm.roleID,
+      };
+
+      const res = await updateUser(userId, payload);
+
+      if (res?.success) {
+        showToast("✅ User updated successfully");
+        setEditingUserId(null);
+        loadUsers();
+      } else {
+        showToast("❌ Failed to update user");
+      }
+    } catch (error) {
+      console.error("Update user error:", error);
+      showToast("❌ Failed to update user");
+    }
+  };
   const filteredUsers = users.filter((user) => {
     const fullName = String(user.fullName || "").toLowerCase();
     const username = String(user.username || "").toLowerCase();
@@ -240,34 +289,106 @@ const ListUser = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user, index) => (
-                    <tr key={index}>
-                      <td>{user.fullName}</td>
-                      <td>{user.username}</td>
-                      <td>{user.phone}</td>
-                      <td>
-                        <span className="table-role">{user.roleName}</span>
-                      </td>
-                      <td>{user.isActive ? "Active" : "Inactive"}</td>
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            className="edit-btn"
-                            onClick={() => handleEdit(user)}
-                          >
-                            Edit
-                          </button>
+                  filteredUsers.map((user, index) => {
+                    // ===== ADD: kiểm tra dòng hiện tại có đang edit không =====
+                    const isEditing = editingUserId === user.userID;
 
-                          <button
-                            className="delete-btn"
-                            onClick={() => handleDelete(user.userID, user.username)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                    return (
+                      <tr key={user.userID || index}>
+                        <td>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="edit-input"
+                              value={editForm.fullName}
+                              onChange={(e) => handleEditChange("fullName", e.target.value)}
+                            />
+                          ) : (
+                            user.fullName
+                          )}
+                        </td>
+
+                        <td>{user.username}</td>
+
+                        <td>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="edit-input"
+                              value={editForm.phone}
+                              onChange={(e) => handleEditChange("phone", e.target.value)}
+                            />
+                          ) : (
+                            user.phone
+                          )}
+                        </td>
+
+                        <td>
+                          {isEditing ? (
+                            <select
+                              className="edit-input"
+                              value={editForm.roleID}
+                              onChange={(e) => handleEditChange("roleID", e.target.value)}
+                            >
+                              {/* ===== CHANGE: sửa lại roleID đúng backend nếu khác ===== */}
+                              <option value="AD">Admin</option>
+                              <option value="MN">Manager</option>
+                              <option value="IM">Inventory Manager</option>
+                              <option value="CT">Coordinator</option>
+                              <option value="RT">Rescue Team</option>
+                            </select>
+                          ) : (
+                            <span className="table-role">{user.roleName}</span>
+                          )}
+                        </td>
+
+                        <td>
+                          <span className={user.isActive ? "status-active" : "status-inactive"}>
+                            {user.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+
+                        <td>
+                          <div className="table-actions">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  className="save-btn"
+                                  onClick={() => handleSaveEdit(user.userID)}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  className="cancel-btn"
+                                  onClick={handleCancelEdit}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className="edit-btn"
+                                  onClick={() => handleEdit(user)}
+                                >
+                                  Edit
+                                </button>
+                                <div className="action-buttons">
+                                  {/* ===== NOTE: edit chỉ hỗ trợ ở table view ===== */}
+                                  <button
+                                    className="delete-btn"
+                                    onClick={() => handleDelete(user.userID, user.username)}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

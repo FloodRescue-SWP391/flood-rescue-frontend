@@ -520,3 +520,47 @@
 .delete-btn:hover {
   background: #dc2626;
 }
+/* ===== INLINE EDIT ===== */
+.edit-input {
+  width: 100%;
+  min-width: 110px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.edit-input:focus {
+  border-color: #3b82f6;
+}
+
+.save-btn {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #22c55e;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.save-btn:hover {
+  background: #16a34a;
+}
+
+.cancel-btn {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #94a3b8;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cancel-btn:hover {
+  background: #64748b;
+}
