@@ -177,11 +177,11 @@ const CreateUser = () => {
       )}
 
       <div className="create-user-container">
-        <h2>Create New Account</h2>
+        <h2 className="create-user-title">Create New Account</h2>
 
         <form onSubmit={handleSubmit} className="create-form">
           <div className="form-group">
-            <label htmlFor="role">Role</label>
+            <label htmlFor="role" className="role-label">Role <span>*</span></label>
             <select
               id="role"
               name="role"
@@ -196,7 +196,7 @@ const CreateUser = () => {
             {errors.role && <span className="error-message">{errors.role}</span>}
           </div>
           <div className="form-group">
-            <label htmlFor="fullName">Full Name</label>
+            <label htmlFor="fullName" className="role-label">Full Name <span>*</span></label>
             <input
               id="fullName"
               name="fullName"
@@ -210,7 +210,7 @@ const CreateUser = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username" className="role-label">Username <span>*</span></label>
             <input
               id="username"
               name="username"
@@ -224,7 +224,7 @@ const CreateUser = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="phone">Phone</label>
+            <label htmlFor="phone" className="role-label">Phone <span>*</span></label>
             <input
               id="phone"
               name="phone"
@@ -238,7 +238,7 @@ const CreateUser = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password" className="role-label">Password <span>*</span></label>
             <input
               id="password"
               type="password"
@@ -253,7 +253,7 @@ const CreateUser = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="role-label">Confirm Password <span>*</span></label>
             <input
               id="confirmPassword"
               type="password"
@@ -269,7 +269,7 @@ const CreateUser = () => {
           {isRescueTeamRole && (
             <>
               <div className="form-group">
-                <label htmlFor="rescueTeamId">Rescue Team</label>
+                <label htmlFor="rescueTeamId" className="role-label">Rescue Team <span>*</span></label>
                 <select
                   id="rescueTeamId"
                   name="rescueTeamId"
@@ -296,7 +296,7 @@ const CreateUser = () => {
 
               <div className="form-group">
                 <div className="inline-check">
-                  <label htmlFor="isLeader">Is Leader</label>
+                  
                   <input
                     id="isLeader"
                     type="checkbox"
@@ -304,11 +304,13 @@ const CreateUser = () => {
                     checked={formData.isLeader}
                     onChange={handleChange}
                   />
+
+                  <label htmlFor="isLeader" className="role-label" style={{color: "brown"}}>Is Leader</label>
                 </div>
               </div>
             </>
           )}
-          <button type="submit" className="submit-btn">
+          <button type="submit" className="submit">
             Create Account
           </button>
         </form>

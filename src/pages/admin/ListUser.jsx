@@ -247,7 +247,7 @@ const ListUser = () => {
                     </div>
                   </div>
 
-                  <div className="action-buttons">
+                  <div className="action-buttons2">
                     <button
                       className="edit-btn"
                       onClick={() => handleEdit(user)}
@@ -373,10 +373,10 @@ const ListUser = () => {
                                 >
                                   Edit
                                 </button>
-                                <div className="action-buttons">
+                                <div className="action-buttons1">
                                   {/* ===== NOTE: edit chỉ hỗ trợ ở table view ===== */}
                                   <button
-                                    className="delete-btn"
+                                    className="delete-btn1"
                                     onClick={() => handleDelete(user.userID, user.username)}
                                   >
                                     Delete
