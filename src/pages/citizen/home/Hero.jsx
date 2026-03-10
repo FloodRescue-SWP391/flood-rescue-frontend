@@ -81,17 +81,17 @@ const Hero = () => {
             {/* Stats */}
             <div className="hero-stats">
               <div className="stat-item">
-                <div className="stat-number">24/7</div>
+                <div className="stat-number1">24/7</div>
                 <div className="stat-label">Availability</div>
               </div>
               <div className="stat-divider">•</div>
               <div className="stat-item">
-                <div className="stat-number">5min</div>
+                <div className="stat-number1">5min</div>
                 <div className="stat-label">Avg Response Time</div>
               </div>
               <div className="stat-divider">•</div>
               <div className="stat-item">
-                <div className="stat-number">99%</div>
+                <div className="stat-number1">99%</div>
                 <div className="stat-label">Success Rate</div>
               </div>
             </div>
