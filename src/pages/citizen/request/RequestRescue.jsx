@@ -329,10 +329,7 @@ const RequestRescue = () => {
       return;
     }
 
-    const agreeChecked = document.querySelector(
-      'input[name="agreeTerms"]',
-    )?.checked;
-
+  
     if (!formData.agreeTerms) {
       alert("Please confirm the emergency agreement before submitting.");
       setIsLoading(false);
@@ -394,6 +391,9 @@ const RequestRescue = () => {
       setShowSuccess(true);
       localStorage.setItem("lastShortCode", shortCode);
       navigate(`/citizen/request-status`);
+      setTimeout(() => {
+        navigate(`/citizen/request-status`);
+      }, 2000);
       return;
       // chuyển trang (nếu bạn muốn truyền code thì dùng query)
     } catch (error) {
@@ -893,20 +893,7 @@ const RequestRescue = () => {
                   </div>
                 )}
 
-                <div className="summary-section">
-                  <h3 className="summary-title">Contact Preferences</h3>
-                  <div className="summary-grid">
-                    <div className="summary-item">
-                      <span className="summary-label">Preferred Contact:</span>
-                      <span className="summary-value">
-                        <span className="contact-badge">
-                          {formData.contactVia === "Phone Call" ? "📞" : "✉️"}
-                          {formData.contactVia}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                
               </div>
 
               <div className="terms-agreement">

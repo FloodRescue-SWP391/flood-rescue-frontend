@@ -141,11 +141,13 @@ const RequestStatus = () => {
 
       if (confirmFill) {
         setInputCode(savedCode);
-        loadRequestByShortCode(savedCode); // tự load luôn sau khi đồng ý ko cần bấm enter nữa. Không thì bỏ rồi nhấn Enter
+        setTimeout(() => {
+          loadRequestByShortCode(savedCode);  // tự load luôn sau khi đồng ý ko cần bấm enter nữa. Không thì bỏ rồi nhấn Enter
+        }, 1000); // 1 giây rồi mới load
       }
 
       localStorage.removeItem("lastShortCode");
-    }, 300); // đợi trang render xong rồi mới hỏi
+    }, 1000); // đợi trang render xong rồi mới hỏi
 
     return () => clearTimeout(timer);
   }, [shortCode]);
