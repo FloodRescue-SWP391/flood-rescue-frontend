@@ -6,7 +6,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { getAllRescueRequests } from "../../services/rescueRequestService.js";
 import { getAllRescueTeams } from "../../services/rescueTeamService.js";
-import { rescueMissionService } from "../../services/rescueMissionService.js";
+import { rescueMissionService, completeMission } from "../../services/rescueMissionService.js";
 import { incidentReportService } from "../../services/incidentReportService.js";
 
 
@@ -44,129 +44,7 @@ const ChangeView = ({ center, zoom }) => {
 };
 
 const Dashboard = () => {
-  // State cho danh sách yêu cầu cứu trợ lũ lụt
-  const mockRequest = [
-    {
-      id: 1,
-      requestId: "FLOOD-001",
-      fullName: "Nguyễn Văn A",
-      phoneNumber: "0901234567",
-      address: "123 Đường Nguyễn Văn Cừ, Quận 1, TP.HCM",
-      location: { lat: 10.775, lng: 106.7 },
-      emergencyType: "Người mắc kẹt trong nước",
-      emergencyCategory: "life_threatening", // life_threatening, evacuation, supply, medical, equipment
-      peopleCount: 3,
-      priorityLevel: "Critical",
-      description:
-        "Nhà ngập sâu 2m, có 3 người già mắc kẹt trên tầng 2, nước đang dâng cao",
-      status: "pending",
-      timestamp: "15/01/2024 08:30",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: true,
-      waterLevel: "2m", // Mức nước ngập
-      specialNeeds: "Người già, không biết bơi",
-    },
-    {
-      id: 2,
-      requestId: "FLOOD-002",
-      fullName: "Trần Thị B",
-      phoneNumber: "0912345678",
-      address: "456 Đường Lý Thường Kiệt, Quận 5, TP.HCM",
-      location: { lat: 10.763, lng: 106.682 },
-      emergencyType: "Cần thực phẩm/ nước uống",
-      emergencyCategory: "supply",
-      peopleCount: 5,
-      priorityLevel: "High",
-      description: "Hết thực phẩm 2 ngày, có 2 trẻ nhỏ, cần tiếp tế gấp",
-      status: "in_progress",
-      timestamp: "15/01/2024 09:15",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: false,
-      waterLevel: "1.5m",
-      specialNeeds: "Trẻ nhỏ cần sữa",
-    },
-    {
-      id: 3,
-      requestId: "FLOOD-003",
-      fullName: "Lê Văn C",
-      phoneNumber: "0923456789",
-      address: "789 Đường 3/2, Quận 10, TP.HCM",
-      location: { lat: 10.767, lng: 106.654 },
-      emergencyType: "Cần thuốc men",
-      emergencyCategory: "medical",
-      peopleCount: 1,
-      priorityLevel: "Critical",
-      description: "Bệnh nhân tiểu đường hết insulin, cần thuốc gấp",
-      status: "pending",
-      timestamp: "14/01/2024 14:20",
-      contactVia: "SMS",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: true,
-      waterLevel: "1m",
-      specialNeeds: "Insulin, bơm kim tiêm",
-    },
-    {
-      id: 4,
-      requestId: "FLOOD-004",
-      fullName: "Phạm Thị D",
-      phoneNumber: "0934567890",
-      address: "321 Đường Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM",
-      location: { lat: 10.783, lng: 106.671 },
-      emergencyType: "Nhà bị ngập",
-      emergencyCategory: "evacuation",
-      peopleCount: 4,
-      priorityLevel: "High",
-      description: "Nhà ngập hoàn toàn, cần di dời đến nơi tránh lũ",
-      status: "completed",
-      timestamp: "13/01/2024 16:45",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: false,
-      waterLevel: "2.5m",
-      specialNeeds: "Di dời toàn bộ gia đình",
-    },
-    {
-      id: 5,
-      requestId: "FLOOD-005",
-      fullName: "Hoàng Văn E",
-      phoneNumber: "0945678901",
-      address: "654 Đường Lê Văn Việt, Quận 9, TP.HCM",
-      location: { lat: 10.801, lng: 106.714 },
-      emergencyType: "Cần áo phao/thuyền",
-      emergencyCategory: "equipment",
-      peopleCount: 2,
-      priorityLevel: "Medium",
-      description: "Cần thuyền và áo phao để di chuyển ra ngoài mua thực phẩm",
-      status: "pending",
-      timestamp: "15/01/2024 10:00",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: true,
-      waterLevel: "1.8m",
-      specialNeeds: "Thuyền nhỏ, 2 áo phao người lớn",
-    },
-    {
-      id: 6,
-      requestId: "FLOOD-006",
-      fullName: "Vũ Thị F",
-      phoneNumber: "0956789012",
-      address: "987 Đường Nguyễn Thị Minh Khai, Quận 3, TP.HCM",
-      location: { lat: 10.769, lng: 106.685 },
-      emergencyType: "Sạt lở đất",
-      emergencyCategory: "life_threatening",
-      peopleCount: 2,
-      priorityLevel: "Critical",
-      description: "Đất sạt lở sau nhà, đe dọa sập nhà",
-      status: "in_progress",
-      timestamp: "15/01/2024 11:30",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: false,
-      waterLevel: "0.5m",
-      specialNeeds: "Cần đội cứu hộ đặc biệt",
-    },];
+
 
 
   const mapStatusToUI = (status) => {
@@ -177,32 +55,46 @@ const Dashboard = () => {
     return "pending";
   };
 
-  const mapRequestToUI = (r) => ({
-    id: r.rescueRequestID ?? r.RescueRequestID,
-    requestId: r.shortCode ?? r.ShortCode,
-    fullName: "Citizen",
-    phoneNumber: r.citizenPhone ?? r.CitizenPhone ?? "",
-    address: "N/A",
-    location: {
-      lat: r.locationLatitude ?? r.LocationLatitude,
-      lng: r.locationLongitude ?? r.LocationLongitude,
-    },
-    emergencyType: r.requestType ?? r.RequestType ?? "",
-    emergencyCategory: "supply",
-    peopleCount: 1,
-    priorityLevel: "Medium",
-    description: r.description ?? r.Description ?? "",
-    status: mapStatusToUI(r.status ?? r.Status),
-    timestamp: new Date(r.createdTime ?? r.CreatedTime).toLocaleString("vi-VN"),
-    contactVia: "Phone Call",
-    imageUrl: (r.imageUrls ?? r.ImageUrls)?.[0] || "https://via.placeholder.com/150",
-    isNew: false,
-    waterLevel: "0m",
-    specialNeeds: "",
-  });
+  const mapRequestToUI = (r) => {
+    const requestType = r.requestType ?? r.RequestType ?? "";
+    const status = r.status ?? r.Status ?? "";
+    const lat = Number(r.locationLatitude ?? r.LocationLatitude ?? 0);
+    const lng = Number(r.locationLongitude ?? r.LocationLongitude ?? 0);
+    const peopleCount = Number(r.peopleCount ?? r.PeopleCount ?? 1);
+    const imageUrls = r.imageUrls ?? r.ImageUrls ?? [];
 
-  const [allRequests, setAllRequests] = useState(mockRequest);
-  const [usingRealData, setUsingRealData] = useState(false);
+    const isSupply = String(requestType).toLowerCase() === "supply";
+    const uiStatus = mapStatusToUI(status);
+
+    return {
+      id: r.rescueRequestID ?? r.RescueRequestID ?? r.id ?? r.Id,
+      requestId: r.shortCode ?? r.ShortCode ?? "",
+      fullName: r.citizenName ?? r.CitizenName ?? "Citizen",
+      phoneNumber: r.citizenPhone ?? r.CitizenPhone ?? "",
+      address: r.address ?? r.Address ?? "N/A",
+      location: {
+        lat,
+        lng,
+      },
+      emergencyType: requestType || "Unknown",
+      emergencyCategory: isSupply ? "supply" : "life_threatening",
+      peopleCount,
+      priorityLevel: isSupply ? "Medium" : "Critical",
+      description: r.description ?? r.Description ?? "",
+      status: uiStatus,
+      timestamp: r.createdTime || r.CreatedTime
+        ? new Date(r.createdTime ?? r.CreatedTime).toLocaleString("vi-VN")
+        : "",
+      contactVia: "Phone Call",
+      imageUrl: Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls[0] : "",
+      isNew: uiStatus === "pending",
+      waterLevel: "0m",
+      specialNeeds: "",
+    };
+  };
+
+
+  const [allRequests, setAllRequests] = useState([]);
   const [teams, setTeams] = useState([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [teamsError, setTeamsError] = useState("");
@@ -230,41 +122,11 @@ const Dashboard = () => {
   const [resolveNote, setResolveNote] = useState("");
   const [resolvingIncident, setResolvingIncident] = useState(false);
   // State cho thông báo
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "critical",
-      title: "🚨 CẤP CỨU: Người mắc kẹt trong nước!",
-      message: "3 người già mắc kẹt trên tầng 2, nước dâng cao 2m",
-      timestamp: "08:30 AM",
-      requestId: "FLOOD-001",
-      read: false,
-    },
-    {
-      id: 2,
-      type: "medical",
-      title: "💊 Yêu cầu thuốc khẩn cấp",
-      message: "Bệnh nhân tiểu đường cần insulin gấp",
-      timestamp: "10:00 AM",
-      requestId: "FLOOD-003",
-      read: false,
-    },
-    {
-      id: 3,
-      type: "evacuation",
-      title: "🚨 Cần di dời khẩn cấp",
-      message: "Nhà ngập hoàn toàn, cần sơ tán 4 người",
-      timestamp: "11:15 AM",
-      requestId: "FLOOD-004",
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isPlayingAlert, setIsPlayingAlert] = useState(false);
 
-  const audioRef = useRef(null);
 
   const extractApiData = (res) => {
     if (!res) return null;
@@ -423,10 +285,11 @@ const Dashboard = () => {
     const loadTeams = async () => {
       setTeamsLoading(true);
       setTeamsError("");
+
       try {
         const res = await getAllRescueTeams(); // ApiResponse<List<...>>
-        if (res?.success && Array.isArray(res.data)) {
-          setTeams(res.data);
+        if (res?.success && Array.isArray(res.content)) {
+          setTeams(res.content);
           setSelectedTeamId("");
           setDispatchError("");
           setDispatchSuccess("");
@@ -435,6 +298,7 @@ const Dashboard = () => {
           setTeamsError(res?.message || "Failed to load rescue teams");
         }
       } catch (e) {
+        setTeams([]);
         setTeamsError(e?.message || "Failed to load rescue teams");
       } finally {
         setTeamsLoading(false);
@@ -456,137 +320,28 @@ const Dashboard = () => {
       try {
         const res = await getAllRescueRequests();
         console.log("GET /RescueRequests:", res);
+        if (res?.success && Array.isArray(res.content)) {
+          const normalized = res.content
+            .map(mapRequestToUI)
+            .filter(
+              (item) =>
+                item?.id &&
+                Number.isFinite(item?.location?.lat) &&
+                Number.isFinite(item?.location?.lng)
+            );
 
-        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
-          const normalized = res.data.map(mapRequestToUI);
-          setAllRequests(normalized); //  replace mock bằng data thật
-          setUsingRealData(true);
+          setAllRequests(normalized);
+        } else {
+          setAllRequests([]);
         }
-      } catch (e) {
-        console.warn("API failed -> keep mock:", e?.message);
-        // không setAllRequests gì cả => giữ mock
+      } catch (error) {
+        console.warn("Load rescue requests failed:", error);
+        setAllRequests([]);
       }
     };
 
     loadRealRequests();
   }, []);
-
-
-
-  // Giả lập nhận yêu cầu mới cho lũ lụt
-  useEffect(() => {
-    if (usingRealData) return;
-    const simulateNewFloodRequest = () => {
-      const floodTypes = [
-        "Người mắc kẹt trong nước",
-        "Nhà bị ngập",
-        "Cần thực phẩm/ nước uống",
-        "Cần thuốc men",
-        "Cần áo phao/thuyền",
-        "Cần di dời khẩn cấp",
-        "Sạt lở đất",
-        "Cây đổ/ đường sá hư hỏng",
-        "Mất điện/ mất liên lạc",
-      ];
-
-      const categories = [
-        "life_threatening",
-        "evacuation",
-        "supply",
-        "medical",
-        "equipment",
-      ];
-      const priorities = ["Critical", "High", "Medium"];
-
-      const newId = Date.now();
-      const newRequest = {
-        id: newId,
-        requestId: `FLOOD-${newId.toString().slice(-4)}`,
-        fullName: `Công dân ${Math.floor(Math.random() * 1000)}`,
-        phoneNumber: `09${Math.floor(Math.random() * 90000000 + 10000000)}`,
-        address: `${Math.floor(Math.random() * 1000)} Đường, Quận ${Math.floor(Math.random() * 12) + 1}`,
-        location: {
-          lat: 10.775 + (Math.random() - 0.5) * 0.1,
-          lng: 106.686 + (Math.random() - 0.5) * 0.1,
-        },
-        emergencyType:
-          floodTypes[Math.floor(Math.random() * floodTypes.length)],
-        emergencyCategory:
-          categories[Math.floor(Math.random() * categories.length)],
-        peopleCount: Math.floor(Math.random() * 6) + 1,
-        priorityLevel:
-          priorities[Math.floor(Math.random() * priorities.length)],
-        description: "Yêu cầu cứu trợ lũ lụt khẩn cấp",
-        status: "pending",
-        timestamp: new Date().toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        contactVia: "Phone Call",
-        imageUrl: "https://via.placeholder.com/150",
-        isNew: true,
-        waterLevel: `${(Math.random() * 3).toFixed(1)}m`,
-        specialNeeds: Math.random() > 0.5 ? "Có người già/trẻ nhỏ" : "Không",
-      };
-
-      setAllRequests((prev) => [newRequest, ...prev]);
-
-      // Tạo thông báo phù hợp
-      let notificationType = "info";
-      let notificationTitle = "🌧️ Yêu cầu cứu trợ mới";
-
-      if (newRequest.emergencyCategory === "life_threatening") {
-        notificationType = "critical";
-        notificationTitle = "🚨 CẤP CỨU: Nguy hiểm tính mạng!";
-
-        if (audioRef.current) {
-          audioRef.current
-            .play()
-            .catch((e) => console.log("Audio play failed:", e));
-          setIsPlayingAlert(true);
-          setTimeout(() => setIsPlayingAlert(false), 5000);
-        }
-      } else if (newRequest.emergencyCategory === "medical") {
-        notificationType = "medical";
-        notificationTitle = "💊 Yêu cầu thuốc khẩn";
-      } else if (newRequest.emergencyCategory === "supply") {
-        notificationType = "supply";
-        notificationTitle = "📦 Cần tiếp tế thực phẩm";
-      } else if (newRequest.emergencyCategory === "evacuation") {
-        notificationType = "evacuation";
-        notificationTitle = "🚨 Cần di dời khẩn cấp";
-      } else if (newRequest.emergencyCategory === "equipment") {
-        notificationType = "equipment";
-        notificationTitle = "🛟 Cần thiết bị cứu hộ";
-      }
-
-      const newNotification = {
-        id: newId,
-        type: notificationType,
-        title: notificationTitle,
-        message: `${newRequest.emergencyType} - ${newRequest.peopleCount} người, nước ngập ${newRequest.waterLevel}`,
-        timestamp: new Date().toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        requestId: newRequest.requestId,
-        read: false,
-      };
-
-      setNotifications((prev) => [newNotification, ...prev]);
-    };
-
-    // Simulate nhận yêu cầu mới mỗi 3 phút
-    const interval = setInterval(simulateNewFloodRequest, 180000);
-
-    // Simulate ngay 1 request để demo
-    const timeoutId = setTimeout(simulateNewFloodRequest, 3000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeoutId);
-    };
-  }, [usingRealData]);
 
 
   // Các hàm xử lý
@@ -645,7 +400,7 @@ const Dashboard = () => {
       }
 
       // backend có thể trả DispatchMissionResponseDTO, mình đọc kiểu “defensive”
-      const data = res?.data || {};
+      const data = res?.content || res?.data || {};
       const missionId =
         data?.rescueMissionID ??
         data?.RescueMissionID ??
@@ -1043,7 +798,7 @@ const Dashboard = () => {
             <div className="requests-list">
               {filteredRequests.length === 0 ? (
                 <div className="no-requests">
-                  <p>No requests found with current filters</p>
+                  <p>No rescue requests found</p>
                   <button
                     className="btn-show-completed"
                     onClick={() => setShowCompleted(true)}
@@ -1209,8 +964,12 @@ const Dashboard = () => {
                   />
 
                   {allRequests
-                    .filter((req) =>
-                      !showCompleted ? req.status !== "completed" : true,
+                    .filter((req) => (!showCompleted ? req.status !== "completed" : true))
+                    .filter(
+                      (req) =>
+                        req.location &&
+                        Number.isFinite(req.location.lat) &&
+                        Number.isFinite(req.location.lng)
                     )
                     .map((request) => {
                       return (
@@ -1221,9 +980,11 @@ const Dashboard = () => {
                             request.location.lng,
                           ]}
                           icon={
-                            request.priorityLevel === "Critical"
+                            request.status === "pending"
                               ? dotIcon("red")
-                              : dotIcon("green")
+                              : request.status === "in_progress"
+                                ? dotIcon("orange")
+                                : dotIcon("green")
                           }
                           eventHandlers={{
                             click: () => handleRequestClick(request),
@@ -1276,12 +1037,16 @@ const Dashboard = () => {
                       <div className="detail-item">
                         <span className="detail-label">
                           Phone number:{" "}
-                          <a
-                            href={`tel:${selectedRequest.phoneNumber}`}
-                            className="detail-value link"
-                          >
-                            {selectedRequest.phoneNumber}
-                          </a>
+                          {selectedRequest.phoneNumber ? (
+                            <a
+                              href={`tel:${selectedRequest.phoneNumber}`}
+                              className="detail-value link"
+                            >
+                              {selectedRequest.phoneNumber}
+                            </a>
+                          ) : (
+                            <span className="detail-value">N/A</span>
+                          )}
                         </span>
                       </div>
                       <div className="detail-item">
@@ -1378,12 +1143,13 @@ const Dashboard = () => {
 
                     <div className="detail-group">
                       <h4>🖼️ Images</h4>
-                      <div className="image-preview">
-                        <img
-                          src={selectedRequest.imageUrl}
-                          alt="Hình ảnh tình trạng"
-                        />
-                      </div>
+                      {selectedRequest.imageUrl ? (
+                        <div className="image-preview">
+                          <img src={selectedRequest.imageUrl} alt="Request" />
+                        </div>
+                      ) : (
+                        <div className="image-preview empty">No image</div>
+                      )}
                     </div>
                   </div>
 
@@ -1400,26 +1166,23 @@ const Dashboard = () => {
                             : "✅ Completed"}
                       </span>
 
-                      {selectedRequest.status === "pending" && (
-                        <button
-                          className="btn btn-primary"
-                          onClick={() =>
-                            updateRequestStatus(
-                              selectedRequest.id,
-                              "in_progress",
-                            )
-                          }
-                        >
-                          🚤 Receiving rescue
-                        </button>
-                      )}
-
                       {selectedRequest.status === "in_progress" && (
                         <button
                           className="btn btn-success"
-                          onClick={() =>
-                            updateRequestStatus(selectedRequest.id, "completed")
-                          }
+                          onClick={async () => {
+                            try {
+
+                              if (!selectedRequest.rescueMissionId) {
+                                alert("Rescue mission ID is missing.");
+                                return;
+                              }
+                              await completeMission(selectedRequest.rescueMissionId);
+
+                              updateRequestStatus(selectedRequest.id, "completed");
+                            } catch (err) {
+                              alert(err.message);
+                            }
+                          }}
                         >
                           ✅ Mark as completed
                         </button>
@@ -1506,9 +1269,13 @@ const Dashboard = () => {
 
                         <button
                           className="btn btn-emergency"
-                          onClick={() =>
-                            window.open(`tel:${selectedRequest.phoneNumber}`)
-                          }
+                          onClick={() => {
+                            if (!selectedRequest.phoneNumber) {
+                              alert("Phone number is not available.");
+                              return;
+                            }
+                            window.open(`tel:${selectedRequest.phoneNumber}`);
+                          }}
                         >
                           📞 Call now
                         </button>
@@ -1685,7 +1452,7 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

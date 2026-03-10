@@ -9,7 +9,27 @@ const fetchWithTimeout = (url, options = {}, ms = 60000) => {
     .finally(() => clearTimeout(timer));
 };
 
+// helper parse response an toàn
+async function parseResponse(res) {
+  const raw = await res.text();
+  let json = null;
 
+  try {
+    json = raw ? JSON.parse(raw) : null;
+  } catch {
+    json = null;
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      (json && (json.message || json.title)) ||
+      raw ||
+      `Request failed (${res.status})`
+    );
+  }
+
+  return json;
+}
 // POST: /api/RescueRequests
 export async function createRescueRequest(payload) {
   const res = await fetchWithTimeout(`${API_BASE_URL}/RescueRequests`, {
@@ -19,7 +39,12 @@ export async function createRescueRequest(payload) {
   });
   const raw = await res.text();
   let json = null;
-  try { json = raw ? JSON.parse(raw) : null; } catch { }
+
+  try {
+    json = raw ? JSON.parse(raw) : null;
+  } catch {
+    json = null;
+  }
 
   if (!res.ok) {
     // log để gửi BE
@@ -30,40 +55,54 @@ export async function createRescueRequest(payload) {
       sent: payload,
     });
 
-    const msg =
-      (json && (json.message || json.title)) ||
-      raw ||
-      `Create rescue request failed (${res.status})`;
-
-    throw new Error(msg);
+    throw new Error(
+      (json && (json.message || json.title)) || raw ||
+      `Create rescue request failed (${res.status})`
+    );
   }
-
   return json; // ApiResponse
 }
 
 // GET: /api/RescueRequests/track/{shortCode}
 export async function trackRescueRequest(shortCode) {
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `${API_BASE_URL}/RescueRequests/track/${encodeURIComponent(shortCode)}`
   );
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.message || "Track rescue request failed");
-  return json;//apiResponse
+  return await parseResponse(res);
 }
 //  GET: /api/RescueRequests  (Coordinator dùng để lấy list)
 export async function getAllRescueRequests() {
-  const res = await fetch(`${API_BASE_URL}/RescueRequests`);
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.message || "Get rescue requests failed");
-  return json; // ApiResponse<List>
+  const res = await fetchWithTimeout(`${API_BASE_URL}/RescueRequests`);
+  return await parseResponse(res);
 }
 
-// optional: nếu BE có hỗ trợ query status
-export async function getRescueRequestsByStatus(status) {
-  const res = await fetch(
-    `${API_BASE_URL}/RescueRequests?status=${encodeURIComponent(status)}`
-  );
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.message || "Get rescue requests failed");
-  return json;
+
+// GET: /api/RescueRequests/{id}
+export async function getRescueRequestById(id) {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/RescueRequests/${id}`);
+  return await parseResponse(res);
+}
+// GET: /api/RescueRequests/filter
+export async function filterRescueRequests(params = {}) {
+  const query = new URLSearchParams();
+
+  if (params.status) {
+    if (Array.isArray(params.status)) {
+      params.status.forEach((s) => query.append("Status", s));
+    } else {
+      query.append("Status", params.status);
+    }
+  }
+
+  if (params.requestType) query.append("RequestType", params.requestType);
+  if (params.fromDate) query.append("FromDate", params.fromDate);
+  if (params.toDate) query.append("ToDate", params.toDate);
+  if (params.pageNumber) query.append("PageNumber", params.pageNumber);
+  if (params.pageSize) query.append("PageSize", params.pageSize);
+
+  const url = `${API_BASE_URL}/RescueRequests/filter${query.toString() ? `?${query.toString()}` : ""
+    }`;
+
+  const res = await fetchWithTimeout(url);
+  return await parseResponse(res);
 }
