@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import Header from "../../../components/common/Header";
 import { trackRescueRequest } from "../../../services/rescueRequestService";
 import "./RequestStatus.css";
-import { Link, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import "../../../pages/home/Introduce.css";
 
 const RequestStatus = () => {
@@ -23,6 +23,8 @@ const RequestStatus = () => {
     const qs = new URLSearchParams(location.search);
     return (qs.get("code") || qs.get("shortCode") || "").trim();
   }, [location.search]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (shortCode) {
@@ -72,7 +74,7 @@ const RequestStatus = () => {
       console.log("TRACK API RESPONSE:", res);
       console.log("TRACK CONTENT:", dto);
 
-      setRequest({
+      const requestData = {
         requestId: dto?.rescueRequestID || "",
         shortCode: dto?.shortCode || "",
         timestamp: dto?.createdTime || "",
@@ -84,16 +86,33 @@ const RequestStatus = () => {
         fullName: dto?.citizenName || "",
         phoneNumber: dto?.citizenPhone || "",
         teamName: dto?.teamName || "",
-      });
+      };
 
-      setRescueTeam({
+      const rescueTeamData = {
         name: dto?.teamName,
         leader: dto?.teamLeader,
         members: dto?.members || [],
-      });
+      };
 
-      localStorage.setItem("lastShortCode", code.trim());
-      startCountdown();
+      setRequest(requestData);
+      setRescueTeam(rescueTeamData);
+
+      localStorage.setItem("lastRequestData", JSON.stringify(requestData));
+      localStorage.setItem(
+        "lastRescueTeamData",
+        JSON.stringify(rescueTeamData),
+      );
+
+      const finalStatuses = ["completed", "delivered", "rejected", "cancelled"];
+      const currentStatus = (dto?.status || "").toLowerCase();
+
+      if (finalStatuses.includes(currentStatus)) {
+        localStorage.removeItem("lastShortCode");
+      } else {
+        localStorage.setItem("lastShortCode", code.trim());
+      }
+
+      // startCountdown();
     } catch (error) {
       console.error("Error loading request:", error);
       setLookupError(
@@ -107,26 +126,26 @@ const RequestStatus = () => {
     }
   };
 
-  const startCountdown = () => {
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-    }
+  // const startCountdown = () => {
+  //   if (countdownRef.current) {
+  //     clearInterval(countdownRef.current);
+  //   }
 
-    countdownRef.current = setInterval(() => {
-      setEta((prev) => {
-        if (prev === "Arriving") return prev;
+  //   countdownRef.current = setInterval(() => {
+  //     setEta((prev) => {
+  //       if (prev === "Arriving") return prev;
 
-        const [min, max] = prev.split("-").map(Number);
-        if (min > 1) {
-          return `${min - 1}-${max - 1}`;
-        } else {
-          clearInterval(countdownRef.current);
-          countdownRef.current = null;
-          return "Arriving";
-        }
-      });
-    }, 30000);
-  };
+  //       const [min, max] = prev.split("-").map(Number);
+  //       if (min > 1) {
+  //         return `${min - 1}-${max - 1}`;
+  //       } else {
+  //         clearInterval(countdownRef.current);
+  //         countdownRef.current = null;
+  //         return "Arriving";
+  //       }
+  //     });
+  //   }, 30000);
+  // };
 
   useEffect(() => {
     if (shortCode) return; // nếu URL đã có code thì không hỏi nữa
@@ -142,23 +161,21 @@ const RequestStatus = () => {
       if (confirmFill) {
         setInputCode(savedCode);
         setTimeout(() => {
-          loadRequestByShortCode(savedCode);  // tự load luôn sau khi đồng ý ko cần bấm enter nữa. Không thì bỏ rồi nhấn Enter
+          loadRequestByShortCode(savedCode); // tự load luôn sau khi đồng ý ko cần bấm enter nữa. Không thì bỏ rồi nhấn Enter
         }, 1000); // 1 giây rồi mới load
       }
-
-      localStorage.removeItem("lastShortCode");
     }, 1000); // đợi trang render xong rồi mới hỏi
 
     return () => clearTimeout(timer);
   }, [shortCode]);
 
-  useEffect(() => {
-    return () => {
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current);
-      }
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     if (countdownRef.current) {
+  //       clearInterval(countdownRef.current);
+  //     }
+  //   };
+  // }, []);
 
   const handleSearchShortCode = () => {
     loadRequestByShortCode(inputCode);
@@ -247,6 +264,10 @@ const RequestStatus = () => {
   return (
     <>
       <Header />
+
+      <button className="back-btn1" onClick={() => navigate("/")}>
+        ⬅ Back
+      </button>
 
       <div className="request-status-container">
         {/* Page Header */}

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import "./Hero.css";
 import Header from "../../../components/common/Header";
 import { useState, useEffect } from "react";
-
+import { trackRescueRequest } from "../../../services/rescueRequestService";
 const Hero = () => {
   const navigate = useNavigate();
   const [typedText, setTypedText] = useState("");
@@ -16,6 +16,42 @@ const Hero = () => {
     "Fast Response",
     "Stay Safe",
   ];
+
+  const handleRequestRescue = async () => {
+    const savedCode = localStorage.getItem("lastShortCode");
+
+    if (!savedCode) {
+      navigate("/citizen/request");
+      return;
+    }
+
+    try {
+      const res = await trackRescueRequest(savedCode);
+      const dto = res?.content;
+      const status = (dto?.status || "").toLowerCase();
+
+      const activeStatuses = ["pending", "processing"];
+      const doneStatuses = ["completed", "delivered", "cancelled", "rejected"];
+
+      if (activeStatuses.includes(status)) {
+        navigate(`/citizen/request-status?code=${savedCode}`);
+        return;
+      }
+
+      if (doneStatuses.includes(status)) {
+        localStorage.removeItem("lastShortCode");
+        localStorage.removeItem("lastRequestData");
+        localStorage.removeItem("lastRescueTeamData");
+        navigate("/citizen/request");
+        return;
+      }
+
+      navigate("/citizen/request");
+    } catch (error) {
+      console.error("Failed to check active rescue request:", error);
+      navigate("/citizen/request");
+    }
+  };
 
   useEffect(() => {
     const currentText = texts[textIndex];
@@ -58,14 +94,11 @@ const Hero = () => {
           <div className="hero-content">
             {/* Emergency Badge */}
 
-       
-              <div className="emergency-badge">
-                <span className="badge-icon">🚨</span>
-                <span className="badge-text">24/7 EMERGENCY SERVICE</span>
-              </div>
+            <div className="emergency-badge">
+              <span className="badge-icon">🚨</span>
+              <span className="badge-text">24/7 EMERGENCY SERVICE</span>
+            </div>
 
-             
-            
             {/* Animated Typing Title */}
             <h1 className="hero-title">
               <span className="typed-text">{typedText}</span>
@@ -96,14 +129,16 @@ const Hero = () => {
               </div>
             </div>
 
-             {/* Main CTA Button */}
-              <button
-                className="hero-btn"
-                onClick={() => navigate("/citizen/request")}
-              >
-                <span className="btn-icon">🚨</span>
-                <span className="btn-text">Request Emergency Rescue</span>
-              </button>
+            {/* Main CTA Button */}
+
+            {/* onClick={handleRequestRescue} thay bằng dòng 137*/}
+            <button
+              className="hero-btn"            
+              onClick={() => navigate("/citizen/request")}
+            >
+              <span className="btn-icon">🚨</span>
+              <span className="btn-text">Request Emergency Rescue</span>
+            </button>
 
             {/* Secondary Options */}
             <div className="hero-secondary-actions">
