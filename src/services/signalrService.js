@@ -115,6 +115,7 @@ class SignalRService {
     on(eventName, callback) {
         if (this.connection) {
             this.connection.on(eventName, callback);
+            this.connection.off(eventName);
             console.log(`Subscribed to event: ${eventName}`);
         } else {
             console.warn(`Cannot subscribe to ${eventName}: Connection not initialized`);
