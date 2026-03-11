@@ -22,7 +22,6 @@ const Introduce = () => {
           ⬅ Back
         </button>
 
-
         <section className="hp-intro">
           <h4>Introducing the RESCUE system</h4>
           <p>Emergency rescue and support coordination system</p>
@@ -33,7 +32,7 @@ const Introduce = () => {
         <div className="content1">
           <h7>Who are we ?</h7>
           <p>
-            <strong>RESCUE</strong> It is an emergency rescue coordination
+            <strong>RESCUE</strong> is an emergency rescue coordination
             support system, helping to connect people with rescue teams.
           </p>
         </div>
@@ -60,7 +59,7 @@ const Introduce = () => {
         <div className="ngang"></div>
 
         <div className="content5">
-          <h7>Development team</h7>
+          <p className="dep">Development team</p>
 
           <div className="team-list">
             {[
@@ -95,40 +94,42 @@ const Introduce = () => {
                 <img src={m.img} alt={m.name} />
                 <div className="content6">
                   <h8>{m.name}</h8>
-                  <p>{m.role}</p>
+                  <p className="role">{m.role}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        
       </div>
 
       <footer className="homepage-footer">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h3>Emergency Rescue System</h3>
-            <p>
-              Smart rescue connection,
-              <br />
-              fast and effective
-            </p>
+          <div className="footer-content">
+            <div className="footer-section">
+              <h3>Emergency Rescue System</h3>
+              <p>
+                Smart rescue connection,
+                <br />
+                fast and effective
+              </p>
+            </div>
+            <div className="footer-section">
+              <h3>Contact</h3>
+              <p>Email: rescue@gmail.com</p>
+              <p>Hotline: 0965 782 358</p>
+            </div>
+            <div className="footer-section">
+              <h3>Support</h3>
+              <Link to="/guide">Instructions for use</Link>
+              <Link to="/faq">Frequently asked questions</Link>
+              <Link to="/contact">Contact support</Link>
+            </div>
           </div>
-          <div className="footer-section">
-            <h3>Contact</h3>
-            <p>Email: rescue@gmail.com</p>
-            <p>Hotline: 0965 782 358</p>
+          <div className="footer-bottom">
+            © 2026 Rescue System. All rights reserved.
           </div>
-          <div className="footer-section">
-            <h3>Support</h3>
-            <Link to="/guide">Instructions for use</Link>
-            <Link to="/faq">Frequently asked questions</Link>
-            <Link to="/contact">Contact support</Link>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          © 2026 Rescue System. All rights reserved.
-        </div>
-      </footer>
+        </footer>
     </div>
   );
 };

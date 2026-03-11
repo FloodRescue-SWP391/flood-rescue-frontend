@@ -1,6 +1,6 @@
 .dashboard-container {
   min-height: 100vh;
-  background-color: #f5f7fa;
+ background: linear-gradient(180deg, #e1f4f8 0%, #ffffff 100%);
 }
 
 .dashboard-content {

@@ -232,7 +232,7 @@
 /* Back button */
 .back-btn1 {
   position: absolute;
-  top: 80px;
+  top: 190px;
   left: 20px;
   background: rgba(26, 20, 20, 0.2);
   backdrop-filter: blur(10px);
