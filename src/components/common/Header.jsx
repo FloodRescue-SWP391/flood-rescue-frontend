@@ -13,13 +13,13 @@ const Header = () => {
       {/* Top Bar with Emergency Information */}
       <div className="top-bar">
         <div className="top-bar-content">
-          <span> 🔔 ỦY HỘ KHẨN CẤP 24/7</span>
+          <span> 🔔 24/7 EMERGENCY SUPPORT</span>
           <span className="separator">|</span>
-          <span> ⏱️ PHẢN ỨNG TỐC THỜI TRONG 5 PHÚT</span>
+          <span> ⏱️ RESPONSE WITHIN 5 MINUTES</span>
           <span className="separator">|</span>
-          <span> 🚑 HỆ THỐNG CỨU HỘ KHẨN CẤP 24/7</span>
+          <span> 🚑 FLOOD RESCUE SYSTEM</span>
           <span className="separator">|</span>
-          <span> 🛡️ PHẢN ỨNG TỐC</span>
+          <span> 🛡️ SAFE & FAST RESPONSE</span>
         </div>
       </div>
 

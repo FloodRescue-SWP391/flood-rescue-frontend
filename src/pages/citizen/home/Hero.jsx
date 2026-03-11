@@ -6,7 +6,9 @@ import { trackRescueRequest } from "../../../services/rescueRequestService";
 const Hero = () => {
   const navigate = useNavigate();
 
-  {/* handleRequestRescue sẽ dùng khi deploy được ứng dụng. */}
+  {
+    /* handleRequestRescue sẽ dùng khi deploy được ứng dụng. */
+  }
   const handleRequestRescue = async () => {
     const savedCode = localStorage.getItem("lastShortCode");
 
@@ -43,8 +45,6 @@ const Hero = () => {
     }
   };
 
-  
-
   return (
     <>
       {/* ===== HEADER ===== */}
@@ -55,39 +55,46 @@ const Hero = () => {
       <section className="hero">
         <div className="hero-container">
           <div className="hero-content">
-            <h1 class="hero-headline">
-              <span class="line1">CỨU HỘ</span>
-              <span class="line2">KHÔNG CHỜ</span>
-              <span class="line3">ĐỢI!</span>
+            <h1 className="hero-headline">
+              <span className="line1">RESCUE</span>
+              <span className="line2">CAN'T</span>
+              <span className="line3">WAIT!</span>
             </h1>
+
             <p className="hero-network">
-              Mạng lưới cứu hộ khẩn cấp 24/7. <br></br> Kết nối bạn với đội cứu
-              hộ nhanh nhất trong tích tắc!
+              24/7 emergency rescue network. <br></br>
+              Instantly connecting you with the nearest rescue team!
             </p>
-             {/* onClick={handleRequestRescue}  để thay dòng onClick={() => navigate("/citizen/request")}*/}
+
+            {/* onClick={handleRequestRescue}  để thay dòng onClick={() => navigate("/citizen/request")} */}
             <button
               className="hero-cta-btn"
               onClick={() => navigate("/citizen/request")}
             >
               <span className="btn-icon">⚠️</span>
-              <span className="btn-text">GỬI CỨU HỘ NGAY!</span>
+              <span className="btn-text">REQUEST RESCUE NOW!</span>
             </button>
           </div>
+
           {/* Stats Section */}
           <div className="hero-stats">
             <div className="stat-item">
               <div className="stat-number1">05'</div>
-              <div className="stat-label">THỜI GIAN PHẢN HỒI TRUNG BÌNH</div>
+              <div className="stat-label">AVERAGE RESPONSE TIME</div>
             </div>
+
             <div className="stat-divider"></div>
+
             <div className="stat-item">
               <div className="stat-number1">1.2K+</div>
-              <div className="stat-label">ĐỘI CỨU HỘ SẴN SÀNG</div>
+              <div className="stat-label">RESCUE TEAMS READY</div>
             </div>
+
             <div className="stat-divider"></div>
+
             <div className="stat-item">
               <div className="stat-number1">99.9%</div>
-              <div className="stat-label">TỶ LỆ CỨU HỘ THÀNH CÔNG</div>
+              <div className="stat-label">SUCCESSFUL RESCUE RATE</div>
             </div>
           </div>
         </div>
