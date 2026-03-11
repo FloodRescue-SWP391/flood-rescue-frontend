@@ -2,12 +2,7 @@ import "./Dashboard.css";
 import Header from "../../components/common/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { rescueMissionService } from "../../services/rescueMissionService";
-import {
-  getAllRescueTeams,
-  createRescueTeam,
-  updateRescueTeam,
-  deleteRescueTeam,
-} from "../../services/rescueTeamService";
+import signalRService from "../../services/signalrService";
 import { completeMission } from "../../services/rescueMissionService";
 import { incidentReportService } from "../../services/incidentReportService";
 
@@ -18,92 +13,8 @@ export default function RescueTeam() {
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  // form create/update
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({
-    teamName: "",
-    city: "",
-    currentStatus: "Available",
-    currentLatitude: 0,
-    currentLongitude: 0,
-  });
-  const resetForm = () => {
-    setIsEditing(false);
-    setEditingId(null);
-    setForm({
-      teamName: "",
-      city: "",
-      currentStatus: "Available",
-      currentLatitude: 0,
-      currentLongitude: 0,
-    });
-  };
 
-  const onEditTeam = (req) => {
-    const t = req.__raw;
-    const id = t?.rescueTeamID ?? t?.id ?? t?.rescueTeamId;
-    setIsEditing(true);
-    setEditingId(id);
-    setForm({
-      teamName: t?.teamName ?? "",
-      city: t?.city ?? "",
-      currentStatus: t?.currentStatus ?? "Available",
-      currentLatitude: t?.currentLatitude ?? 0,
-      currentLongitude: t?.currentLongitude ?? 0,
-    });
-  };
 
-  const onSubmitTeam = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      setErr("");
-
-      const payload = {
-        teamName: form.teamName.trim(),
-        city: form.city.trim(),
-        currentStatus: form.currentStatus,
-        currentLatitude: Number(form.currentLatitude),
-        currentLongitude: Number(form.currentLongitude),
-      };
-
-      if (isEditing && editingId) {
-        await updateRescueTeam(editingId, payload);
-      } else {
-        await createRescueTeam(payload);
-      }
-
-      resetForm();
-      await loadTeams();
-    } catch (e) {
-      console.error(e);
-      setErr(isEditing ? "Update team failed." : "Create team failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onDeleteTeam = async (req) => {
-    const t = req.__raw;
-    const id = t?.rescueTeamID ?? t?.id ?? t?.rescueTeamId;
-    if (!id) return;
-
-    const ok = window.confirm(`Delete team "${t?.teamName ?? id}"?`);
-    if (!ok) return;
-
-    try {
-      setLoading(true);
-      setErr("");
-      await deleteRescueTeam(id);
-      await loadTeams();
-    } catch (e) {
-      console.error(e);
-      setErr("Delete team failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const [editingId, setEditingId] = useState(null);
   /* ===== HISTORY ===== */
   const [history, setHistory] = useState([
     {
@@ -237,118 +148,225 @@ export default function RescueTeam() {
     }
   };
   const extractData = (res) => {
-    if (!res) return null;
-    if (res.data && typeof res.data === "object") return res.data?.data ?? res.data;
-    return res.data ?? res;
+    if (!res) return [];
+    return res?.content ?? res?.data?.content ?? res?.data ?? res ?? [];
   };
 
-  const loadTeams = async () => {
+  const getTeamIdFromStorage = () => {
+    const auth = JSON.parse(localStorage.getItem("auth") || "{}");
+    return (
+      auth?.teamID ||
+      auth?.teamId ||
+      auth?.user?.teamID ||
+      auth?.user?.teamId ||
+      null
+    );
+  };
+
+  const normalizeMissionStatus = (status) => {
+    const s = String(status || "").toLowerCase();
+
+    if (["assigned", "pending", "new"].includes(s)) return "new";
+    if (["inprogress", "in-progress", "processing", "busy"].includes(s)) {
+      return "in-progress";
+    }
+    if (["completed", "delivered"].includes(s)) return "completed";
+    if (["rejected", "declined"].includes(s)) return "rejected";
+
+    return "new";
+  };
+
+  const mapMissionToCard = (m) => ({
+    id: m.rescueMissionID ?? m.missionID ?? m.id,
+    type: m.requestType ?? m.type ?? "Rescue Mission",
+    description: [
+      m.address,
+      m.citizenName,
+      m.citizenPhone,
+      m.requestShortCode ? `#${m.requestShortCode}` : null,
+    ]
+      .filter(Boolean)
+      .join(" • "),
+    status: normalizeMissionStatus(m.missionStatus ?? m.status),
+    problemReports: Array.isArray(m.problemReports) ? m.problemReports : [],
+    __raw: m,
+  });
+
+  const loadMissions = async () => {
     try {
       setLoading(true);
       setErr("");
-      const res = await getAllRescueTeams();
-      const data = extractData(res) ?? [];
-      // map team -> request-card model (để UI không đổi)
-      setRequests(
-        (Array.isArray(data) ? data : []).map((t) => ({
-          id: t.rescueTeamID ?? t.id ?? t.rescueTeamId,           // dùng làm key
-          type: t.teamName ?? "Rescue Team",
-          description: `${t.city ?? ""} • ${t.currentStatus ?? ""} • (${t.currentLatitude ?? 0}, ${t.currentLongitude ?? 0})`,
-          status:
-            String(t.currentStatus || "").toLowerCase() === "busy"
-              ? "in-progress"
-              : "new",
-          problemReports: [],
-          __raw: t, // giữ raw để CRUD edit/delete
-        }))
-      );
+
+      const teamId = getTeamIdFromStorage();
+      if (!teamId) {
+        setErr("Không tìm thấy TeamID.");
+        return;
+      }
+
+      const res = await rescueMissionService.getAssigned({ teamId });
+      const data = extractData(res);
+
+      setRequests((Array.isArray(data) ? data : []).map(mapMissionToCard));
     } catch (e) {
       console.error(e);
-      setErr("Failed to load rescue teams.");
+      setErr("Failed to load missions.");
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => {
-    loadTeams();
+    loadMissions();
   }, []);
 
-  /* ===== ACTIONS ===== */
+  useEffect(() => {
+    const handleMissionNotification = (data) => {
+      console.log("ReceiveMissionNotification:", data);
+
+      const missionCard = mapMissionToCard({
+        rescueMissionID: data.missionID,
+        missionID: data.missionID,
+        missionStatus: data.missionStatus,
+        requestShortCode: data.requestShortCode,
+        citizenName: data.citizenName,
+        citizenPhone: data.citizenPhone,
+        requestType: data.requestType,
+        address: data.address,
+        currentLatitude: data.locationLatitude,
+        currentLongitude: data.locationLongitude,
+        peopleCount: data.peopleCount,
+        description: data.description,
+      });
+
+      setRequests((prev) => {
+        const existed = prev.some((item) => item.id === missionCard.id);
+        if (existed) return prev;
+        return [missionCard, ...prev];
+      });
+
+      addHistory("MISSION_ASSIGNED", {
+        id: data.requestShortCode || data.missionID,
+        type: data.requestType || "Rescue Mission",
+      });
+
+      alert(data.actionMessage || "New mission assigned");
+    };
+
+    const init = async () => {
+      await signalRService.startConnection();
+      signalRService.on("ReceiveMissionNotification", handleMissionNotification);
+    };
+
+    init();
+
+    return () => {
+      signalRService.off("ReceiveMissionNotification", handleMissionNotification);
+    };
+  }, []);
   const acceptRequest = async (id) => {
     const req = requests.find((r) => r.id === id);
     if (!req) return;
 
-    //  gọi API respond (Accept)
+    const raw = req.__raw || {};
+    const rescueMissionID = raw.rescueMissionID ?? raw.missionID ?? raw.id ?? id;
+
     try {
+      setLoading(true);
+      setErr("");
+
       await rescueMissionService.respond({
-        rescueMissionID: id,      // hiện mock id là "R1", "R2"... OK để demo; chạy thật thì id phải là GUID mission
+        rescueMissionID,
         isAccepted: true,
         rejectReason: null,
       });
+
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+              ...r,
+              status: "in-progress",
+              __raw: { ...r.__raw, missionStatus: "InProgress" },
+            }
+            : r
+        )
+      );
+
+      addHistory("ACCEPTED", req);
     } catch (e) {
-      console.error("API accept failed:", e);
-      // vẫn cho UI chạy mock, hoặc bạn muốn chặn thì return ở đây
-      // return;
+      console.error(e);
+      setErr("Accept mission failed.");
+    } finally {
+      setLoading(false);
     }
-
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "in-progress" } : r))
-    );
-
-    addHistory("ACCEPTED", req);
   };
 
   const rejectRequest = async (id) => {
     const req = requests.find((r) => r.id === id);
     if (!req) return;
-    const reason = prompt("Reject reason?"); // optional để hợp BE rule
+
+    const raw = req.__raw || {};
+    const rescueMissionID = raw.rescueMissionID ?? raw.missionID ?? raw.id ?? id;
+
+    const reason = prompt("Reject reason?");
     if (reason !== null && reason.trim() === "") return;
 
-    // ✅ gọi API respond (Reject)
     try {
-      await rescueMissionService.respond({
-        rescueMissionID: id,
-        isAccepted: false,
-        rejectReason: (reason && reason.trim()) ? reason.trim() : "Not available",
-      });
-    } catch (e) {
-      console.error("API reject failed:", e);
-      // return; // nếu muốn chặn mock update khi API fail
-    }
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r))
-    );
+      setLoading(true);
+      setErr("");
 
-    addHistory("REJECTED", req);
+      await rescueMissionService.respond({
+        rescueMissionID,
+        isAccepted: false,
+        rejectReason: reason?.trim() || "Not available",
+      });
+
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+              ...r,
+              status: "rejected",
+              __raw: { ...r.__raw, missionStatus: "Rejected" },
+            }
+            : r
+        )
+      );
+
+      addHistory("REJECTED", req);
+    } catch (e) {
+      console.error(e);
+      setErr("Reject mission failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const completeRequest = async (id) => {
     const req = requests.find((r) => r.id === id);
     if (!req) return;
+
     const raw = req.__raw || {};
+    const rescueMissionID = raw.rescueMissionID ?? raw.missionID ?? raw.id ?? id;
 
-    //  missionId phải là RescueMissionID (GUID) từ backend
-    const missionId =
-      raw.rescueMissionID ?? raw.rescueMissionId ?? raw.missionId;
-
-    if (!missionId) {
-      alert("Thiếu RescueMissionID để complete. (Hiện item này chưa phải data mission thật)");
-      return;
-    }
     try {
       setLoading(true);
       setErr("");
 
-      const result = await completeMission(missionId);
+      await completeMission(rescueMissionID);
 
-      // update UI
       setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "completed" } : r))
+        prev.map((r) =>
+          r.id === id
+            ? {
+              ...r,
+              status: "completed",
+              __raw: { ...r.__raw, missionStatus: "Completed" },
+            }
+            : r
+        )
       );
 
       addHistory("COMPLETED", req);
-
-      alert(result?.message || result?.Message || "Mission completed successfully!");
     } catch (e) {
       console.error(e);
       setErr(e.message || "Complete mission failed.");
@@ -356,7 +374,6 @@ export default function RescueTeam() {
     } finally {
       setLoading(false);
     }
-
   };
 
   const confirmPickup = async (id) => {
@@ -394,7 +411,14 @@ export default function RescueTeam() {
                 ...r.__raw,
                 reliefOrderStatus: "PickedUp",
               },
-              description: `${raw.city ?? ""} • ${raw.currentStatus ?? ""} • PICKED_UP`,
+              description: [
+                r.__raw?.address,
+                r.__raw?.citizenName,
+                r.__raw?.citizenPhone,
+                "PICKED_UP",
+              ]
+                .filter(Boolean)
+                .join(" • "),
             }
             : r
         )
@@ -418,9 +442,9 @@ export default function RescueTeam() {
 
       const okSearch =
         !q ||
-        r.id.toLowerCase().includes(q) ||
-        r.type.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q);
+        String(r.id).toLowerCase().includes(q) ||
+        String(r.type).toLowerCase().includes(q) ||
+        String(r.description).toLowerCase().includes(q);
 
       const okSeverity =
         severityFilter === "all"
