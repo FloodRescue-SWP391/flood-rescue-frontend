@@ -70,7 +70,10 @@ const ListUser = () => {
       setLoading(false);
     }
   };
-
+  // load user ngay khi mở trang
+  useEffect(() => {
+    loadUsers();
+  }, []);
   useEffect(() => {
     const delay = setTimeout(() => {
       loadUsers();
