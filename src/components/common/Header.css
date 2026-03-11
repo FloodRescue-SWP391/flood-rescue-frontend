@@ -1,70 +1,183 @@
+/* Header tổng thể */
 header {
   width: 100%;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  background: linear-gradient(to right, #ea155c, #f44336, #ff9800);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* Thanh trên cùng (thông tin khẩn cấp) */
+/* Thanh trên cùng (thông tin khẩn cấp) - có hiệu ứng chạy */
+.top-bar {
+  background-color: #000000; /* Màu đỏ khẩn cấp */
+  color: rgb(255, 0, 0);
+  font-size: 26px;
+  font-weight: 800;
+  padding: 12px 0; /* Xóa padding ngang để nội dung cuộn sát mép */
+  overflow: hidden; /* Ẩn phần nội dung tràn */
+  white-space: nowrap;
+  box-sizing: border-box;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
 
+.top-bar-content {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 25s linear infinite;
+  padding-left: 100%; /* Đẩy nội dung sang phải để bắt đầu từ ngoài màn hình */
+}
+
+/* Hiệu ứng cuộn từ phải sang trái */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Dừng cuộn khi hover vào thanh top-bar */
+.top-bar:hover .top-bar-content {
+  animation-play-state: paused;
+}
+
+/* Dấu phân cách giữa các thông báo */
+.top-bar .separator {
+  color: rgb(255, 0, 0);
+  font-weight: normal;
+  margin: 0 10px; /* Thêm khoảng cách cho dấu phân cách */
+}
+
+/* Main header (logo + nav) */
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background-color: #ffffff;
+  border-bottom: 4px solid #000000;
+}
+
+/* Logo */
 .logo {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-weight: bold;
+  gap: 10px;
 }
 
 .logo img {
-  width: 70px;
-  height: 70px;
+  height: 50px;
+  width: auto;
 }
 
-.logo span {
+.logo-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #d32f2f;
+  letter-spacing: 1px;
+}
+
+
+/* Main header */
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px 30px;
+  background-color: #ffffff;
+  border-bottom: 5px solid #000000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Logo */
+.logo {
   display: flex;
   align-items: center;
-  font-size: 28px;
-  color: black;
+  gap: 10px;
 }
 
-.logo .a {
-  color: white;
-  margin-left: -16px;
-  font-size: 28px;
+.logo img {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
 }
 
+.logo-text {
+  font-size: 42px; /* Tăng lên một chút */
+  font-weight: 600;
+  color: #000000;
+  letter-spacing: 1px;
+  line-height: 42px;
+  height: 42px; /* Đảm bảo chiều cao bằng logo */
+  font-family: fantasy;
+  font-style: italic;
+}
+
+/* Navigation container (class "title" theo snippet của bạn) */
 .title {
   display: flex;
-  margin-left: auto;
+  align-items: center;
+  gap: 80px;
+  font-family: serif;
 }
 
-
-.title .nav-btn {
-  color: white;
+/* Link điều hướng */
+.title1 {
   text-decoration: none;
+  color: #000000;
+  font-size: 32px;
   font-weight: 700;
-  font-size: 23px;
-  font-family: 'Times New Roman', Times, serif;
+  padding: 6px 0;
+  transition: color 0.2s ease;
+  border-bottom: 2px solid transparent;
 }
 
-/* Login button */
-.title button { 
-  color: rgb(255, 255, 255);
-  background-color: transparent;
-  margin-right: 16px;
-  margin-left: 20px;
+.title1:hover {
+  border-bottom:2px solid #000000;
+}
+
+/* Nút Login */
+.title button {
+  background-color: black;
+  color: #ffffff;
+  font-size: 30px;
   font-weight: 600;
-  font-size: 23px;
-  font-family: 'Times New Roman', Times, serif;
-  border: none;
+  padding: 10px 32px;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-left: 10px;
 }
 
 .title button:hover {
-  color: rgb(55, 43, 43);
-  transform: translateY(-1px);
-  
+  background-color: #595555;
+  color: white;
 }
-nav .nav-btn:hover {
-  color: rgba(34, 25, 25, 0.9);
+
+/* Responsive cho màn hình nhỏ */
+@media (max-width: 768px) {
+  .main-header {
+    flex-direction: column;
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .logo {
+    justify-content: center;
+  }
+
+  .title {
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .title button {
+    margin-left: 0;
+    padding: 6px 18px;
+  }
+}
+
+/* Nếu bạn muốn icon trong button (tuỳ chọn) */
+.title button i, .title button svg {
+  margin-right: 6px;
+  font-size: 14px;
 }
