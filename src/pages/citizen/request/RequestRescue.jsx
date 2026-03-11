@@ -329,7 +329,6 @@ const RequestRescue = () => {
       return;
     }
 
-  
     if (!formData.agreeTerms) {
       alert("Please confirm the emergency agreement before submitting.");
       setIsLoading(false);
@@ -480,133 +479,139 @@ const RequestRescue = () => {
                 Personal Information
               </h2>
 
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">
-                    Full Name <span className="label-required">Required</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    Phone Number{" "}
-                    <span className="label-required">Required</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
-                    placeholder="Enter your phone number"
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    Email <span className="label-required">Required</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email"
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label className="form-label">
-                    Address / Location{" "}
-                    <span className="label-required">Required</span>
-                    <button
-                      type="button"
-                      className="location-btn"
-                      onClick={getCurrentLocation}
-                      disabled={gettingLocation}
-                    >
-                      {gettingLocation
-                        ? "📡 Locating..."
-                        : "📍 Use current location"}
-                    </button>
-                  </label>
-
-                  {/* Address input + button */}
-                  <div className="address-row">
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      onBlur={handleAddressBlur}
-                      placeholder="Enter exact address or landmark"
-                      className="form-input"
-                      required
-                    />
-                  </div>
-
-                  {/* Error */}
-                  {locationError && (
-                    <div className="location-error">
-                      <span className="error-icon">⚠️</span>
-                      {locationError}
+              {/* Wrapper 2 cột */}
+              <div className="step-two-columns">
+                {/* Cột trái: form nhập liệu */}
+                <div className="step-left">
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label className="form-label">
+                        Full Name{" "}
+                        <span className="label-required">Required</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        placeholder="Enter your full name"
+                        className="form-input"
+                        required
+                      />
                     </div>
-                  )}
 
-                  {/* Location settings (checkbox + info) */}
-                </div>
-              </div>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Phone Number{" "}
+                        <span className="label-required">Required</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                        placeholder="Enter your phone number"
+                        className="form-input"
+                        required
+                      />
+                    </div>
 
-              <div className="map-container">
-                <div className="map-header">
-                  <div className="map-actions"></div>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Email <span className="label-required">Required</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="Enter your email"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group full-width">
+                      <label className="form-label">
+                        Address / Location{" "}
+                        <span className="label-required">Required</span>
+                        <button
+                          type="button"
+                          className="location-btn"
+                          onClick={getCurrentLocation}
+                          disabled={gettingLocation}
+                        >
+                          {gettingLocation
+                            ? "📡 Locating..."
+                            : "📍 Use current location"}
+                        </button>
+                      </label>
+
+                      <div className="address-row">
+                        <textarea
+                          name="address"
+                          value={formData.address}
+                          onChange={handleChange}
+                          onBlur={handleAddressBlur}
+                          placeholder="Enter exact address or landmark"
+                          className="form-input1"
+                          required
+                        />
+                      </div>
+
+                      {locationError && (
+                        <div className="location-error">
+                          <span className="error-icon">⚠️</span>
+                          {locationError}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="map-wrapper">
-                  <MapContainer
-                    center={mapCenter}
-                    zoom={mapZoom}
-                    style={{
-                      height: "400px",
-                      width: "100%",
-                      borderRadius: "12px",
-                    }}
-                    onClick={handleMapClick}
-                  >
-                    <ChangeView center={mapCenter} zoom={mapZoom} />
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    />
-                    <Marker position={mapCenter} icon={emergencyIcon}>
-                      <Popup>
-                        <strong>Emergency Location</strong>
-                        <br />
-                        Click anywhere on the map to update this position
-                      </Popup>
-                    </Marker>
-                    {userLocation && (
-                      <Marker position={userLocation} icon={locationIcon}>
-                        <Popup>
-                          <strong>Your Current Location</strong>
-                          <br />
-                          GPS Coordinates: {userLocation[0].toFixed(6)},{" "}
-                          {userLocation[1].toFixed(6)}
-                        </Popup>
-                      </Marker>
-                    )}
-                  </MapContainer>
+
+                {/* Cột phải: bản đồ */}
+                <div className="step-right">
+                  <div className="map-container">
+                    <div className="map-header">
+                      <div className="map-actions"></div>
+                    </div>
+                    <div className="map-wrapper">
+                      <MapContainer
+                        center={mapCenter}
+                        zoom={mapZoom}
+                        style={{
+                          height: "400px",
+                          width: "100%",
+                          borderRadius: "12px",
+                        }}
+                        onClick={handleMapClick}
+                      >
+                        <ChangeView center={mapCenter} zoom={mapZoom} />
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        <Marker position={mapCenter} icon={emergencyIcon}>
+                          <Popup>
+                            <strong>Emergency Location</strong>
+                            <br />
+                            Click anywhere on the map to update this position
+                          </Popup>
+                        </Marker>
+                        {userLocation && (
+                          <Marker position={userLocation} icon={locationIcon}>
+                            <Popup>
+                              <strong>Your Current Location</strong>
+                              <br />
+                              GPS Coordinates: {userLocation[0].toFixed(
+                                6,
+                              )}, {userLocation[1].toFixed(6)}
+                            </Popup>
+                          </Marker>
+                        )}
+                      </MapContainer>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -703,8 +708,9 @@ const RequestRescue = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Describe the emergency situation in detail. Include information about injuries, hazards, access routes, and any other relevant details that can help the rescue team."
-                    className="form-textarea"
+                    placeholder="  
+  Provide a detailed description of the necessary supplies for the rescue team.."
+                    className="form-textarea1"
                     rows="5"
                   />
                   <p className="helper-text">
@@ -892,8 +898,6 @@ const RequestRescue = () => {
                     </div>
                   </div>
                 )}
-
-                
               </div>
 
               <div className="terms-agreement">
