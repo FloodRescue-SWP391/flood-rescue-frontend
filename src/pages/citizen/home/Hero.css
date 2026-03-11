@@ -121,20 +121,20 @@
 }
 
 .stat-number1{
-  font-size: 82px;
-  margin-left: 5px;
+  font-size: 100px;
+  margin-left: 25px;
   font-weight: 700;
 }
 
 .stat-label{
-  margin-left: 5px;
+  margin-left: 25px;
   font-size: 30px;
   font-weight: 600;
   color: rgb(93, 93, 93, 0.5);
 }
 
 .stat-item {
-   border-left:2px solid black ;
+   border-left:5px solid black ;
   text-align: left;
  
 }
