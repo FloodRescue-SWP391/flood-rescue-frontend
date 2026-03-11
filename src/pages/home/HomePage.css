@@ -1,7 +1,7 @@
 /* HomePage.css */
 .homepage-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(180deg, #e1f4f8 0%, #ffffff 100%);
 }
 
 /* HERO SECTION */
@@ -192,10 +192,9 @@
 }
 
 .footer-content {
-  max-width: 1200px;
-  margin-left: 155px;
+ 
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 40px;
 }
 
@@ -206,17 +205,20 @@
 }
 
 .footer-section h3 {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
   margin-bottom: 8px;
+  margin-left: 130px;
 }
 
 .footer-section p,
 .footer-section a {
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: #cbd5e1;
   line-height: 1.6;
   text-decoration: none;
+  margin-left: 130px;
+  font-family: 'Times New Roman', Times, serif;
 }
 
 .footer-section a:hover {
