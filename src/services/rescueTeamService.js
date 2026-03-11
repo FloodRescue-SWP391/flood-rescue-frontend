@@ -5,8 +5,11 @@ const BASE = "/RescueTeams";
 
 export async function getAllRescueTeams() {
     // ApiResponse<List<RescueTeamResponseDTO>>
-    return fetchWithAuth(`${BASE}`, { method: "GET" });
+    const res = await fetchWithAuth(`${BASE}/filter?pageNumber=1&pageSize=100`);
+    const data = await res.json();
+    return data;
 }
+
 // GET: ApiResponse<RescueTeamResponseDTO>
 export async function getRescueTeamById(id) {
     if (!id) throw new Error("getRescueTeamById: id is required");

@@ -34,14 +34,13 @@ const ListRescueTeams = () => {
   const loadTeams = async () => {
     try {
       setLoading(true);
-      const res = await getAllRescueTeams();
-      const json = await res.json();
+
+      const json = await getAllRescueTeams();
       console.log("GET /RescueTeams json:", json);
-      if (json?.success) {
-        setTeams(json.content || []);
-      } else {
-        setTeams([]);
-      }
+
+      const list = json?.content?.data || [];
+      setTeams(list);
+     
     } catch (err) {
       showToast(`${err?.message || "Failed to load rescue teams"}`);
     } finally {

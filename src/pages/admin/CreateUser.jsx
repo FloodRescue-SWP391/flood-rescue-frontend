@@ -45,15 +45,14 @@ const CreateUser = () => {
 
     (async () => {
       try {
-        setLoadingTeams(true);
-        const res = await getAllRescueTeams();          // res là Response
-        console.log("getAllRescueTeams raw:", res);
+        setLoadingTeams(true)
 
-        const json = await res.json();                 // ✅ đọc body
+        const json = await getAllRescueTeams();
         console.log("getAllRescueTeams json:", json);
 
-        const list = json?.content || json?.data || []; // backend bạn đang có content
+        const list = json?.content?.data || [];
         setTeams(Array.isArray(list) ? list : []);
+
       } catch (e) {
         setTeams([]);
       } finally {
@@ -96,12 +95,12 @@ const CreateUser = () => {
       newErrors.phone = "Please enter a valid phone number";
     }
 
-    // ✅ SỬA: role mapping check (nên có)
+    // SỬA: role mapping check (nên có)
     if (!ROLE_ID_MAP[formData.role]) {
       newErrors.role = "Role mapping missing";
     }
 
-    // ✅ SỬA: chỉ Rescue Team mới required rescueTeamId
+    // SỬA: chỉ Rescue Team mới required rescueTeamId
     if (isRescueTeamRole && !formData.rescueTeamId) {
       newErrors.rescueTeamId = "Please select a rescue team";
     }
@@ -132,11 +131,10 @@ const CreateUser = () => {
         }
         : {}),
     };
-    
-    await register(payload);
 
 
     try {
+
       setIsSubmitting(true);
       console.log("REGISTER PAYLOAD:", payload);
       await register(payload);
@@ -283,8 +281,8 @@ const CreateUser = () => {
                   </option>
 
                   {teams.map((t) => (
-                    <option key={t.rescueTeamId || t.id} value={t.rescueTeamId || t.id}>
-                      {t.teamName || t.name}
+                    <option key={t.rescueTeamID} value={t.rescueTeamID}>
+                      {t.teamName}
                     </option>
                   ))}
                 </select>
@@ -296,7 +294,7 @@ const CreateUser = () => {
 
               <div className="form-group">
                 <div className="inline-check">
-                  
+
                   <input
                     id="isLeader"
                     type="checkbox"
@@ -305,7 +303,7 @@ const CreateUser = () => {
                     onChange={handleChange}
                   />
 
-                  <label htmlFor="isLeader" className="role-label" style={{color: "brown"}}>Is Leader</label>
+                  <label htmlFor="isLeader" className="role-label" style={{ color: "brown" }}>Is Leader</label>
                 </div>
               </div>
             </>
