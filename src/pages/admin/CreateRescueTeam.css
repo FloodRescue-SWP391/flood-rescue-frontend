@@ -1,31 +1,18 @@
-
-.create-user-container {
+.create-rescue-team-container {
   padding: 20px;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
 }
 
-.create-user-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #2563eb;
+.create-rescue-team-container h2 {
   margin-bottom: 30px;
+  color: #333;
   text-align: center;
-  position: relative;
+  font-size: 28px;
+  font-weight: 600;
 }
 
-.create-user-title::after {
-  content: "";
-  width: 120px;
-  height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #06b6d4);
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-radius: 4px;
-}
 .create-form {
   background: #fff;
   padding: 30px;
@@ -37,16 +24,12 @@
   margin-bottom: 25px;
 }
 
-.form-group .role-label {
+.form-group label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 900;
-  color: #000000;
-  font-size: 18px;
-}
-
-.role-label span {
-  color: #dc3545;
+  font-weight: 500;
+  color: #555;
+  font-size: 15px;
 }
 
 .form-group input,
@@ -84,35 +67,46 @@
   display: block;
 }
 
-.submit {
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.submit-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #007bff, #5c89ba);
+  background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 20px;
-  font-weight: 900;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
   margin-top: 10px;
-  font-family: 'Times New Roman', Times, serif;
-  
 }
 
-.submit:hover {
-  background: linear-gradient(135deg, #0056b3, #2b8bf9);
+.submit-btn:hover {
+  background: linear-gradient(135deg, #0056b3, #004494);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
 }
 
-.submit:active {
+.submit-btn:active {
   transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .toast {
   position: fixed;
-  top: 100px !important;
+  top: 20px;
   right: 20px;
   padding: 15px 20px;
   border-radius: 6px;
@@ -145,16 +139,20 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .create-user-container {
+  .create-rescue-team-container {
     padding: 15px;
   }
-  
+
   .create-form {
     padding: 20px;
   }
-  
-  .create-user-container h2 {
+
+  .create-rescue-team-container h2 {
     font-size: 24px;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -162,34 +160,17 @@
   .create-form {
     padding: 15px;
   }
-  
+
   .form-group {
     margin-bottom: 20px;
   }
-  
+
   .form-group input,
   .form-group select {
     padding: 10px 12px;
   }
-  
+
   .submit-btn {
     padding: 12px;
   }
-}/* --- Fix checkbox Is Leader --- */
-.inline-check {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.inline-check label {
-  margin-bottom: 0; /* override label block style */
-}
-
-.inline-check input[type="checkbox"] {
-  width: auto;      /* override width: 100% */
-  padding: 0;       /* checkbox không cần padding */
-  margin: 0;
-  box-shadow: none; /* tránh shadow focus lạ */
-  margin-bottom: 9px;
 }

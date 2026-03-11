@@ -1,41 +1,45 @@
 .intro-page{
-    padding: 10px 100px; 
-    background-color: white;
+    padding: 0 100px; 
+   background: linear-gradient(180deg, #e1f4f8 0%, #ffffff 100%);
+ 
 }
 
 .hp-intro h4{
     text-align: center;
-    font-size: 50px;
+    font-size: 50px; 
 }
 
 .hp-intro p{
     text-align: center;
-    margin-top: 25px;
+    margin-top: 20px;
     font-size: 19px;
     color: rgb(98, 98, 98);
 }
 
-h7{
+.dep{
     font-size: 35px;
     font-weight: 700;
-    color: rgb(94, 52, 52);
+    color: rgb(47, 83, 79);
     font-family: 'Times New Roman', Times, serif;
+    text-align: center;
 }
 p{
     text-align: justify;
     margin-top: 10px;
-    font-size: 18px;
+    font-size: 20px;
     font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    color: rgb(138, 137, 137);
 }
 .content1,
 .content2,
 .content3,
 .content4,
 .content5{
-    background-color: rgb(235, 235, 235, 0.45);
+    background-color: rgba(255, 255, 255, 0.45);
     padding: 8px 12px;
     margin-top: 12px;
-    border-radius: 8px;
+    border-radius: 4px;
+    border: 1px solid rgb(0, 0, 0, 0.2);
 }
 
 .content3 ul li{
@@ -69,8 +73,10 @@ p{
 
 }
 .team-list img {
-    width: 190px;
-    border-radius: 50%;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .team-card{
@@ -96,7 +102,10 @@ h8{
 
 }
 
-.content5 h7{
-    margin-left: 500px;
+.role{
+    color: black;
+    font-size: 19px;
 }
+
+
 

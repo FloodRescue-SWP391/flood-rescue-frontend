@@ -6,7 +6,7 @@ import Contact from "./pages/home/Contact";
 
 import Hero from "./pages/citizen/home/Hero";
 import RequestRescue from "./pages/citizen/request/RequestRescue";
-import RequestStatus from "./pages/citizen/request/RequestStatus"; 
+import RequestStatus from "./pages/citizen/request/RequestStatus";
 
 import Login from "./pages/auth/Login";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -15,19 +15,29 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ListUser from "./pages/admin/ListUser.jsx";
 import CreateUser from "./pages/admin/CreateUser.jsx";
+import CreateRescueTeam from "./pages/admin/CreateRescueTeam";
+import ListRescueTeams from "./pages/admin/ListRescueTeams.jsx";
+import AdminReport from "./pages/admin/AdminReport.jsx";
 
 // ===== MANAGER =====
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 
 import RescueTeam from "./pages/rescueTeam/RescueTeam";
+import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
+
+//====unauthorized====
+import Unauthorized from "./pages/common/Unauthorized";
 
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* ===== DEFAULT: CITIZEN HOME ===== */}
+        <Route path="/" element={<Hero />} />
+
         {/* ===== HOME ===== */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
 
         {/* ===== HEADER ===== */}
         <Route path="/introduce" element={<Introduce />} />
@@ -37,12 +47,11 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* ===== CITIZEN ===== */}
-        <Route path="/citizen/hero" element={<Hero />} />
         <Route path="/citizen/request" element={<RequestRescue />} />
         <Route path="/citizen/request-status" element={<RequestStatus />} />
 
         {/* ===== ADMIN (PROTECTED) ===== */}
-         <Route
+        <Route
           path="/admin"
           element={
             <ProtectedRoute allowedRoles={["Administrator"]}>
@@ -53,7 +62,10 @@ function App() {
           {/* Redirect mặc định đến create-user */}
           <Route index element={<Navigate to="create-user" replace />} />
           <Route path="create-user" element={<CreateUser />} />
+          <Route path="create-rescue-team" element={<CreateRescueTeam />} />
           <Route path="list-user" element={<ListUser />} />
+          <Route path="list-rescue-team" element={<ListRescueTeams />} />
+          <Route path="report" element={<AdminReport />} />
         </Route>
 
         {/* ===== MANAGER (PROTECTED) ===== */}
@@ -66,15 +78,25 @@ function App() {
           }
         />
 
+        {/* ===== COORDINATOR (PROTECTED) ===== */}
         <Route
-  path="/rescue-team"
-  element={
-    <ProtectedRoute allowedRoles={["RescueTeam"]}>
-      <RescueTeam />
-    </ProtectedRoute>
-  }
-/>
+          path="/coordinator"
+          element={
+            <ProtectedRoute allowedRoles={["Coordinator"]}>
+              <CoordinatorDashboard />
+            </ProtectedRoute>
+          }
+        />
 
+        <Route
+          path="/rescue-team"
+          element={
+            <ProtectedRoute allowedRoles={["RescueTeam"]}>
+              <RescueTeam />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/unauthorized" element={<Unauthorized />} />
       </Routes>
     </BrowserRouter>
   );

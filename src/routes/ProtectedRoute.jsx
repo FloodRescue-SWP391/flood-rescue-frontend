@@ -1,22 +1,21 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 
 export default function ProtectedRoute({ allowedRoles, children }) {
+  const location = useLocation();
+
   const isAuth = localStorage.getItem("isAuth") === "true";
-  const role = localStorage.getItem("role");
+  const role = (localStorage.getItem("role") || "").trim();
+
+  console.log("[ProtectedRoute] isAuth:", isAuth, "role:", role, "allowed:", allowedRoles);
 
   if (!isAuth) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  //Neu sai Quyen thi se tra ve unauthorized
-  if (allowedRoles && !allowedRoles.includes(role)) {
+  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     return <Navigate to="/unauthorized" replace />;
   }
-  console.log("isAuth:", localStorage.getItem("isAuth"));
-  console.log("role:", localStorage.getItem("role"));
-  console.log("allowedRoles:", allowedRoles);
 
-  // OK-> render
   return children;
 }

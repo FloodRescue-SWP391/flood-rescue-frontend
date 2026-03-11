@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header";
-import { dummyUsers } from "../../data/dummyUsers";
 import "./login.css";
+import { login } from "../../services/authService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -22,30 +22,68 @@ const Dashboard = () => {
     }, duration);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
       showToast("Vui lòng điền đầy đủ thông tin", "info");
       return;
     }
 
-    const foundUser = dummyUsers.find(
-      (u) =>
-        u.username.trim().toLowerCase() === username.trim().toLowerCase() &&
-        u.password === password
-    );
+    try {
+      const auth = await login(username, password);
+      console.log("Login response:", auth);
 
-    if (!foundUser) {
-      showToast("❌ Tên đăng nhập hoặc mật khẩu không đúng", "error");
-      return;
-    }
+      // vì backend bọc trong content
+      const content = auth?.content ?? auth?.data?.content ?? auth;
+      const roleRaw =
+        content?.role ??
+        content?.Role ??
+        content?.roleName ??
+        content?.RoleName ??
+        "";
+      const token = content?.accessToken ?? content?.AccessToken ?? "";
 
-    localStorage.setItem("isAuth", "true");
-    localStorage.setItem("role", foundUser.role);
+      if (!roleRaw) {
+        console.log("Cannot read role. Raw auth:", auth);
+        showToast("Không lấy được role từ response", "error");
+        return;
+      }
 
-    showToast("Đăng nhập thành công", "success");
+      // ✅ Normalize
+      const roleKey = String(roleRaw).trim().toLowerCase();
 
-    setTimeout(() => {
-      switch (foundUser.role) {
+      // ✅ Map role theo DB (RoleName/RoleID)
+      const roleMap = {
+        // RoleName trong DB
+        admin: "Administrator",
+        "inventory manager": "Manager",
+        "rescue coordinator": "Coordinator",
+        "rescue team member": "RescueTeam",
+
+        // nếu backend trả RoleID
+        ad: "Administrator",
+        im: "Manager",
+        rc: "Coordinator",
+        rt: "RescueTeam",
+      };
+
+      const role = roleMap[roleKey];
+
+      console.log("roleRaw =", roleRaw, "=> mapped =", role);
+
+      if (!role) {
+        showToast(`Role không hợp lệ: ${roleRaw}`, "error");
+        return;
+      }
+
+      // lưu token/role để ProtectedRoute dùng
+      if (token) localStorage.setItem("token", token);
+      localStorage.setItem("role", role); // lưu role đã map (FE role)
+      localStorage.setItem("isAuth", "true");
+
+      showToast("Đăng nhập thành công", "success");
+
+      console.log("NAVIGATE TO ROLE:", role);
+      switch (role) {
         case "Administrator":
           navigate("/admin", { replace: true });
           break;
@@ -61,7 +99,9 @@ const Dashboard = () => {
         default:
           navigate("/unauthorized", { replace: true });
       }
-    }, 1500);
+    } catch (err) {
+      showToast(err?.message || "Đăng nhập thất bại", "error");
+    }
   };
 
   return (
@@ -73,6 +113,7 @@ const Dashboard = () => {
       </button>
 
       <div className="login-container">
+        {/* Left: Login Form */}
         <div className="a2">
           <h2>Login Account</h2>
 
@@ -92,22 +133,37 @@ const Dashboard = () => {
               placeholder="Enter password"
             />
 
-            <button onClick={handleLogin}>Login</button>
+            <button type="button" onClick={handleLogin}>
+              Login
+            </button>
 
-            {/* Emergency hotline */}
             <div className="emergency-hotline">
               <span>🚨</span>
               <span>Emergency Hotline: 115</span>
             </div>
           </div>
         </div>
+
+        {/* Right: System Intro */}
+        <div className="login-info">
+          <h1>Flood Rescue System</h1>
+
+          <p>
+            A smart platform designed to coordinate rescue operations and manage
+            emergency requests during flood disasters.
+          </p>
+
+          <div className="feature">⚡ Fast emergency coordination</div>
+
+          <div className="feature">📍 Real-time rescue tracking</div>
+
+          <div className="feature">🤝 Efficient rescue team management</div>
+        </div>
       </div>
 
       {toast.show && (
         <div className={`login-toast ${toast.type}`}>{toast.message}</div>
       )}
-
-      
     </div>
   );
 };
