@@ -31,7 +31,7 @@ class SignalRService {
     async _connect() {
         try {
             // Lấy token từ localStorage
-            const token = localStorage.getItem("accessToken");
+            const token = localStorage.getItem("token");
 
             if (!token) {
                 console.warn(
@@ -42,7 +42,11 @@ class SignalRService {
             this.connection = new signalR.HubConnectionBuilder()
                 .withUrl(HUB_URL, {
                     // SignalR sẽ gọi hàm accessTokenFactory để lấy token khi cần.
-                    accessTokenFactory: () => localStorage.getItem("accessToken") || "",
+                    accessTokenFactory: () => {
+                        const token = localStorage.getItem("token");
+                        if (!token) return "";
+                        return token.replace(/"/g, "").replace("Bearer ", "");
+                    },
                     // Transport: WebSocket là ưu tiên, fallback sang ServerSentEvents, LongPolling
                     transport:
                         signalR.HttpTransportType.WebSockets |
@@ -68,7 +72,7 @@ class SignalRService {
             // bật cờ connected
             this.isConnected = true;
             console.log("SignalR Connected successfully!");
-            console.log(`Transport: ${this.connection.connection.transport.name}`);
+            console.log("SignalR connected");
         } catch (error) {
 
             console.error("SignalR Connection Error:", error);
@@ -115,7 +119,6 @@ class SignalRService {
     on(eventName, callback) {
         if (this.connection) {
             this.connection.on(eventName, callback);
-            this.connection.off(eventName);
             console.log(`Subscribed to event: ${eventName}`);
         } else {
             console.warn(`Cannot subscribe to ${eventName}: Connection not initialized`);

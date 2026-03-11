@@ -1,8 +1,8 @@
 // URL của SignalR Hub - PHẢI khớp với Program.cs: app.MapHub<NotificationHub>("/hubs/notification")
 // Dùng relative URL để tự động lấy domain từ window.location
-export const HUB_URL = import.meta.env.VITE_API_URL 
+export const HUB_URL = import.meta.env.VITE_API_URL
     ? `${import.meta.env.VITE_API_URL}/hubs/notification`
-    : "https://localhost:7269/hubs/notification";  // Fallback cho dev
+    : "https://apifloodrescue.huydevops.id.vn/hubs/notification";  // Fallback cho dev
 
 // Tên method mà Backend định nghĩa trong Hub
 // Phải khớp với NotificationHub.cs
@@ -15,7 +15,7 @@ export const SERVER_METHODS = {
 export const CLIENT_EVENTS = {
     // Từ RescueRequestKafkaHandler.cs
     NEW_RESCUE_REQUEST: "NewRescueRequest",
-    
+
     // Từ BackgroundJobService.cs (SendDailySummaryReportAsync)
     DAILY_SUMMARY_REPORT: "DailySummaryReport"
 };

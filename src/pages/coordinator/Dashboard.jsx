@@ -109,39 +109,50 @@ const Dashboard = () => {
     }
   };
   const mapRequestToUI = (r) => {
-    const requestType = r.requestType ?? r.RequestType ?? "";
-    const status = r.status ?? r.Status ?? "";
-    const lat = Number(r.locationLatitude ?? r.LocationLatitude ?? 0);
-    const lng = Number(r.locationLongitude ?? r.LocationLongitude ?? 0);
-    const imageUrls = r.imageUrls ?? r.ImageUrls ?? [];
+    const lat = Number(r.locationLatitude ?? 0);
+    const lng = Number(r.locationLongitude ?? 0);
 
-    const isSupply = String(requestType).toLowerCase() === "supply";
-    const uiStatus = mapStatusToUI(status);
+    const uiStatus = mapStatusToUI(r.status);
 
     return {
-      id: r.rescueRequestID ?? r.RescueRequestID ?? r.id ?? r.Id,
-      requestId: r.shortCode ?? r.ShortCode ?? "",
-      fullName: r.citizenName ?? r.CitizenName ?? "Citizen",
-      phoneNumber: r.citizenPhone ?? r.CitizenPhone ?? "",
-      address: r.address ?? r.Address ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      id: r.rescueRequestID, // ID thật của request
+      requestId: r.shortCode, // mã để hiển thị
+
+      fullName: r.citizenName || "Citizen",
+      phoneNumber: r.citizenPhone || "",
+
+      address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+
       location: {
         lat,
         lng,
       },
-      emergencyType: requestType || "Unknown",
-      emergencyCategory: isSupply ? "supply" : "life_threatening",
-      peopleCount: 0,
-      description: r.description ?? r.Description ?? "",
+
+      emergencyType: r.requestType || "Unknown",
+
+      emergencyCategory:
+        r.requestType?.toLowerCase() === "supply"
+          ? "supply"
+          : "life_threatening",
+
+      description: r.description || "",
+
       status: uiStatus,
-      timestamp:
-        r.createdTime || r.CreatedTime
-          ? new Date(r.createdTime ?? r.CreatedTime).toLocaleString("vi-VN")
+
+      timestamp: r.createdTime
+        ? new Date(r.createdTime).toLocaleString("vi-VN")
+        : "",
+
+      imageUrl:
+        Array.isArray(r.imageUrls) && r.imageUrls.length > 0
+          ? r.imageUrls[0]
           : "",
-      contactVia: "Phone Call",
-      imageUrl: Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls[0] : "",
+
       isNew: uiStatus === "pending",
+
       waterLevel: "0m",
       specialNeeds: "",
+      peopleCount: 0,
     };
   };
 
@@ -173,9 +184,10 @@ const Dashboard = () => {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.data)) return res.data;
     if (Array.isArray(res?.content)) return res.content;
+    if (Array.isArray(res?.content?.data)) return res.content.data;
     if (Array.isArray(res?.data?.data)) return res.data.data;
     if (Array.isArray(res?.data?.content)) return res.data.content;
-    return res?.data ?? res?.content ?? res;
+    return null;
   };
 
   useEffect(() => {
@@ -184,7 +196,7 @@ const Dashboard = () => {
 
       setAllRequests((prev) =>
         prev.map((r) =>
-          r.rescueMissionId === data.requestShortCode
+          r.requestId === data.requestShortCode
             ? {
               ...r,
               status: "in_progress",
@@ -303,6 +315,7 @@ const Dashboard = () => {
 
     const init = async () => {
       await signalRService.startConnection();
+      console.log("SignalR connected");
 
       signalRService.on("ReceiveTeamAccepted", handleTeamAccepted);
       signalRService.on("ReceiveTeamRejected", handleTeamRejected);
@@ -326,6 +339,7 @@ const Dashboard = () => {
 
       const res = await incidentReportService.getPendingReports();
       const data = extractApiData(res);
+      console.log("Teams extracted:", data);
 
       setPendingIncidents(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -340,6 +354,7 @@ const Dashboard = () => {
     try {
       const res = await incidentReportService.getIncidentHistory();
       const data = extractApiData(res);
+      console.log("Teams extracted:", data);
 
       setIncidentHistory(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -458,58 +473,33 @@ const Dashboard = () => {
   };
 
   const filteredRequests = getFilteredRequests();
-  const availableTeams = teams.filter((t) => {
-    const status =
-      t.currentStatus ??
-      t.CurrentStatus ??
-      t.status ??
-      t.Status ??
-      "";
-
-    return String(status).toLowerCase() === "available";
-  });
+  const availableTeams = teams;
 
 
   //load team
   useEffect(() => {
     const loadTeams = async () => {
-      setTeamsLoading(true);
-      setTeamsError("");
-
       try {
-        const res = await getAllRescueTeams(); // ApiResponse<List<...>>
-        console.log("GET /RescueTeams:", res);
+        setTeamsLoading(true);
+        setTeamsError("");
+
+        const res = await getAllRescueTeams();
+        console.log("teams API:", res);
 
         const data = extractApiData(res);
+        console.log("Teams extracted:", data);
 
-        if (Array.isArray(data)) {
-          const availableOnly = data.filter((t) => {
-            const status =
-              t.currentStatus ??
-              t.CurrentStatus ??
-              t.status ??
-              t.Status ??
-              "";
-            return String(status).toLowerCase() === "available";
-          });
-
-          setTeams(availableOnly);
-          setSelectedTeamId("");
-          setDispatchError("");
-          setDispatchSuccess("");
-        } else {
-          setTeams([]);
-          setTeamsError(res?.message || "Failed to load rescue teams");
+        if (Array.isArray(data) && data.length > 0) {
+          setTeams(data);
         }
-      } catch (e) {
-        console.error("Load rescue teams failed:", e);
-        setTeams([]);
-        setTeamsError(e?.message || "Failed to load rescue teams");
+
+      } catch (err) {
+        console.error("Load teams error:", err);
+        setTeamsError("Failed to load rescue teams");
       } finally {
         setTeamsLoading(false);
       }
     };
-
     loadTeams();
   }, []);
 
@@ -519,32 +509,34 @@ const Dashboard = () => {
     const unread = notifications.filter((n) => !n.read).length;
     setUnreadCount(unread);
   }, [notifications]);
-  //load data thực tế
-  useEffect(() => {
-    const loadRealRequests = async () => {
-      try {
-        const res = await getAllRescueRequests();
-        console.log("GET /RescueRequests:", res);
-        if (res?.success && Array.isArray(res.content)) {
-          const normalized = res.content
-            .map(mapRequestToUI)
-            .filter(
-              (item) =>
-                item?.id &&
-                Number.isFinite(item?.location?.lat) &&
-                Number.isFinite(item?.location?.lng)
-            );
+  const loadRealRequests = async () => {
+    try {
+      const res = await getAllRescueRequests();
 
-          setAllRequests(normalized);
-        } else {
-          setAllRequests([]);
-        }
-      } catch (error) {
-        console.warn("Load rescue requests failed:", error);
+      const data = extractApiData(res);
+      console.log("Teams extracted:", data);
+
+      if (Array.isArray(data)) {
+        const normalized = data
+          .map(mapRequestToUI)
+          .filter(
+            (item) =>
+              item?.id &&
+              Number.isFinite(item?.location?.lat) &&
+              Number.isFinite(item?.location?.lng)
+          );
+
+        setAllRequests(normalized);
+      } else {
         setAllRequests([]);
       }
-    };
+    } catch (error) {
+      console.warn("Load rescue requests failed:", error);
+      setAllRequests([]);
+    }
+  };
 
+  useEffect(() => {
     loadRealRequests();
   }, []);
 
@@ -558,8 +550,10 @@ const Dashboard = () => {
     setDispatchError("");
     setDispatchSuccess("");
     // nếu đã assign team thì set dropdown theo
-    if (request?.assignedTeamId) setSelectedTeamId(String(request.assignedTeamId));
-    else setSelectedTeamId("");
+    if (request?.assignedTeamId)
+      setSelectedTeamId(String(request.assignedTeamId));
+    else
+      setSelectedTeamId("");
 
     if (request.isNew) {
       setAllRequests((prev) =>
@@ -569,6 +563,8 @@ const Dashboard = () => {
       );
     }
   };
+
+
   const handleDispatchMission = async () => {
     setDispatchError("");
     setDispatchSuccess("");
@@ -578,7 +574,6 @@ const Dashboard = () => {
       return;
     }
 
-    // chỉ dispatch khi pending
     if (selectedRequest.status !== "pending") {
       setDispatchError("Only PENDING requests can be dispatched.");
       return;
@@ -591,12 +586,19 @@ const Dashboard = () => {
 
     try {
       setDispatching(true);
-
+      console.log("Dispatch payload:", {
+        RescueRequestID: selectedRequest.id,
+        RescueTeamID: selectedTeamId,
+      });
       const teamIdValue = Number(selectedTeamId);
 
       const res = await rescueMissionService.dispatch({
         rescueRequestID: selectedRequest.id,
-        rescueTeamID: teamIdValue,
+        rescueTeamID: selectedTeamId,
+      });
+      console.log("Dispatch payload:", {
+        rescueRequestID: selectedRequest.id,
+        rescueTeamID: selectedTeamId,
       });
 
       if (!res?.success) {
@@ -604,8 +606,8 @@ const Dashboard = () => {
         return;
       }
 
-      // backend có thể trả DispatchMissionResponseDTO, mình đọc kiểu “defensive”
       const data = res?.content || res?.data || {};
+
       const missionId =
         data?.rescueMissionID ??
         data?.RescueMissionID ??
@@ -613,7 +615,7 @@ const Dashboard = () => {
         data?.MissionId ??
         null;
 
-      const assignedTeamName = findTeamLabelById(teamIdValue);
+      const assignedTeamName = findTeamLabelById(selectedTeamId);
 
       updateRequestAfterDispatch(selectedRequest.id, {
         assignedTeamId: teamIdValue,
@@ -622,9 +624,11 @@ const Dashboard = () => {
       });
 
       setDispatchSuccess(
-        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
-        (missionId ? ` (Mission #${missionId})` : "")
+        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`
       );
+
+      // reload data từ server
+      await loadRealRequests();
     } catch (e) {
       setDispatchError(e?.message || "Dispatch mission failed.");
     } finally {
@@ -1393,22 +1397,34 @@ const Dashboard = () => {
                         <div className="dispatch-row">
                           <select
                             className="dispatch-select"
-                            value={selectedTeamId}
-                            onChange={(e) => setSelectedTeamId(e.target.value)}
-                            disabled={teamsLoading || !selectedRequest || selectedRequest.status !== "pending"}
+                            value={selectedTeamId ?? ""}
+                            onChange={(e) =>
+                              setSelectedTeamId(e.target.value)
+                            }
+                            disabled={
+                              teamsLoading ||
+                              !selectedRequest ||
+                              selectedRequest.status !== "pending"
+                            }
                           >
                             <option value="">
                               {teamsLoading ? "Loading teams..." : "Select rescue team"}
                             </option>
 
-                            {availableTeams.map((t) => {
-                              const id = t.rescueTeamID ?? t.RescueTeamID ?? t.id ?? t.Id;
+                            {availableTeams.map((team) => {
+                              const id =
+                                team.rescueTeamID ??
+                                team.RescueTeamID ??
+                                team.id ??
+                                team.Id;
+
                               const label =
-                                t.teamName ??
-                                t.name ??
-                                t.rescueTeamName ??
-                                t.RescueTeamName ??
+                                team.teamName ??
+                                team.name ??
+                                team.rescueTeamName ??
+                                team.RescueTeamName ??
                                 `Team #${id}`;
+
                               return (
                                 <option key={id} value={id}>
                                   {label}
