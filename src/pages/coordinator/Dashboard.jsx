@@ -8,7 +8,7 @@ import { getAllRescueRequests } from "../../services/rescueRequestService.js";
 import { getAllRescueTeams } from "../../services/rescueTeamService.js";
 import { rescueMissionService, completeMission } from "../../services/rescueMissionService.js";
 import { incidentReportService } from "../../services/incidentReportService.js";
-
+import signalRService from "../../services/signalrService.js";
 
 /* FIX ICON */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -178,6 +178,147 @@ const Dashboard = () => {
     return res?.data ?? res?.content ?? res;
   };
 
+  useEffect(() => {
+    const handleTeamAccepted = (data) => {
+      console.log("TeamAcceptedNotification:", data);
+
+      setAllRequests((prev) =>
+        prev.map((r) =>
+          r.rescueMissionId === data.requestShortCode
+            ? {
+              ...r,
+              status: "in_progress",
+              assignedTeamName: data.teamName,
+              rescueMissionId: data.rescueMissionID,
+            }
+            : r
+        )
+      );
+
+      // ADD NOTIFICATION
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "equipment",
+          title: "Team Accepted Mission",
+          message: `${data.teamName} accepted rescue request #${data.requestShortCode}`,
+          requestId: data.requestShortCode,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    };
+    setUnreadCount((c) => c + 1);
+
+    const handleTeamRejected = (data) => {
+      console.log("TeamRejectedNotification:", data);
+
+      setAllRequests((prev) =>
+        prev.map((r) =>
+          r.requestId === data.requestShortCode ? {
+            ...r,
+            status: "pending",
+            assignedTeamId: null,
+            assignedTeamName: null,
+            rescueMissionId: null,
+          }
+            : r
+        )
+      );
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "critical",
+          title: "Mission Rejected",
+          message: `${data.teamName} rejected request #${data.requestShortCode}`,
+          requestId: data.requestShortCode,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+      setUnreadCount((c) => c + 1);
+
+      alert(data.actionMessage || "Team rejected mission. Please assign another team.");
+    };
+
+    const handleMissionCompleted = (data) => {
+      console.log("MissionCompletedNotification:", data);
+
+      setAllRequests((prev) =>
+        prev.map((r) =>
+          r.requestId === data.requestShortCode
+            ? {
+              ...r,
+              status: "completed",
+            }
+            : r
+        )
+      );
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "supply",
+          title: "Mission Completed",
+          message: `${data.teamName} completed rescue request #${data.requestShortCode}`,
+          requestId: data.requestShortCode,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+      setUnreadCount((c) => c + 1);
+    };
+    const handleIncidentReported = (data) => {
+      console.log("IncidentReportedNotification:", data);
+
+      setPendingIncidents((prev) => [
+        {
+          incidentReportID: data.incidentReportID,
+          rescueMissionID: data.rescueMissionID,
+          teamName: data.teamName,
+          title: data.title,
+          description: data.description,
+          createdTime: new Date(data.createdTime),
+        },
+        ...prev,
+      ]);
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "critical",
+          title: "Incident Reported",
+          message: `${data.teamName} reported: ${data.title}`,
+          requestId: data.rescueMissionID,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+      setUnreadCount((c) => c + 1);
+
+      alert(`Incident reported by ${data.teamName}: ${data.title}`);
+    };
+
+    const init = async () => {
+      await signalRService.startConnection();
+
+      signalRService.on("ReceiveTeamAccepted", handleTeamAccepted);
+      signalRService.on("ReceiveTeamRejected", handleTeamRejected);
+      signalRService.on("ReceiveMissionCompleted", handleMissionCompleted);
+      signalRService.on("ReceiveIncidentReported", handleIncidentReported);
+    };
+
+    init();
+
+    return () => {
+      signalRService.off("ReceiveTeamAccepted", handleTeamAccepted);
+      signalRService.off("ReceiveTeamRejected", handleTeamRejected);
+      signalRService.off("ReceiveMissionCompleted", handleMissionCompleted);
+      signalRService.off("ReceiveIncidentReported", handleIncidentReported);
+    };
+  }, []);
   const loadPendingIncidents = async () => {
     try {
       setIncidentLoading(true);
@@ -341,36 +482,36 @@ const Dashboard = () => {
 
         const data = extractApiData(res);
 
-       if (Array.isArray(data)) {
-        const availableOnly = data.filter((t) => {
-          const status =
-            t.currentStatus ??
-            t.CurrentStatus ??
-            t.status ??
-            t.Status ??
-            "";
-          return String(status).toLowerCase() === "available";
-        });
+        if (Array.isArray(data)) {
+          const availableOnly = data.filter((t) => {
+            const status =
+              t.currentStatus ??
+              t.CurrentStatus ??
+              t.status ??
+              t.Status ??
+              "";
+            return String(status).toLowerCase() === "available";
+          });
 
-        setTeams(availableOnly);
-        setSelectedTeamId("");
-        setDispatchError("");
-        setDispatchSuccess("");
-      } else {
+          setTeams(availableOnly);
+          setSelectedTeamId("");
+          setDispatchError("");
+          setDispatchSuccess("");
+        } else {
+          setTeams([]);
+          setTeamsError(res?.message || "Failed to load rescue teams");
+        }
+      } catch (e) {
+        console.error("Load rescue teams failed:", e);
         setTeams([]);
-        setTeamsError(res?.message || "Failed to load rescue teams");
+        setTeamsError(e?.message || "Failed to load rescue teams");
+      } finally {
+        setTeamsLoading(false);
       }
-    } catch (e) {
-      console.error("Load rescue teams failed:", e);
-      setTeams([]);
-      setTeamsError(e?.message || "Failed to load rescue teams");
-    } finally {
-      setTeamsLoading(false);
-    }
-  };
+    };
 
-  loadTeams();
-}, []);
+    loadTeams();
+  }, []);
 
 
   // Cập nhật unread count
@@ -608,7 +749,7 @@ const Dashboard = () => {
               </p>
 
               <button
-                className="notification-bell"
+                className={`notification-bell ${unreadCount > 0 ? "active" : ""}`}
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 🔔
