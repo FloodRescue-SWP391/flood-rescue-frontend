@@ -3,7 +3,14 @@ import { useNavigate } from "react-router-dom";
 import "./RequestRescue.css";
 import Header from "../../../components/common/Header";
 
-import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -61,6 +68,16 @@ const ChangeView = ({ center, zoom }) => {
       duration: 1.2,
     });
   }, [map, center, zoom]);
+
+  return null;
+};
+
+const MapClickHandler = ({ onMapClick }) => {
+  useMapEvents({
+    click(e) {
+      onMapClick(e);
+    },
+  });
 
   return null;
 };
@@ -571,26 +588,27 @@ const RequestRescue = () => {
 
                 {/* Cột phải: bản đồ */}
                 <div className="step-right">
-                  <div className="map-container">
-                    <div className="map-header">
-                      <div className="map-actions"></div>
-                    </div>
-                    <div className="map-wrapper">
+                  <div className="request-map-container2">
+                    <div className="request-map-header"></div>
+
+                    <div className="request-map-wrapper1">
                       <MapContainer
                         center={mapCenter}
                         zoom={mapZoom}
                         style={{
-                          height: "400px",
+                          height: "100%",
                           width: "100%",
                           borderRadius: "12px",
                         }}
-                        onClick={handleMapClick}
                       >
                         <ChangeView center={mapCenter} zoom={mapZoom} />
+                        <MapClickHandler onMapClick={handleMapClick} />
+
                         <TileLayer
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          attribution="&copy; OpenStreetMap contributors"
                         />
+
                         <Marker position={mapCenter} icon={emergencyIcon}>
                           <Popup>
                             <strong>Emergency Location</strong>
@@ -598,17 +616,6 @@ const RequestRescue = () => {
                             Click anywhere on the map to update this position
                           </Popup>
                         </Marker>
-                        {userLocation && (
-                          <Marker position={userLocation} icon={locationIcon}>
-                            <Popup>
-                              <strong>Your Current Location</strong>
-                              <br />
-                              GPS Coordinates: {userLocation[0].toFixed(
-                                6,
-                              )}, {userLocation[1].toFixed(6)}
-                            </Popup>
-                          </Marker>
-                        )}
                       </MapContainer>
                     </div>
                   </div>

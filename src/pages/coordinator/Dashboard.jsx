@@ -83,6 +83,20 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
+  // Phân trang cho List of requirements
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    statusFilter,
+    typeFilter,
+    priorityFilter,
+    floodLevelFilter,
+    showCompleted,
+  ]);
+
   const handleLogout = () => {
     // Xử lý logout
     localStorage.removeItem("token");
@@ -120,39 +134,39 @@ const Dashboard = () => {
     }
   };
   const mapRequestToUI = (r) => {
-  const lat = Number(r.locationLatitude ?? 0);
-  const lng = Number(r.locationLongitude ?? 0);
+    const lat = Number(r.locationLatitude ?? 0);
+    const lng = Number(r.locationLongitude ?? 0);
 
-  const uiStatus = mapStatusToUI(r.status);
+    const uiStatus = mapStatusToUI(r.status);
 
-  return {
-    id: r.rescueRequestID,
-    requestId: r.shortCode,
-    fullName: r.citizenName || "Citizen",
-    phoneNumber: r.citizenPhone || "",
-    address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-    location: { lat, lng },
-    emergencyType: r.requestType || "Unknown",
-    emergencyCategory:
-      r.requestType?.toLowerCase() === "supply"
-        ? "supply"
-        : "life_threatening",
-    description: r.description || "",
-    status: uiStatus,
-    timestamp: r.createdTime
-      ? new Date(r.createdTime).toLocaleString("vi-VN")
-      : "",
-    contactVia: "Phone Call",
-    imageUrl:
-      Array.isArray(r.imageUrls) && r.imageUrls.length > 0
-        ? r.imageUrls[0]
+    return {
+      id: r.rescueRequestID,
+      requestId: r.shortCode,
+      fullName: r.citizenName || "Citizen",
+      phoneNumber: r.citizenPhone || "",
+      address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      location: { lat, lng },
+      emergencyType: r.requestType || "Unknown",
+      emergencyCategory:
+        r.requestType?.toLowerCase() === "supply"
+          ? "supply"
+          : "life_threatening",
+      description: r.description || "",
+      status: uiStatus,
+      timestamp: r.createdTime
+        ? new Date(r.createdTime).toLocaleString("vi-VN")
         : "",
-    isNew: uiStatus === "pending",
-    waterLevel: "0m",
-    specialNeeds: "",
-    peopleCount: 0,
+      contactVia: "Phone Call",
+      imageUrl:
+        Array.isArray(r.imageUrls) && r.imageUrls.length > 0
+          ? r.imageUrls[0]
+          : "",
+      isNew: uiStatus === "pending",
+      waterLevel: "0m",
+      specialNeeds: "",
+      peopleCount: 0,
+    };
   };
-};
 
   useEffect(() => {
     const loadSelectedAddress = async () => {
@@ -474,6 +488,13 @@ const Dashboard = () => {
   };
 
   const filteredRequests = getFilteredRequests();
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   const availableTeams = teams.filter((t) => {
     const status =
       t.currentStatus ?? t.CurrentStatus ?? t.status ?? t.Status ?? "";
@@ -483,43 +504,43 @@ const Dashboard = () => {
 
   //load team
   useEffect(() => {
-  const loadTeams = async () => {
-    try {
-      setTeamsLoading(true);
-      setTeamsError("");
+    const loadTeams = async () => {
+      try {
+        setTeamsLoading(true);
+        setTeamsError("");
 
-      const res = await getAllRescueTeams();
-      console.log("teams API:", res);
+        const res = await getAllRescueTeams();
+        console.log("teams API:", res);
 
-      const data = extractApiData(res);
-      console.log("Teams extracted:", data);
+        const data = extractApiData(res);
+        console.log("Teams extracted:", data);
 
-      if (Array.isArray(data)) {
-        const availableOnly = data.filter((t) => {
-          const status =
-            t.currentStatus ?? t.CurrentStatus ?? t.status ?? t.Status ?? "";
-          return String(status).toLowerCase() === "available";
-        });
+        if (Array.isArray(data)) {
+          const availableOnly = data.filter((t) => {
+            const status =
+              t.currentStatus ?? t.CurrentStatus ?? t.status ?? t.Status ?? "";
+            return String(status).toLowerCase() === "available";
+          });
 
-        setTeams(availableOnly);
-        setSelectedTeamId("");
-        setDispatchError("");
-        setDispatchSuccess("");
-      } else {
+          setTeams(availableOnly);
+          setSelectedTeamId("");
+          setDispatchError("");
+          setDispatchSuccess("");
+        } else {
+          setTeams([]);
+          setTeamsError(res?.message || "Failed to load rescue teams");
+        }
+      } catch (err) {
+        console.error("Load teams error:", err);
         setTeams([]);
-        setTeamsError(res?.message || "Failed to load rescue teams");
+        setTeamsError("Failed to load rescue teams");
+      } finally {
+        setTeamsLoading(false);
       }
-    } catch (err) {
-      console.error("Load teams error:", err);
-      setTeams([]);
-      setTeamsError("Failed to load rescue teams");
-    } finally {
-      setTeamsLoading(false);
-    }
-  };
+    };
 
-  loadTeams();
-}, []);
+    loadTeams();
+  }, []);
 
   // Cập nhật unread count
   useEffect(() => {
@@ -528,38 +549,36 @@ const Dashboard = () => {
   }, [notifications]);
   //load data thực tế
   const loadRealRequests = async () => {
-  try {
-    const res = await getAllRescueRequests();
-    console.log("GET /RescueRequests:", res);
+    try {
+      const res = await getAllRescueRequests();
+      console.log("GET /RescueRequests:", res);
 
-    const data = extractApiData(res);
-    console.log("Requests extracted:", data);
+      const data = extractApiData(res);
+      console.log("Requests extracted:", data);
 
-    if (Array.isArray(data)) {
-      const normalized = data
-        .map(mapRequestToUI)
-        .filter(
-          (item) =>
-            item?.id &&
-            Number.isFinite(item?.location?.lat) &&
-            Number.isFinite(item?.location?.lng),
-        );
+      if (Array.isArray(data)) {
+        const normalized = data
+          .map(mapRequestToUI)
+          .filter(
+            (item) =>
+              item?.id &&
+              Number.isFinite(item?.location?.lat) &&
+              Number.isFinite(item?.location?.lng),
+          );
 
-      setAllRequests(normalized);
-    } else {
+        setAllRequests(normalized);
+      } else {
+        setAllRequests([]);
+      }
+    } catch (error) {
+      console.warn("Load rescue requests failed:", error);
       setAllRequests([]);
     }
-  } catch (error) {
-    console.warn("Load rescue requests failed:", error);
-    setAllRequests([]);
-  }
-};
+  };
 
-useEffect(() => {
-  loadRealRequests();
-}, []);
-
-  
+  useEffect(() => {
+    loadRealRequests();
+  }, []);
 
   // Các hàm xử lý
   const handleRequestClick = (request) => {
@@ -583,69 +602,68 @@ useEffect(() => {
     }
   };
 
-
   const handleDispatchMission = async () => {
-  setDispatchError("");
-  setDispatchSuccess("");
+    setDispatchError("");
+    setDispatchSuccess("");
 
-  if (!selectedRequest?.id) {
-    setDispatchError("Please select a rescue request first.");
-    return;
-  }
-
-  if (selectedRequest.status !== "pending") {
-    setDispatchError("Only PENDING requests can be dispatched.");
-    return;
-  }
-
-  if (!selectedTeamId) {
-    setDispatchError("Please select a rescue team.");
-    return;
-  }
-
-  try {
-    setDispatching(true);
-
-    const teamIdValue = Number(selectedTeamId);
-
-    const res = await rescueMissionService.dispatch({
-      rescueRequestID: selectedRequest.id,
-      rescueTeamID: teamIdValue,
-    });
-
-    if (!res?.success) {
-      setDispatchError(res?.message || "Dispatch mission failed.");
+    if (!selectedRequest?.id) {
+      setDispatchError("Please select a rescue request first.");
       return;
     }
 
-    const data = res?.content || res?.data || {};
-    const missionId =
-      data?.rescueMissionID ??
-      data?.RescueMissionID ??
-      data?.missionId ??
-      data?.MissionId ??
-      null;
+    if (selectedRequest.status !== "pending") {
+      setDispatchError("Only PENDING requests can be dispatched.");
+      return;
+    }
 
-    const assignedTeamName = findTeamLabelById(teamIdValue);
+    if (!selectedTeamId) {
+      setDispatchError("Please select a rescue team.");
+      return;
+    }
 
-    updateRequestAfterDispatch(selectedRequest.id, {
-      assignedTeamId: teamIdValue,
-      assignedTeamName,
-      rescueMissionId: missionId,
-    });
+    try {
+      setDispatching(true);
 
-    setDispatchSuccess(
-      `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
-        (missionId ? ` (Mission #${missionId})` : ""),
-    );
+      const teamIdValue = Number(selectedTeamId);
 
-    await loadRealRequests();
-  } catch (e) {
-    setDispatchError(e?.message || "Dispatch mission failed.");
-  } finally {
-    setDispatching(false);
-  }
-};
+      const res = await rescueMissionService.dispatch({
+        rescueRequestID: selectedRequest.id,
+        rescueTeamID: teamIdValue,
+      });
+
+      if (!res?.success) {
+        setDispatchError(res?.message || "Dispatch mission failed.");
+        return;
+      }
+
+      const data = res?.content || res?.data || {};
+      const missionId =
+        data?.rescueMissionID ??
+        data?.RescueMissionID ??
+        data?.missionId ??
+        data?.MissionId ??
+        null;
+
+      const assignedTeamName = findTeamLabelById(teamIdValue);
+
+      updateRequestAfterDispatch(selectedRequest.id, {
+        assignedTeamId: teamIdValue,
+        assignedTeamName,
+        rescueMissionId: missionId,
+      });
+
+      setDispatchSuccess(
+        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
+          (missionId ? ` (Mission #${missionId})` : ""),
+      );
+
+      await loadRealRequests();
+    } catch (e) {
+      setDispatchError(e?.message || "Dispatch mission failed.");
+    } finally {
+      setDispatching(false);
+    }
+  };
 
   const updateRequestStatus = (requestId, newStatus) => {
     setAllRequests((prev) =>
@@ -751,7 +769,7 @@ useEffect(() => {
     <div className="dashboard-container">
       <Header />
 
-      < div className="dashboard-content">
+      <div className="dashboard-content">
         {/* Dashboard Header */}
         <div className="dashboard-header">
           <div className="noti">
@@ -975,7 +993,7 @@ useEffect(() => {
           {/* Left: Requests List */}
           <div className="requests-panel">
             <div className="panel-header">
-              <div>
+              <div className="list">
                 <h2>📋 List of requirements ({filteredRequests.length})</h2>
                 <span className="last-update">
                   {stats.newRequests > 0 && (
@@ -985,12 +1003,7 @@ useEffect(() => {
                   )}
                 </span>
               </div>
-              <div className="request-counts">
-                <span className="count-badge pending">{stats.pending}</span>
-                <span className="count-badge in-progress">
-                  {stats.inProgress}
-                </span>
-              </div>
+    
             </div>
 
             <div className="requests-list">
@@ -1005,7 +1018,7 @@ useEffect(() => {
                   </button>
                 </div>
               ) : (
-                filteredRequests.map((request) => (
+                paginatedRequests.map((request) => (
                   <div
                     key={request.id}
                     className={`request-card ${selectedRequest?.id === request.id ? "selected" : ""} ${request.isNew ? "new" : ""}`}
@@ -1109,227 +1122,341 @@ useEffect(() => {
                 ))
               )}
             </div>
+
+            {filteredRequests.length > 0 && (
+  <div className="pagination">
+    <button
+      className="pagination-btn"
+      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+      disabled={currentPage === 1}
+    >
+      ← Previous
+    </button>
+
+    <div className="pagination-pages">
+      {Array.from({ length: totalPages }, (_, index) => {
+        const page = index + 1;
+        return (
+          <button
+            key={page}
+            className={`pagination-page ${currentPage === page ? "active" : ""}`}
+            onClick={() => setCurrentPage(page)}
+          >
+            {page}
+          </button>
+        );
+      })}
+    </div>
+
+    <button
+      className="pagination-btn"
+      onClick={() =>
+        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+      }
+      disabled={currentPage === totalPages}
+    >
+      Next →
+    </button>
+  </div>
+)}
           </div>
 
           {/* Right: Map and Details */}
-          
-<div className="map-details-panel">
-  <div className="map-section">
-    <div className="map-wrapper">
-      <div className="panel-header">
-        <h2>🗺️ Flood Map</h2>
 
-        <div className="map-legend">
-          <div className="legend-item">
-            <span className="legend-dot critical"></span>
-            <span>Emergency</span>
-          </div>
+          <div className="map-details-panel">
+            <div className="map-section">
+              <div className="map-wrapper">
+                <div className="panel-header">
+                  <h2>🗺️ Flood Map</h2>
 
-          <div className="legend-item">
-            <span className="legend-dot supply"></span>
-            <span>Supply</span>
-          </div>
-        </div>
-      </div>
+                  <div className="map-legend">
+                    <div className="legend-item">
+                      <span className="legend-dot critical"></span>
+                      <span>Emergency</span>
+                    </div>
 
-      <div className="map-container">
-        <MapContainer
-          center={mapCenter}
-          zoom={mapZoom}
-          style={{
-            height: "500px",
-            width: "100%",
-            borderRadius: "18px",
-          }}
-        >
-          <ChangeView center={mapCenter} zoom={mapZoom} />
-
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap contributors'
-          />
-
-          {allRequests
-            .filter((req) =>
-              !showCompleted ? req.status !== "completed" : true
-            )
-            .filter(
-              (req) =>
-                req.location &&
-                Number.isFinite(req.location.lat) &&
-                Number.isFinite(req.location.lng)
-            )
-            .map((request) => (
-              <Marker
-                key={request.id}
-                position={[request.location.lat, request.location.lng]}
-                icon={
-                  request.emergencyCategory === "life_threatening"
-                    ? dotIcon("red")
-                    : request.emergencyCategory === "supply"
-                    ? dotIcon("gold")
-                    : dotIcon("gray")
-                }
-                eventHandlers={{
-                  click: () => handleRequestClick(request),
-                }}
-              >
-                <Popup>
-                  <div className="map-popup">
-                    <strong>{request.emergencyType}</strong>
-                    <br />
-                    <small>ID: {request.requestId}</small>
-                    <br />
-                    <small>Water level: {request.waterLevel}</small>
-                    <br />
-                    <small>People: {request.peopleCount}</small>
-                    <br />
-                    {request.isNew && <small>🆕 NEW</small>}
+                    <div className="legend-item">
+                      <span className="legend-dot supply"></span>
+                      <span>Supply</span>
+                    </div>
                   </div>
-                </Popup>
-              </Marker>
-            ))}
-        </MapContainer>
-      </div>
+                </div>
 
-      {/* PANEL NỔI */}
-      <div className={`details-overlay ${selectedRequest ? "open" : ""}`}>
-        {selectedRequest && (
-          <div className="details-section floating">
-            <div className="request-details-card1">
-
-              <div className="details-header1">
-                <h3>📋 Request details #{selectedRequest.requestId}</h3>
-
-                <div style={{display:"flex",gap:"10px"}}>
-                  {selectedRequest.isNew && (
-                    <span className="new-tag">🆕 NEW</span>
-                  )}
-
-                  <button
-                    className="details-close-btn"
-                    onClick={() => setSelectedRequest(null)}
+                <div className="map-container">
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={mapZoom}
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      borderRadius: "18px",
+                    }}
                   >
-                    ×
-                  </button>
-                </div>
-              </div>
+                    <ChangeView center={mapCenter} zoom={mapZoom} />
 
-              <div className="details-grid1">
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution="&copy; OpenStreetMap contributors"
+                    />
 
-                <div className="detail-group1">
-                  <h4>👤 Information of requester</h4>
-
-                  <div className="detail-item1">
-                    <span className="detail-label1">
-                      Full name:
-                      <span className="detail-value1">
-                        {selectedRequest.fullName}
-                      </span>
-                    </span>
-                  </div>
-
-                  <div className="detail-item1">
-                    <span className="detail-label1">
-                      Phone:
-                      {selectedRequest.phoneNumber ? (
-                        <a
-                          href={`tel:${selectedRequest.phoneNumber}`}
-                          className="detail-value link"
-                        >
-                          {selectedRequest.phoneNumber}
-                        </a>
-                      ) : (
-                        <span className="detail-value">N/A</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="detail-group1">
-                  <h4>🌊 Flood Status</h4>
-
-                  <div className="detail-item1">
-                    <span className="detail-label1">
-                      Emergency type:
-                      <span className="detail-value badge">
-                        {selectedRequest.emergencyType}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="detail-group1 full-width1">
-                  <h4>📍 Location</h4>
-
-                  <div className="detail-item1">
-                    <span className="detail-label1">
-                      Address:
-                      <span className="detail-value">
-                        {addressMap[selectedRequest.id] ||
-                          selectedRequest.address}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="action-buttons1">
-
-                <div className="status-info1">
-                  <span className="status-label1">
-                    Current status:
-                  </span>
-
-                  <span
-                    className={`status-badge ${selectedRequest.status}`}
-                  >
-                    {selectedRequest.status === "pending"
-                      ? "⏳ Pending"
-                      : selectedRequest.status === "in_progress"
-                      ? "🚤 In progress"
-                      : "✅ Completed"}
-                  </span>
-                </div>
-
-                <div className="button-row1">
-
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() =>
-                      window.open(
-                        `https://maps.google.com/?q=${selectedRequest.location.lat},${selectedRequest.location.lng}`,
-                        "_blank"
+                    {allRequests
+                      .filter((req) =>
+                        !showCompleted ? req.status !== "completed" : true,
                       )
-                    }
-                  >
-                    🗺️ View map
-                  </button>
-
-                  <button
-                    className="btn btn-emergency"
-                    onClick={() =>
-                      window.open(`tel:${selectedRequest.phoneNumber}`)
-                    }
-                  >
-                    📞 Call
-                  </button>
-
+                      .filter(
+                        (req) =>
+                          req.location &&
+                          Number.isFinite(req.location.lat) &&
+                          Number.isFinite(req.location.lng),
+                      )
+                      .map((request) => (
+                        <Marker
+                          key={request.id}
+                          position={[
+                            request.location.lat,
+                            request.location.lng,
+                          ]}
+                          icon={
+                            request.emergencyCategory === "life_threatening"
+                              ? dotIcon("red")
+                              : request.emergencyCategory === "supply"
+                                ? dotIcon("gold")
+                                : dotIcon("gray")
+                          }
+                          eventHandlers={{
+                            click: () => handleRequestClick(request),
+                          }}
+                        >
+                          <Popup>
+                            <div className="map-popup">
+                              <strong>{request.emergencyType}</strong>
+                              <br />
+                              <small>ID: {request.requestId}</small>
+                              <br />
+                              <small>Water level: {request.waterLevel}</small>
+                              <br />
+                              <small>People: {request.peopleCount}</small>
+                              <br />
+                              {request.isNew && <small>🆕 NEW</small>}
+                            </div>
+                          </Popup>
+                        </Marker>
+                      ))}
+                  </MapContainer>
                 </div>
 
+                {/* PANEL NỔI */}
+                <div
+                  className={`details-overlay ${selectedRequest ? "open" : ""}`}
+                >
+                  {selectedRequest && (
+                    <div className="details-section floating">
+                      <div className="request-details-card1">
+                        <div className="details-header1">
+                          <h3>
+                            📋 Request details #{selectedRequest.requestId}
+                          </h3>
+
+                          <div style={{ display: "flex", gap: "10px" }}>
+                            {selectedRequest.isNew && (
+                              <span className="new-tag">🆕 NEW</span>
+                            )}
+
+                            <button
+                              className="details-close-btn"
+                              onClick={() => setSelectedRequest(null)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="details-grid1">
+                          <div className="detail-group1">
+                            <h4>👤 Information of requester</h4>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Full name:
+                                <span className="detail-value1">
+                                  {selectedRequest.fullName}
+                                </span>
+                              </span>
+                            </div>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Phone:
+                                {selectedRequest.phoneNumber ? (
+                                  <a
+                                    href={`tel:${selectedRequest.phoneNumber}`}
+                                    className="detail-value link"
+                                  >
+                                    {selectedRequest.phoneNumber}
+                                  </a>
+                                ) : (
+                                  <span className="detail-value">N/A</span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="detail-group1">
+                            <h4>🌊 Flood Status</h4>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Emergency type:
+                                <span className="detail-value badge">
+                                  {selectedRequest.emergencyType}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="detail-group1 full-width1">
+                            <h4>📍 Location</h4>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Address:
+                                <span className="detail-value">
+                                  {addressMap[selectedRequest.id] ||
+                                    selectedRequest.address}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="action-buttons1">
+                          <div className="dispatch-box">
+                            <div className="dispatch-header">
+                              <h4>🚑 Dispatch rescue team</h4>
+                            </div>
+
+                            <div className="dispatch-form">
+                              <select
+                                className="team-select"
+                                value={selectedTeamId}
+                                onChange={(e) =>
+                                  setSelectedTeamId(e.target.value)
+                                }
+                                disabled={
+                                  dispatching ||
+                                  selectedRequest.status !== "pending" ||
+                                  teamsLoading
+                                }
+                              >
+                                <option value="">
+                                  {teamsLoading
+                                    ? "Loading teams..."
+                                    : availableTeams.length === 0
+                                      ? "No available rescue teams"
+                                      : "Select rescue team"}
+                                </option>
+
+                                {availableTeams.map((team) => (
+                                  <option
+                                    key={getTeamId(team)}
+                                    value={getTeamId(team)}
+                                  >
+                                    {getTeamLabel(team)}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <button
+                                className="btn btn-primary"
+                                onClick={handleDispatchMission}
+                                disabled={
+                                  dispatching ||
+                                  !selectedTeamId ||
+                                  selectedRequest.status !== "pending"
+                                }
+                              >
+                                {dispatching
+                                  ? "Dispatching..."
+                                  : "🚀 Dispatch Mission"}
+                              </button>
+                            </div>
+
+                            {selectedRequest.assignedTeamName && (
+                              <div className="dispatch-info">
+                                <strong>Assigned team:</strong>{" "}
+                                {selectedRequest.assignedTeamName}
+                                {selectedRequest.rescueMissionId && (
+                                  <span>
+                                    {" "}
+                                    | Mission ID: #
+                                    {selectedRequest.rescueMissionId}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {dispatchError && (
+                              <p className="dispatch-error">{dispatchError}</p>
+                            )}
+                            {dispatchSuccess && (
+                              <p className="dispatch-success">
+                                {dispatchSuccess}
+                              </p>
+                            )}
+                            {teamsError && (
+                              <p className="dispatch-error">{teamsError}</p>
+                            )}
+                          </div>
+
+                          <div className="status-info1">
+                            <span className="status-label1">
+                              Current status:
+                            </span>
+
+                            <span
+                              className={`status-badge ${selectedRequest.status}`}
+                            >
+                              {selectedRequest.status === "pending"
+                                ? "⏳ Pending"
+                                : selectedRequest.status === "in_progress"
+                                  ? "🚤 In progress"
+                                  : "✅ Completed"}
+                            </span>
+                          </div>
+
+                          <div className="button-row1">
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() =>
+                                window.open(
+                                  `https://maps.google.com/?q=${selectedRequest.location.lat},${selectedRequest.location.lng}`,
+                                  "_blank",
+                                )
+                              }
+                            >
+                              🗺️ View map
+                            </button>
+
+                            <button
+                              className="btn btn-emergency"
+                              onClick={() =>
+                                window.open(
+                                  `tel:${selectedRequest.phoneNumber}`,
+                                )
+                              }
+                            >
+                              📞 Call
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
-
-    </div>
-  </div>
-</div>
-</div>
-
-                 
+        </div>
 
         <div className="incident-section">
           <div className="panel-header">
@@ -1512,6 +1639,5 @@ useEffect(() => {
     </div>
   );
 };
-
 
 export default Dashboard;
