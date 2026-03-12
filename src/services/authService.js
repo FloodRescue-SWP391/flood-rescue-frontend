@@ -61,8 +61,27 @@ export async function login(username, password) {
     const msg = json?.message || json?.title || text || "Login Failed";
     throw new Error(msg);
   }
-  const data = json?.data ?? json;
   //lưu auth để apiClient có thể tự động thêm token vào header khi gọi API sau này
-  localStorage.setItem("auth", JSON.stringify(data)); //giả sử backend trả về { data: { accessToken, refreshToken, ... } } 
+  const data = json?.content ?? json?.data ?? json; // FIX: swagger trả content
+
+  // lưu auth
+  localStorage.setItem("auth", JSON.stringify(data));
+
+  // FIX: lưu token để apiClient gửi Authorization header
+  const token = data?.accessToken ?? data?.AccessToken;
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+
+  // FIX: backend login chưa trả teamId → gán Team 5 cho demo
+  if (data?.role === "RescueTeam") {
+    localStorage.setItem(
+      "teamId",
+      "8c6813a2-7d06-4eb1-ba5c-0e3d92765cc3"
+    );
+  }
+
+  return data;
+
   return data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
 }
