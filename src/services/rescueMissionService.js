@@ -21,48 +21,47 @@ export const completeMission = async (rescueMissionID) => {
 };
 
 export const rescueMissionService = {
-    dispatch: ({ rescueRequestID, rescueTeamID }) => {
-        return fetchWithAuth(`${BASE}/dispatch`, {
+    dispatch: async ({ rescueRequestID, rescueTeamID }) => {
+        const res = await fetchWithAuth(`${BASE}/dispatch`, {
             method: "POST",
             body: JSON.stringify({
-                request: {
-                    rescueRequestID,
-                    rescueTeamID
-                }
+                rescueRequestID,
+                rescueTeamID
+            }),
+        });
+        return res;
+    },
+
+    respond: ({ rescueMissionID, isAccepted, rejectReason }) => {
+        return fetchWithAuth(`${BASE}/respond`, {
+            method: "POST",
+            body: JSON.stringify({
+                rescueMissionID,
+                isAccepted,
+                rejectReason: rejectReason ?? null,
             }),
         });
     },
+    // Confirm pickup (PUT /api/RescueMission/confirm-pickup)
+    confirmPickup: ({ rescueMissionID, reliefOrderID }) => {
+        if (!rescueMissionID || !reliefOrderID) {
+            throw new Error("rescueMissionID và reliefOrderID là bắt buộc");
+        }
 
-            respond: ({ rescueMissionID, isAccepted, rejectReason }) => {
-                return fetchWithAuth(`${BASE}/respond`, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        rescueMissionID,
-                        isAccepted,
-                        rejectReason: rejectReason ?? null,
-                    }),
-                });
-            },
-            // Confirm pickup (PUT /api/RescueMission/confirm-pickup)
-            confirmPickup: ({ rescueMissionID, reliefOrderID }) => {
-                if (!rescueMissionID || !reliefOrderID) {
-                    throw new Error("rescueMissionID và reliefOrderID là bắt buộc");
-                }
+        return fetchWithAuth(`${BASE}/confirm-pickup`, {
+            method: "PUT",
+            body: JSON.stringify({ rescueMissionID, reliefOrderID }),
+        });
+    },
+    // Option A (nếu BE làm GET /team/{teamId}?status=...)
+    getByTeam: ({ teamId, status }) => {
+        const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+        return fetchWithAuth(`${BASE}/team/${teamId}${qs}`, { method: "GET" });
+    },
 
-                return fetchWithAuth(`${BASE}/confirm-pickup`, {
-                    method: "PUT",
-                    body: JSON.stringify({ rescueMissionID, reliefOrderID }),
-                });
-            },
-            // Option A (nếu BE làm GET /team/{teamId}?status=...)
-            getByTeam: ({ teamId, status }) => {
-                const qs = status ? `?status=${encodeURIComponent(status)}` : "";
-                return fetchWithAuth(`${BASE}/team/${teamId}${qs}`, { method: "GET" });
-            },
-
-            // Option B (nếu BE làm GET /assigned/{teamId})
-            getAssigned: ({ teamId }) => {
-                return fetchWithAuth(`${BASE}/assigned/${teamId}`, { method: "GET" });
-            },
+    // Option B (nếu BE làm GET /assigned/{teamId})
+    getAssigned: ({ teamId }) => {
+        return fetchWithAuth(`${BASE}/assigned/${teamId}`, { method: "GET" });
+    },
 
 };

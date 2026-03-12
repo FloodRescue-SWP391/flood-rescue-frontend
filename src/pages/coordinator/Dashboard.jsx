@@ -97,13 +97,17 @@ const Dashboard = () => {
     showCompleted,
   ]);
 
-  const handleLogout = () => {
-    // Xử lý logout
+  const handleLogout = async () => {
+    try {
+      await signalRService.stopConnection();
+    } catch (e) {
+      console.warn("SignalR stop failed", e);
+    }
+
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");
     navigate("/login");
   };
-
   const mapStatusToUI = (status) => {
     const s = (status || "").toLowerCase();
     if (s === "pending") return "pending";
@@ -198,33 +202,40 @@ const Dashboard = () => {
 
   const extractApiData = (res) => {
     if (!res) return null;
+
     if (Array.isArray(res)) return res;
-    if (Array.isArray(res?.data)) return res.data;
-    if (Array.isArray(res?.content)) return res.content;
-    if (Array.isArray(res?.content?.data)) return res.content.data;
-    if (Array.isArray(res?.data?.data)) return res.data.data;
-    if (Array.isArray(res?.data?.content)) return res.data.content;
-    return null;
+
+    if (Array.isArray(res.data)) return res.data;
+
+    if (Array.isArray(res.content)) return res.content;
+
+    if (Array.isArray(res.content?.data)) return res.content.data;
+
+    if (Array.isArray(res.data?.data)) return res.data.data;
+
+    if (Array.isArray(res.data?.content)) return res.data.content;
+
+    return [];
   };
 
   useEffect(() => {
+
     const handleTeamAccepted = (data) => {
       console.log("TeamAcceptedNotification:", data);
 
       setAllRequests((prev) =>
         prev.map((r) =>
-          r.requestId === data.requestShortCode
+          r.requestId === (data.requestShortCode || data.ShortCode)
             ? {
               ...r,
               status: "in_progress",
               assignedTeamName: data.teamName,
               rescueMissionId: data.rescueMissionID,
             }
-            : r,
-        ),
+            : r
+        )
       );
 
-      // ADD NOTIFICATION
       setNotifications((prev) => [
         {
           id: Date.now(),
@@ -238,7 +249,6 @@ const Dashboard = () => {
         ...prev,
       ]);
     };
-    setUnreadCount((c) => c + 1);
 
     const handleTeamRejected = (data) => {
       console.log("TeamRejectedNotification:", data);
@@ -253,9 +263,10 @@ const Dashboard = () => {
               assignedTeamName: null,
               rescueMissionId: null,
             }
-            : r,
-        ),
+            : r
+        )
       );
+
       setNotifications((prev) => [
         {
           id: Date.now(),
@@ -268,12 +279,6 @@ const Dashboard = () => {
         },
         ...prev,
       ]);
-      setUnreadCount((c) => c + 1);
-
-      alert(
-        data.actionMessage ||
-        "Team rejected mission. Please assign another team.",
-      );
     };
 
     const handleMissionCompleted = (data) => {
@@ -282,13 +287,11 @@ const Dashboard = () => {
       setAllRequests((prev) =>
         prev.map((r) =>
           r.requestId === data.requestShortCode
-            ? {
-              ...r,
-              status: "completed",
-            }
-            : r,
-        ),
+            ? { ...r, status: "completed" }
+            : r
+        )
       );
+
       setNotifications((prev) => [
         {
           id: Date.now(),
@@ -301,8 +304,8 @@ const Dashboard = () => {
         },
         ...prev,
       ]);
-      setUnreadCount((c) => c + 1);
     };
+
     const handleIncidentReported = (data) => {
       console.log("IncidentReportedNotification:", data);
 
@@ -317,6 +320,7 @@ const Dashboard = () => {
         },
         ...prev,
       ]);
+
       setNotifications((prev) => [
         {
           id: Date.now(),
@@ -329,11 +333,8 @@ const Dashboard = () => {
         },
         ...prev,
       ]);
-      setUnreadCount((c) => c + 1);
-
-      alert(`Incident reported by ${data.teamName}: ${data.title}`);
     };
-    // FIX: handle event NewRescueRequest từ backend
+
     const handleNewRescueRequest = (data) => {
       console.log("NewRescueRequest:", data);
 
@@ -354,31 +355,26 @@ const Dashboard = () => {
         ...prev,
       ]);
     };
+
     const init = async () => {
       await signalRService.startConnection();
-      console.log("SignalR connected");
-
-      signalRService.on("ReceiveTeamAccepted", handleTeamAccepted);
-      signalRService.on("ReceiveTeamRejected", handleTeamRejected);
-      signalRService.on("ReceiveMissionCompleted", handleMissionCompleted);
-      signalRService.on("ReceiveIncidentReported", handleIncidentReported);
-
-      signalRService.on("NewRescueRequest", handleNewRescueRequest); // FIX: listen event backend gửi
-
+      signalRService.on("ReceiveTeamResponse", handleTeamAccepted);
+      signalRService.on("MissionCompleted", handleMissionCompleted);
+      signalRService.on("IncidentReported", handleIncidentReported);
+      signalRService.on("NewRescueRequest", handleNewRescueRequest);
     };
 
     init();
 
     return () => {
-      signalRService.off("ReceiveTeamAccepted", handleTeamAccepted);
-      signalRService.off("ReceiveTeamRejected", handleTeamRejected);
-      signalRService.off("ReceiveMissionCompleted", handleMissionCompleted);
-      signalRService.off("ReceiveIncidentReported", handleIncidentReported);
-
-      signalRService.off("NewRescueRequest", handleNewRescueRequest); // FIX: cleanup listener
-
+      signalRService.off("ReceiveTeamResponse", handleTeamAccepted);
+      signalRService.off("MissionCompleted", handleMissionCompleted);
+      signalRService.off("IncidentReported", handleIncidentReported);
+      signalRService.off("NewRescueRequest", handleNewRescueRequest);
     };
+
   }, []);
+
   const loadPendingIncidents = async () => {
     try {
       setIncidentLoading(true);
@@ -527,12 +523,7 @@ const Dashboard = () => {
     currentPage * itemsPerPage,
   );
 
-  const availableTeams = teams.filter((t) => {
-    const status =
-      t.currentStatus ?? t.CurrentStatus ?? t.status ?? t.Status ?? "";
-
-    return String(status).toLowerCase() === "available";
-  });
+  const availableTeams = teams;
 
   //load team
   useEffect(() => {
@@ -548,13 +539,7 @@ const Dashboard = () => {
         console.log("Teams extracted:", data);
 
         if (Array.isArray(data)) {
-          const availableOnly = data.filter((t) => {
-            const status =
-              t.currentStatus ?? t.CurrentStatus ?? t.status ?? t.Status ?? "";
-            return String(status).toLowerCase() === "available";
-          });
-
-          setTeams(availableOnly);
+          setTeams(data);
           setSelectedTeamId("");
           setDispatchError("");
           setDispatchSuccess("");
@@ -576,8 +561,7 @@ const Dashboard = () => {
 
   // Cập nhật unread count
   useEffect(() => {
-    const unread = notifications.filter((n) => !n.read).length;
-    setUnreadCount(unread);
+    setUnreadCount(notifications.filter((n) => !n.read).length);
   }, [notifications]);
   //load data thực tế
   const loadRealRequests = async () => {
@@ -658,64 +642,47 @@ const Dashboard = () => {
     try {
       setDispatching(true);
 
-      const teamIdValue = Number(selectedTeamId);
-
       const res = await rescueMissionService.dispatch({
         rescueRequestID: selectedRequest.id,
-        rescueTeamID: teamIdValue,
+        rescueTeamID: selectedTeamId,
       });
 
-      if (!res?.success) {
+      console.log("Dispatch API response:", res);
+
+      // ✅ check success đúng
+      if (res?.success === false) {
         setDispatchError(res?.message || "Dispatch mission failed.");
         return;
       }
 
-      const data = res?.content || res?.data || {};
+      const data = res?.content || {};
+
       const missionId =
-        data?.rescueMissionID ??
-        data?.RescueMissionID ??
-        data?.missionId ??
-        data?.MissionId ??
+        data.rescueMissionID ??
+        data.RescueMissionID ??
         null;
 
-      const assignedTeamName = findTeamLabelById(teamIdValue);
+      const assignedTeamName = findTeamLabelById(selectedTeamId);
 
       updateRequestAfterDispatch(selectedRequest.id, {
-        assignedTeamId: teamIdValue,
+        assignedTeamId: selectedTeamId,
         assignedTeamName,
         rescueMissionId: missionId,
       });
 
       setDispatchSuccess(
-        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
-        (missionId ? ` (Mission #${missionId})` : ""),
+        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`
       );
 
       await loadRealRequests();
     } catch (e) {
+      console.error(e);
       setDispatchError(e?.message || "Dispatch mission failed.");
     } finally {
       setDispatching(false);
     }
   };
 
-  const updateRequestStatus = (requestId, newStatus) => {
-    setAllRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId
-          ? { ...req, status: newStatus, isNew: false }
-          : req,
-      ),
-    );
-
-    if (selectedRequest && selectedRequest.id === requestId) {
-      setSelectedRequest((prev) => ({
-        ...prev,
-        status: newStatus,
-        isNew: false,
-      }));
-    }
-  };
   const updateRequestAfterDispatch = (requestId, payload) => {
     setAllRequests((prev) =>
       prev.map((req) => {
@@ -724,27 +691,24 @@ const Dashboard = () => {
         return {
           ...req,
           status: "in_progress",
-          isNew: false,
-
-          // lưu thông tin assign để UI dùng lại
-          assignedTeamId: payload.assignedTeamId ?? req.assignedTeamId,
-          assignedTeamName: payload.assignedTeamName ?? req.assignedTeamName,
-          rescueMissionId: payload.rescueMissionId ?? req.rescueMissionId,
+          assignedTeamId: payload.assignedTeamId,
+          assignedTeamName: payload.assignedTeamName,
+          rescueMissionId: payload.rescueMissionId,
         };
-      }),
+      })
     );
 
     if (selectedRequest?.id === requestId) {
       setSelectedRequest((prev) => ({
         ...prev,
         status: "in_progress",
-        isNew: false,
-        assignedTeamId: payload.assignedTeamId ?? prev.assignedTeamId,
-        assignedTeamName: payload.assignedTeamName ?? prev.assignedTeamName,
-        rescueMissionId: payload.rescueMissionId ?? prev.rescueMissionId,
+        assignedTeamId: payload.assignedTeamId,
+        assignedTeamName: payload.assignedTeamName,
+        rescueMissionId: payload.rescueMissionId,
       }));
     }
   };
+
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((noti) => ({ ...noti, read: true })));
   };
@@ -1373,9 +1337,7 @@ const Dashboard = () => {
                               <select
                                 className="team-select"
                                 value={selectedTeamId}
-                                onChange={(e) =>
-                                  setSelectedTeamId(e.target.value)
-                                }
+                                onChange={(e) => setSelectedTeamId(e.target.value)}
                                 disabled={
                                   dispatching ||
                                   selectedRequest.status !== "pending" ||
@@ -1390,16 +1352,16 @@ const Dashboard = () => {
                                       : "Select rescue team"}
                                 </option>
 
-                                {availableTeams.map((team) => (
+                                {teams.map((team) => (
                                   <option
                                     key={getTeamId(team)}
                                     value={getTeamId(team)}
+                                    disabled={String(team.currentStatus).toLowerCase() !== "available"}
                                   >
-                                    {getTeamLabel(team)}
+                                    {getTeamLabel(team)} ({team.currentStatus})
                                   </option>
                                 ))}
                               </select>
-
                               <button
                                 className="btn btn-primary"
                                 onClick={handleDispatchMission}
