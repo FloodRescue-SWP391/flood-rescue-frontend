@@ -134,36 +134,42 @@ const Dashboard = () => {
     }
   };
   const mapRequestToUI = (r) => {
-    const lat = Number(r.locationLatitude ?? 0);
-    const lng = Number(r.locationLongitude ?? 0);
+    const lat = Number(r.LocationLatitude ?? r.locationLatitude ?? 0);
+    const lng = Number(r.LocationLongitude ?? r.locationLongitude ?? 0);
 
-    const uiStatus = mapStatusToUI(r.status);
+    const uiStatus = mapStatusToUI(r.Status ?? r.status);
 
     return {
-      id: r.rescueRequestID,
-      requestId: r.shortCode,
-      fullName: r.citizenName || "Citizen",
-      phoneNumber: r.citizenPhone || "",
+      id: r.RescueRequestID ?? r.rescueRequestID,
+      requestId: r.ShortCode ?? r.shortCode,
+      fullName: r.CitizenName ?? r.citizenName ?? "Citizen",
+      phoneNumber: r.CitizenPhone ?? r.citizenPhone ?? "",
       address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
       location: { lat, lng },
-      emergencyType: r.requestType || "Unknown",
+
+      emergencyType: r.RequestType ?? r.requestType ?? "Unknown",
+
       emergencyCategory:
-        r.requestType?.toLowerCase() === "supply"
+        (r.RequestType ?? r.requestType)?.toLowerCase() === "supply"
           ? "supply"
           : "life_threatening",
-      description: r.description || "",
+
+      description: r.Description ?? r.description ?? "",
+
       status: uiStatus,
-      timestamp: r.createdTime
-        ? new Date(r.createdTime).toLocaleString("vi-VN")
+
+      timestamp: r.CreatedTime
+        ? new Date(r.CreatedTime).toLocaleString("vi-VN")
         : "",
-      contactVia: "Phone Call",
+
       imageUrl:
-        Array.isArray(r.imageUrls) && r.imageUrls.length > 0
-          ? r.imageUrls[0]
+        Array.isArray(r.ImageUrls) && r.ImageUrls.length > 0
+          ? r.ImageUrls[0]
           : "",
+
       isNew: uiStatus === "pending",
+
       waterLevel: "0m",
-      specialNeeds: "",
       peopleCount: 0,
     };
   };
@@ -209,11 +215,11 @@ const Dashboard = () => {
         prev.map((r) =>
           r.requestId === data.requestShortCode
             ? {
-                ...r,
-                status: "in_progress",
-                assignedTeamName: data.teamName,
-                rescueMissionId: data.rescueMissionID,
-              }
+              ...r,
+              status: "in_progress",
+              assignedTeamName: data.teamName,
+              rescueMissionId: data.rescueMissionID,
+            }
             : r,
         ),
       );
@@ -241,12 +247,12 @@ const Dashboard = () => {
         prev.map((r) =>
           r.requestId === data.requestShortCode
             ? {
-                ...r,
-                status: "pending",
-                assignedTeamId: null,
-                assignedTeamName: null,
-                rescueMissionId: null,
-              }
+              ...r,
+              status: "pending",
+              assignedTeamId: null,
+              assignedTeamName: null,
+              rescueMissionId: null,
+            }
             : r,
         ),
       );
@@ -266,7 +272,7 @@ const Dashboard = () => {
 
       alert(
         data.actionMessage ||
-          "Team rejected mission. Please assign another team.",
+        "Team rejected mission. Please assign another team.",
       );
     };
 
@@ -277,9 +283,9 @@ const Dashboard = () => {
         prev.map((r) =>
           r.requestId === data.requestShortCode
             ? {
-                ...r,
-                status: "completed",
-              }
+              ...r,
+              status: "completed",
+            }
             : r,
         ),
       );
@@ -327,7 +333,27 @@ const Dashboard = () => {
 
       alert(`Incident reported by ${data.teamName}: ${data.title}`);
     };
+    // FIX: handle event NewRescueRequest từ backend
+    const handleNewRescueRequest = (data) => {
+      console.log("NewRescueRequest:", data);
 
+      const newRequest = mapRequestToUI(data);
+
+      setAllRequests((prev) => [newRequest, ...prev]);
+
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "critical",
+          title: "New Rescue Request",
+          message: `New rescue request #${newRequest.requestId}`,
+          requestId: newRequest.requestId,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    };
     const init = async () => {
       await signalRService.startConnection();
       console.log("SignalR connected");
@@ -336,6 +362,9 @@ const Dashboard = () => {
       signalRService.on("ReceiveTeamRejected", handleTeamRejected);
       signalRService.on("ReceiveMissionCompleted", handleMissionCompleted);
       signalRService.on("ReceiveIncidentReported", handleIncidentReported);
+
+      signalRService.on("NewRescueRequest", handleNewRescueRequest); // FIX: listen event backend gửi
+
     };
 
     init();
@@ -345,6 +374,9 @@ const Dashboard = () => {
       signalRService.off("ReceiveTeamRejected", handleTeamRejected);
       signalRService.off("ReceiveMissionCompleted", handleMissionCompleted);
       signalRService.off("ReceiveIncidentReported", handleIncidentReported);
+
+      signalRService.off("NewRescueRequest", handleNewRescueRequest); // FIX: cleanup listener
+
     };
   }, []);
   const loadPendingIncidents = async () => {
@@ -554,22 +586,24 @@ const Dashboard = () => {
       console.log("GET /RescueRequests:", res);
 
       const data = extractApiData(res);
-      console.log("Requests extracted:", data);
 
-      if (Array.isArray(data)) {
-        const normalized = data
-          .map(mapRequestToUI)
-          .filter(
-            (item) =>
-              item?.id &&
-              Number.isFinite(item?.location?.lat) &&
-              Number.isFinite(item?.location?.lng),
-          );
-
-        setAllRequests(normalized);
-      } else {
+      if (!Array.isArray(data)) {
         setAllRequests([]);
+        return;
       }
+
+      const mapped = data
+        .map(mapRequestToUI)
+        .filter(
+          (item) =>
+            item?.id &&
+            Number.isFinite(item?.location?.lat) &&
+            Number.isFinite(item?.location?.lng),
+        );
+
+      console.log("Requests mapped:", mapped);
+
+      setAllRequests(mapped);
     } catch (error) {
       console.warn("Load rescue requests failed:", error);
       setAllRequests([]);
@@ -654,7 +688,7 @@ const Dashboard = () => {
 
       setDispatchSuccess(
         `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
-          (missionId ? ` (Mission #${missionId})` : ""),
+        (missionId ? ` (Mission #${missionId})` : ""),
       );
 
       await loadRealRequests();
@@ -892,35 +926,35 @@ const Dashboard = () => {
             req.priorityLevel === "Critical" &&
             req.status !== "completed",
         ) && (
-          <div className="critical-alert-banner">
-            <div className="alert-content">
-              <span className="alert-icon">🚨</span>
-              <div>
-                <h3>WARNING: Critical life-threatening situation!</h3>
-                <p>
-                  There are{" "}
-                  {
-                    allRequests.filter(
-                      (req) => req.isNew && req.priorityLevel === "Critical",
-                    ).length
-                  }{" "}
-                  critical rescue requests that need immediate handling
-                </p>
+            <div className="critical-alert-banner">
+              <div className="alert-content">
+                <span className="alert-icon">🚨</span>
+                <div>
+                  <h3>WARNING: Critical life-threatening situation!</h3>
+                  <p>
+                    There are{" "}
+                    {
+                      allRequests.filter(
+                        (req) => req.isNew && req.priorityLevel === "Critical",
+                      ).length
+                    }{" "}
+                    critical rescue requests that need immediate handling
+                  </p>
+                </div>
               </div>
+              <button
+                className="alert-action"
+                onClick={() => {
+                  const criticalRequest = allRequests.find(
+                    (req) => req.isNew && req.priorityLevel === "Critical",
+                  );
+                  if (criticalRequest) handleRequestClick(criticalRequest);
+                }}
+              >
+                Handle immediately →
+              </button>
             </div>
-            <button
-              className="alert-action"
-              onClick={() => {
-                const criticalRequest = allRequests.find(
-                  (req) => req.isNew && req.priorityLevel === "Critical",
-                );
-                if (criticalRequest) handleRequestClick(criticalRequest);
-              }}
-            >
-              Handle immediately →
-            </button>
-          </div>
-        )}
+          )}
 
         {/* Filter Controls */}
         <div className="filter-section">
@@ -1003,7 +1037,7 @@ const Dashboard = () => {
                   )}
                 </span>
               </div>
-    
+
             </div>
 
             <div className="requests-list">
@@ -1046,7 +1080,7 @@ const Dashboard = () => {
                               : request.emergencyType === "Medicine is needed."
                                 ? "💊"
                                 : request.emergencyType ===
-                                    "Life jackets/boat needed."
+                                  "Life jackets/boat needed."
                                   ? "🛟"
                                   : request.emergencyType === "Landslide"
                                     ? "⛰️"
@@ -1124,41 +1158,41 @@ const Dashboard = () => {
             </div>
 
             {filteredRequests.length > 0 && (
-  <div className="pagination">
-    <button
-      className="pagination-btn"
-      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-      disabled={currentPage === 1}
-    >
-      ← Previous
-    </button>
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Previous
+                </button>
 
-    <div className="pagination-pages">
-      {Array.from({ length: totalPages }, (_, index) => {
-        const page = index + 1;
-        return (
-          <button
-            key={page}
-            className={`pagination-page ${currentPage === page ? "active" : ""}`}
-            onClick={() => setCurrentPage(page)}
-          >
-            {page}
-          </button>
-        );
-      })}
-    </div>
+                <div className="pagination-pages">
+                  {Array.from({ length: totalPages }, (_, index) => {
+                    const page = index + 1;
+                    return (
+                      <button
+                        key={page}
+                        className={`pagination-page ${currentPage === page ? "active" : ""}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
 
-    <button
-      className="pagination-btn"
-      onClick={() =>
-        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-      }
-      disabled={currentPage === totalPages}
-    >
-      Next →
-    </button>
-  </div>
-)}
+                <button
+                  className="pagination-btn"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right: Map and Details */}

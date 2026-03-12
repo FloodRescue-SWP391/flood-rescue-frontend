@@ -69,10 +69,12 @@ class SignalRService {
             this._setupEventHandlers();
             // start connection
             await this.connection.start();
-            // bật cờ connected
-            this.isConnected = true;
-            console.log("SignalR Connected successfully!");
-            console.log("SignalR connected");
+            try {
+                await this.connection.invoke("JoinCoordinatorGroup");
+                console.log("Joined Coordinator Group");
+            } catch (err) {
+                console.warn("JoinCoordinatorGroup failed", err);
+            }
         } catch (error) {
 
             console.error("SignalR Connection Error:", error);
