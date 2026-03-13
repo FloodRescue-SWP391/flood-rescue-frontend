@@ -72,16 +72,21 @@ export async function login(username, password) {
   if (token) {
     localStorage.setItem("token", token);
   }
+  // lưu role
+  if (data?.roleName) {
+    localStorage.setItem("role", data.roleName);
+  }
 
-  // FIX: backend login chưa trả teamId → gán Team 5 cho demo
-  if (data?.role === "RescueTeam") {
+  // demo leader
+  if (data?.roleName === "RescueTeam") {
+    localStorage.setItem("isLeader", "true");
     localStorage.setItem(
       "teamId",
       "8c6813a2-7d06-4eb1-ba5c-0e3d92765cc3"
     );
   }
 
-  return data;
+
 
   return data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
 }
