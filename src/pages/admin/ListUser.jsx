@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useLocation } from "react-router-dom";
 import "./ListUser.css";
 import { getUsers, deactivateUser, updateUser } from "../../services/userService";
 
 const ListUser = () => {
 
   const [editingUserId, setEditingUserId] = useState(null);
-
+  const location = useLocation();
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -73,7 +73,7 @@ const ListUser = () => {
   // load user ngay khi mở trang
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [location.pathname]);
   useEffect(() => {
     const delay = setTimeout(() => {
       loadUsers();
