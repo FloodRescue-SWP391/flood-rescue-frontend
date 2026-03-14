@@ -1,82 +1,85 @@
 /* ===== SIDEBAR LAYOUT ===== */
 
-.manager-layout{
-  display:flex;
+.manager-layout {
+  display: flex;
 }
 
-.manager-sidebar{
-  width:240px;
-  background:#ffffff;
-  border-right:1px solid #e5e7eb;
-  height:calc(100vh - 66px);
-  position:sticky;
-  top:66px;
-  padding:20px 14px;
+.manager-sidebar {
+  width: 240px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+
+  height: 100vh;
+  /* sửa ở đây */
+  position: sticky;
+  top: 66px;
+
+  padding: 20px 14px;
 }
 
 /* ===== TITLE ===== */
 
-.sidebar-title{
-  font-weight:700;
-  font-size:15px;
-  margin-bottom:18px;
-  color:#6b7280;
-  padding-left:8px;
+.sidebar-title {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 18px;
+  color: #6b7280;
+  padding-left: 8px;
 }
 
 /* ===== NAV ===== */
 
-.manager-sidebar nav{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
+.manager-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* ===== LINK ===== */
 
-.manager-sidebar a{
-  display:flex;
-  align-items:center;
-  gap:10px;
+.manager-sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 
-  padding:10px 12px;
-  border-radius:8px;
+  padding: 10px 12px;
+  border-radius: 8px;
 
-  text-decoration:none;
-  color:#374151;
+  text-decoration: none;
+  color: #374151;
 
-  font-size:14px;
-  font-weight:500;
+  font-size: 14px;
+  font-weight: 500;
 
-  transition:all 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 /* hover */
 
-.manager-sidebar a:hover{
-  background:#f3f4f6;
+.manager-sidebar a:hover {
+  background: #f3f4f6;
 }
 
 /* active */
 
-.manager-sidebar a.active{
-  background:#e8f1ff;
-  color:#2563eb;
-  font-weight:600;
+.manager-sidebar a.active {
+  background: #e8f1ff;
+  color: #2563eb;
+  font-weight: 600;
 }
 
 /* ===== ICON SPACE ===== */
 
-.manager-sidebar a::before{
-  content:"";
-  width:6px;
-  height:6px;
-  background:#9ca3af;
-  border-radius:50%;
+.manager-sidebar a::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: #9ca3af;
+  border-radius: 50%;
 }
 
 /* active icon */
 
-.manager-sidebar a.active::before{
-  background:#2563eb;
+.manager-sidebar a.active::before {
+  background: #2563eb;
 }

@@ -1,0 +1,125 @@
+.warehouse-page{
+  width:100%;
+}
+
+
+/* HEADER */
+
+.warehouse-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+
+.btn-add{
+  background:#2563eb;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:6px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+
+/* TABLE */
+
+.warehouse-table-container{
+  background:white;
+  border-radius:10px;
+  padding:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+
+.warehouse-table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+
+.warehouse-table th{
+  background:#f3f4f6;
+  padding:10px;
+  text-align:left;
+}
+
+
+.warehouse-table td{
+  padding:10px;
+  border-bottom:1px solid #eee;
+}
+
+
+.btn-icon{
+  background:#10b981;
+  border:none;
+  color:white;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+
+.btn-delete{
+  background:#ef4444;
+  margin-left:6px;
+}
+/* ===== MODAL ===== */
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  z-index:1000;
+}
+
+.modal-box{
+  width:420px;
+  background:white;
+  border-radius:10px;
+  padding:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.modal-box input{
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:6px;
+}
+
+.modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
+.modal-actions button{
+  flex:1;
+  padding:8px;
+  border:none;
+  border-radius:6px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.modal-actions button:first-child{
+  background:#2563eb;
+  color:white;
+}
+
+.modal-actions button:last-child{
+  background:#ef4444;
+  color:white;
+}
