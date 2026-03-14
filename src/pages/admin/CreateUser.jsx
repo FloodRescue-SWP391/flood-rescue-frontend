@@ -5,9 +5,10 @@ import { register } from "../../services/authService";
 import { getAllRescueTeams } from "../../services/rescueTeamService"; // nhớ đúng path
 
 const ROLE_ID_MAP = {
+  "Admin": "AD",
   "Rescue Coordinator": "RC",
   "Rescue Team": "RT",       // hoặc R6 / gì đó backend yêu cầu
-  "Manager": "MN",           // hoặc A0 nếu Manager = Admin
+  "Manager": "M",           // hoặc A0 nếu Manager = Admin
 };
 const CreateUser = () => {
   const { handleLogout } = useOutletContext();
@@ -190,6 +191,7 @@ const CreateUser = () => {
               <option value="Rescue Coordinator">Rescue Coordinator</option>
               <option value="Rescue Team">Rescue Team</option>
               <option value="Manager">Manager</option>
+              <option value="Admin">Admin</option>
             </select>
             {errors.role && <span className="error-message">{errors.role}</span>}
           </div>
