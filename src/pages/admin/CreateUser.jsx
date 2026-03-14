@@ -8,7 +8,7 @@ const ROLE_ID_MAP = {
   "Admin": "AD",
   "Rescue Coordinator": "RC",
   "Rescue Team": "RT",       // hoặc R6 / gì đó backend yêu cầu
-  "Manager": "M",           // hoặc A0 nếu Manager = Admin
+  "Manager": "IM",           // hoặc A0 nếu Manager = Admin
 };
 const CreateUser = () => {
   const { handleLogout } = useOutletContext();

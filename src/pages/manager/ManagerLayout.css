@@ -1,0 +1,123 @@
+/* =========================
+   GLOBAL LAYOUT
+========================= */
+
+.manager-layout{
+  display:flex;
+  min-height:100vh;
+  background:#f4f6f9;
+}
+
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.manager-sidebar{
+  width:240px;
+  background:#ffffff;
+  border-right:1px solid #e5e7eb;
+
+  position:sticky;
+  top:66px;
+
+  height:calc(100vh - 66px);
+  padding:20px 14px;
+
+  overflow-y:auto;
+}
+
+
+/* ===== SIDEBAR TITLE ===== */
+
+.sidebar-title{
+  font-weight:700;
+  font-size:15px;
+  margin-bottom:18px;
+  color:#6b7280;
+  padding-left:8px;
+}
+
+
+/* ===== NAV ===== */
+
+.manager-sidebar nav{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+
+/* ===== LINK ===== */
+
+.manager-sidebar a{
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  padding:10px 12px;
+  border-radius:8px;
+
+  text-decoration:none;
+  color:#374151;
+
+  font-size:14px;
+  font-weight:500;
+
+  transition:all 0.15s ease;
+}
+
+
+/* hover */
+
+.manager-sidebar a:hover{
+  background:#f3f4f6;
+}
+
+
+/* active */
+
+.manager-sidebar a.active{
+  background:#e8f1ff;
+  color:#2563eb;
+  font-weight:600;
+}
+
+
+/* ===== ICON ===== */
+
+.manager-sidebar a::before{
+  content:"";
+  width:6px;
+  height:6px;
+  background:#9ca3af;
+  border-radius:50%;
+}
+
+
+.manager-sidebar a.active::before{
+  background:#2563eb;
+}
+
+
+
+/* =========================
+   MAIN CONTENT
+========================= */
+
+.manager-content{
+  flex:1;
+  padding:30px;
+  display:flex;
+  justify-content:center;
+}
+
+
+/* =========================
+   PAGE WRAPPER
+========================= */
+
+.mp-wrap{
+  width:100%;
+  max-width:1200px;
+}
