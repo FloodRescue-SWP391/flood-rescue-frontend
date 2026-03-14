@@ -25,11 +25,12 @@
  * 4) Nếu lỗi → throw Error để UI hiển thị thông báo.
  *
  */
-import { API_BASE_URL } from "./apiClient";
+import { API_BASE_URL, fetchWithAuth } from "./apiClient";
 
-
+// nếu register public thì giữ fetch như bạn đang làm
+// nếu register cần auth thì dùng fetchWithAuth:
 export async function register(payload) {
-  const res = await fetch(`${API_BASE_URL}/Auth/register`, {
+  const res = await fetchWithAuth(`${API_BASE_URL}/Auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -48,14 +49,44 @@ export async function login(username, password) {
   const res = await fetch(`${API_BASE_URL}/Auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ userName: username, password }),
   });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch { }
 
-  const json = await res.json();
   if (!res.ok) {
-    throw new Error(json.message || "Login failed");
+    const msg = json?.message || json?.title || text || "Login Failed";
+    throw new Error(msg);
   }
   //lưu auth để apiClient có thể tự động thêm token vào header khi gọi API sau này
-  localStorage.setItem("auth", JSON.stringify(json.data)); //giả sử backend trả về { data: { accessToken, refreshToken, ... } } 
-  return json.data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
+  const data = json?.content ?? json?.data ?? json; // FIX: swagger trả content
+
+  // lưu auth
+  localStorage.setItem("auth", JSON.stringify(data));
+
+  // FIX: lưu token để apiClient gửi Authorization header
+  const token = data?.accessToken ?? data?.AccessToken;
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+  // lưu role
+  if (data?.roleName) {
+    localStorage.setItem("role", data.roleName);
+  }
+
+  // demo leader
+  if (data?.roleName === "RescueTeam") {
+    localStorage.setItem("isLeader", "true");
+    localStorage.setItem(
+      "teamId",
+      "8c6813a2-7d06-4eb1-ba5c-0e3d92765cc3"
+    );
+  }
+
+
+
+  return data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
 }

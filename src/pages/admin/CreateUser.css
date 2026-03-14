@@ -1,3 +1,4 @@
+
 .create-user-container {
   padding: 20px;
   max-width: 800px;
@@ -5,14 +6,26 @@
   width: 100%;
 }
 
-.create-user-container h2 {
+.create-user-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2563eb;
   margin-bottom: 30px;
-  color: #333;
   text-align: center;
-  font-size: 28px;
-  font-weight: 600;
+  position: relative;
 }
 
+.create-user-title::after {
+  content: "";
+  width: 120px;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 4px;
+}
 .create-form {
   background: #fff;
   padding: 30px;
@@ -24,12 +37,16 @@
   margin-bottom: 25px;
 }
 
-.form-group label {
+.form-group .role-label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 500;
-  color: #555;
-  font-size: 15px;
+  font-weight: 900;
+  color: #000000;
+  font-size: 18px;
+}
+
+.role-label span {
+  color: #dc3545;
 }
 
 .form-group input,
@@ -67,33 +84,35 @@
   display: block;
 }
 
-.submit-btn {
+.submit {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #007bff, #0056b3);
+  background: linear-gradient(135deg, #007bff, #5c89ba);
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 900;
   cursor: pointer;
   transition: all 0.3s;
   margin-top: 10px;
+  font-family: 'Times New Roman', Times, serif;
+  
 }
 
-.submit-btn:hover {
-  background: linear-gradient(135deg, #0056b3, #004494);
+.submit:hover {
+  background: linear-gradient(135deg, #0056b3, #2b8bf9);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
 }
 
-.submit-btn:active {
+.submit:active {
   transform: translateY(0);
 }
 
 .toast {
   position: fixed;
-  top: 20px;
+  top: 100px !important;
   right: 20px;
   padding: 15px 20px;
   border-radius: 6px;
@@ -156,4 +175,21 @@
   .submit-btn {
     padding: 12px;
   }
+}/* --- Fix checkbox Is Leader --- */
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inline-check label {
+  margin-bottom: 0; /* override label block style */
+}
+
+.inline-check input[type="checkbox"] {
+  width: auto;      /* override width: 100% */
+  padding: 0;       /* checkbox không cần padding */
+  margin: 0;
+  box-shadow: none; /* tránh shadow focus lạ */
+  margin-bottom: 9px;
 }

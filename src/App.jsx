@@ -15,20 +15,37 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ListUser from "./pages/admin/ListUser.jsx";
 import CreateUser from "./pages/admin/CreateUser.jsx";
+import CreateRescueTeam from "./pages/admin/CreateRescueTeam";
+import ListRescueTeams from "./pages/admin/ListRescueTeams.jsx";
+import AdminReport from "./pages/admin/AdminReport.jsx";
 
 // ===== MANAGER =====
+import ManagerLayout from "./pages/manager/ManagerLayout";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
+import Warehouse from "./pages/manager/Warehouse";
+import Inventory from "./pages/manager/Inventory";
+import ReliefItems from "./pages/manager/ReliefItems";
+import PrepareOrders from "./pages/manager/PrepareOrders";
+import UsageReport from "./pages/manager/UsageReport";
+
+
 
 import RescueTeam from "./pages/rescueTeam/RescueTeam";
-
 import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
+
+//====unauthorized====
+import Unauthorized from "./pages/common/Unauthorized";
+
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* ===== DEFAULT: CITIZEN HOME ===== */}
+        <Route path="/" element={<Hero />} />
+
         {/* ===== HOME ===== */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
 
         {/* ===== HEADER ===== */}
         <Route path="/introduce" element={<Introduce />} />
@@ -38,7 +55,6 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* ===== CITIZEN ===== */}
-        <Route path="/citizen/hero" element={<Hero />} />
         <Route path="/citizen/request" element={<RequestRescue />} />
         <Route path="/citizen/request-status" element={<RequestStatus />} />
 
@@ -54,7 +70,10 @@ function App() {
           {/* Redirect mặc định đến create-user */}
           <Route index element={<Navigate to="create-user" replace />} />
           <Route path="create-user" element={<CreateUser />} />
+          <Route path="create-rescue-team" element={<CreateRescueTeam />} />
           <Route path="list-user" element={<ListUser />} />
+          <Route path="list-rescue-team" element={<ListRescueTeams />} />
+          <Route path="report" element={<AdminReport />} />
         </Route>
 
         {/* ===== MANAGER (PROTECTED) ===== */}
@@ -62,10 +81,24 @@ function App() {
           path="/manager"
           element={
             <ProtectedRoute allowedRoles={["Manager"]}>
-              <ManagerDashboard />
+              <ManagerLayout />
             </ProtectedRoute>
           }
-        />
+        >
+
+          <Route index element={<ManagerDashboard />} />
+
+          <Route path="warehouse" element={<Warehouse />} />
+
+          <Route path="inventory" element={<Inventory />} />
+
+          <Route path="items" element={<ReliefItems />} />
+
+          <Route path="orders" element={<PrepareOrders />} />
+
+          <Route path="report" element={<UsageReport />} />
+
+        </Route>
 
         {/* ===== COORDINATOR (PROTECTED) ===== */}
         <Route
@@ -85,6 +118,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/unauthorized" element={<Unauthorized />} />
       </Routes>
     </BrowserRouter>
   );

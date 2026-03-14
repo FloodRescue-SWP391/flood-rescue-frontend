@@ -27,7 +27,7 @@ const Contact = () => {
           <div className="lienhe1">
             <h5>Contact information</h5>
             <p>📍 Address: 123 Rescue Street, TP.HCM</p>
-            <p>📞 Phone Number: 0901 234 567</p>
+            <p>📞 Phone Number: 0965 782 358</p>
             <p>📧 Email: rescue@gmail.com</p>
             <p>⏰ Timework: 24/7</p>
           </div>
@@ -55,7 +55,7 @@ const Contact = () => {
           <div className="footer-section">
             <h3>Contact</h3>
             <p>Email: rescue@gmail.com</p>
-            <p>Hotline: 0901 234 567</p>
+            <p>Hotline: 0965 782 358</p>
           </div>
           <div className="footer-section">
             <h3>Support</h3>

@@ -2,28 +2,46 @@ import { API_BASE_URL, fetchWithAuth } from "./apiClient";
 
 const BASE = `${API_BASE_URL}/ReliefOrders`;
 
+async function safeJson(res) {
+    const text = await res.text();
+
+    // No content
+    if (!text) {
+        return res.ok
+            ? { success: true, message: "OK", statusCode: res.status, content: null }
+            : { success: false, message: `HTTP ${res.status}`, statusCode: res.status, content: null };
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { success: false, message: text, statusCode: res.status, content: null };
+    }
+}
+
 export const reliefOrdersService = {
     // POST /api/ReliefOrders/prepare
     async prepareOrder(payload) {
         // payload: { reliefOrderID, items: [{ reliefItemID, quantity }] }
         const res = await fetchWithAuth(`${BASE}/prepare`, {
-            method: "POST",
+            method: "PUT",
+            headers: { "Content-Type": "application/json" }, // nên thêm
             body: JSON.stringify(payload),
         });
-        return await res.json(); // ApiResponse<...>
+        return await safeJson(res); // ApiResponse<...>
     },
     async getAll() {
         const res = await fetchWithAuth(`${BASE}`);
-        return await res.json();
+        return await safeJson(res);
     },
 
     async getById(id) {
         const res = await fetchWithAuth(`${BASE}/${id}`);
-        return await res.json();
+        return await safeJson(res);
     },
     async getPending() {
         const res = await fetchWithAuth(`${BASE}?status=Pending`);
-        return await res.json();
+        return await safeJson(res);
     },
-    // (optional nếu backend có) getAll/getById sau này
+
 };

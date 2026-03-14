@@ -6,7 +6,13 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { getAllRescueRequests } from "../../services/rescueRequestService.js";
 import { getAllRescueTeams } from "../../services/rescueTeamService.js";
-import { rescueMissionService } from "../../services/rescueMissionService.js";
+import {
+  rescueMissionService,
+  completeMission,
+} from "../../services/rescueMissionService.js";
+import { incidentReportService } from "../../services/incidentReportService.js";
+import signalRService from "../../services/signalrService.js";
+import { useNavigate } from "react-router-dom";
 
 /* FIX ICON */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -23,14 +29,14 @@ const dotIcon = (color) =>
     className: "custom-dot-icon",
     html: `<div style="
       background-color: ${color};
-      width: 14px;
-      height: 14px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       border: 2px solid white;
       box-shadow: 0 0 6px rgba(0,0,0,0.5);
     "></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
   });
 
 const ChangeView = ({ center, zoom }) => {
@@ -42,165 +48,7 @@ const ChangeView = ({ center, zoom }) => {
 };
 
 const Dashboard = () => {
-  // State cho danh sách yêu cầu cứu trợ lũ lụt
-  const mockRequest = [
-    {
-      id: 1,
-      requestId: "FLOOD-001",
-      fullName: "Nguyễn Văn A",
-      phoneNumber: "0901234567",
-      address: "123 Đường Nguyễn Văn Cừ, Quận 1, TP.HCM",
-      location: { lat: 10.775, lng: 106.7 },
-      emergencyType: "Người mắc kẹt trong nước",
-      emergencyCategory: "life_threatening", // life_threatening, evacuation, supply, medical, equipment
-      peopleCount: 3,
-      priorityLevel: "Critical",
-      description:
-        "Nhà ngập sâu 2m, có 3 người già mắc kẹt trên tầng 2, nước đang dâng cao",
-      status: "pending",
-      timestamp: "15/01/2024 08:30",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: true,
-      waterLevel: "2m", // Mức nước ngập
-      specialNeeds: "Người già, không biết bơi",
-    },
-    {
-      id: 2,
-      requestId: "FLOOD-002",
-      fullName: "Trần Thị B",
-      phoneNumber: "0912345678",
-      address: "456 Đường Lý Thường Kiệt, Quận 5, TP.HCM",
-      location: { lat: 10.763, lng: 106.682 },
-      emergencyType: "Cần thực phẩm/ nước uống",
-      emergencyCategory: "supply",
-      peopleCount: 5,
-      priorityLevel: "High",
-      description: "Hết thực phẩm 2 ngày, có 2 trẻ nhỏ, cần tiếp tế gấp",
-      status: "in_progress",
-      timestamp: "15/01/2024 09:15",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: false,
-      waterLevel: "1.5m",
-      specialNeeds: "Trẻ nhỏ cần sữa",
-    },
-    {
-      id: 3,
-      requestId: "FLOOD-003",
-      fullName: "Lê Văn C",
-      phoneNumber: "0923456789",
-      address: "789 Đường 3/2, Quận 10, TP.HCM",
-      location: { lat: 10.767, lng: 106.654 },
-      emergencyType: "Cần thuốc men",
-      emergencyCategory: "medical",
-      peopleCount: 1,
-      priorityLevel: "Critical",
-      description: "Bệnh nhân tiểu đường hết insulin, cần thuốc gấp",
-      status: "pending",
-      timestamp: "14/01/2024 14:20",
-      contactVia: "SMS",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: true,
-      waterLevel: "1m",
-      specialNeeds: "Insulin, bơm kim tiêm",
-    },
-    {
-      id: 4,
-      requestId: "FLOOD-004",
-      fullName: "Phạm Thị D",
-      phoneNumber: "0934567890",
-      address: "321 Đường Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM",
-      location: { lat: 10.783, lng: 106.671 },
-      emergencyType: "Nhà bị ngập",
-      emergencyCategory: "evacuation",
-      peopleCount: 4,
-      priorityLevel: "High",
-      description: "Nhà ngập hoàn toàn, cần di dời đến nơi tránh lũ",
-      status: "completed",
-      timestamp: "13/01/2024 16:45",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: false,
-      waterLevel: "2.5m",
-      specialNeeds: "Di dời toàn bộ gia đình",
-    },
-    {
-      id: 5,
-      requestId: "FLOOD-005",
-      fullName: "Hoàng Văn E",
-      phoneNumber: "0945678901",
-      address: "654 Đường Lê Văn Việt, Quận 9, TP.HCM",
-      location: { lat: 10.801, lng: 106.714 },
-      emergencyType: "Cần áo phao/thuyền",
-      emergencyCategory: "equipment",
-      peopleCount: 2,
-      priorityLevel: "Medium",
-      description: "Cần thuyền và áo phao để di chuyển ra ngoài mua thực phẩm",
-      status: "pending",
-      timestamp: "15/01/2024 10:00",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: true,
-      waterLevel: "1.8m",
-      specialNeeds: "Thuyền nhỏ, 2 áo phao người lớn",
-    },
-    {
-      id: 6,
-      requestId: "FLOOD-006",
-      fullName: "Vũ Thị F",
-      phoneNumber: "0956789012",
-      address: "987 Đường Nguyễn Thị Minh Khai, Quận 3, TP.HCM",
-      location: { lat: 10.769, lng: 106.685 },
-      emergencyType: "Sạt lở đất",
-      emergencyCategory: "life_threatening",
-      peopleCount: 2,
-      priorityLevel: "Critical",
-      description: "Đất sạt lở sau nhà, đe dọa sập nhà",
-      status: "in_progress",
-      timestamp: "15/01/2024 11:30",
-      contactVia: "Phone Call",
-      imageUrl: "https://via.placeholder.com/150",
-      isNew: false,
-      waterLevel: "0.5m",
-      specialNeeds: "Cần đội cứu hộ đặc biệt",
-    },];
-
-
-  const mapStatusToUI = (status) => {
-    const s = (status || "").toLowerCase();
-    if (s === "pending") return "pending";
-    if (s === "processing" || s === "in_progress") return "in_progress";
-    if (s === "completed") return "completed";
-    return "pending";
-  };
-
-  const mapRequestToUI = (r) => ({
-    id: r.rescueRequestID ?? r.RescueRequestID,
-    requestId: r.shortCode ?? r.ShortCode,
-    fullName: "Citizen",
-    phoneNumber: r.citizenPhone ?? r.CitizenPhone ?? "",
-    address: "N/A",
-    location: {
-      lat: r.locationLatitude ?? r.LocationLatitude,
-      lng: r.locationLongitude ?? r.LocationLongitude,
-    },
-    emergencyType: r.requestType ?? r.RequestType ?? "",
-    emergencyCategory: "supply",
-    peopleCount: 1,
-    priorityLevel: "Medium",
-    description: r.description ?? r.Description ?? "",
-    status: mapStatusToUI(r.status ?? r.Status),
-    timestamp: new Date(r.createdTime ?? r.CreatedTime).toLocaleString("vi-VN"),
-    contactVia: "Phone Call",
-    imageUrl: (r.imageUrls ?? r.ImageUrls)?.[0] || "https://via.placeholder.com/150",
-    isNew: false,
-    waterLevel: "0m",
-    specialNeeds: "",
-  });
-
-  const [allRequests, setAllRequests] = useState(mockRequest);
-  const [usingRealData, setUsingRealData] = useState(false);
+  const [allRequests, setAllRequests] = useState([]);
   const [teams, setTeams] = useState([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [teamsError, setTeamsError] = useState("");
@@ -208,7 +56,6 @@ const Dashboard = () => {
   const [dispatching, setDispatching] = useState(false);
   const [dispatchError, setDispatchError] = useState("");
   const [dispatchSuccess, setDispatchSuccess] = useState("");
-
 
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [mapCenter, setMapCenter] = useState([10.775, 106.686]);
@@ -219,42 +66,379 @@ const Dashboard = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [floodLevelFilter, setFloodLevelFilter] = useState("all"); // Lọc theo mức nước
 
+  //incident Report
+  const [pendingIncidents, setPendingIncidents] = useState([]);
+  const [incidentHistory, setIncidentHistory] = useState([]);
+  const [incidentLoading, setIncidentLoading] = useState(false);
+  const [incidentError, setIncidentError] = useState("");
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [resolveNote, setResolveNote] = useState("");
+  const [resolvingIncident, setResolvingIncident] = useState(false);
   // State cho thông báo
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "critical",
-      title: "🚨 CẤP CỨU: Người mắc kẹt trong nước!",
-      message: "3 người già mắc kẹt trên tầng 2, nước dâng cao 2m",
-      timestamp: "08:30 AM",
-      requestId: "FLOOD-001",
-      read: false,
-    },
-    {
-      id: 2,
-      type: "medical",
-      title: "💊 Yêu cầu thuốc khẩn cấp",
-      message: "Bệnh nhân tiểu đường cần insulin gấp",
-      timestamp: "10:00 AM",
-      requestId: "FLOOD-003",
-      read: false,
-    },
-    {
-      id: 3,
-      type: "evacuation",
-      title: "🚨 Cần di dời khẩn cấp",
-      message: "Nhà ngập hoàn toàn, cần sơ tán 4 người",
-      timestamp: "11:15 AM",
-      requestId: "FLOOD-004",
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isPlayingAlert, setIsPlayingAlert] = useState(false);
+  const [addressMap, setAddressMap] = useState({});
 
-  const audioRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Phân trang cho List of requirements
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    statusFilter,
+    typeFilter,
+    priorityFilter,
+    floodLevelFilter,
+    showCompleted,
+  ]);
+
+  const handleLogout = async () => {
+    try {
+      await signalRService.stopConnection();
+    } catch (e) {
+      console.warn("SignalR stop failed", e);
+    }
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    navigate("/login");
+  };
+  const mapStatusToUI = (status) => {
+    const s = (status || "").toLowerCase();
+    if (s === "pending") return "pending";
+    if (s === "processing" || s === "in_progress") return "in_progress";
+    if (s === "completed") return "completed";
+    return "pending";
+  };
+  const getAddressFromCoordinates = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`,
+        {
+          headers: {
+            "Accept-Language": "vi",
+          },
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(`Reverse geocoding failed: ${res.status}`);
+      }
+
+      const data = await res.json();
+      return data?.display_name || "";
+    } catch (error) {
+      console.error("Reverse geocoding failed:", error);
+      return "";
+    }
+  };
+  const mapRequestToUI = (r) => {
+    const lat = Number(r.LocationLatitude ?? r.locationLatitude ?? 0);
+    const lng = Number(r.LocationLongitude ?? r.locationLongitude ?? 0);
+
+    const uiStatus = mapStatusToUI(r.Status ?? r.status);
+
+    return {
+      id: r.RescueRequestID ?? r.rescueRequestID,
+      requestId: r.ShortCode ?? r.shortCode,
+      fullName: r.CitizenName ?? r.citizenName ?? "Citizen",
+      phoneNumber: r.CitizenPhone ?? r.citizenPhone ?? "",
+      address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      location: { lat, lng },
+
+      emergencyType: r.RequestType ?? r.requestType ?? "Unknown",
+
+      emergencyCategory:
+        (r.RequestType ?? r.requestType)?.toLowerCase() === "supply"
+          ? "supply"
+          : "life_threatening",
+
+      description: r.Description ?? r.description ?? "",
+
+      status: uiStatus,
+
+      timestamp: r.CreatedTime
+        ? new Date(r.CreatedTime).toLocaleString("vi-VN")
+        : "",
+
+      imageUrl:
+        Array.isArray(r.ImageUrls) && r.ImageUrls.length > 0
+          ? r.ImageUrls[0]
+          : "",
+
+      isNew: uiStatus === "pending",
+
+      waterLevel: "0m",
+      peopleCount: 0,
+    };
+  };
+
+  useEffect(() => {
+    const loadSelectedAddress = async () => {
+      if (!selectedRequest?.id) return;
+
+      if (addressMap[selectedRequest.id]) return;
+
+      const lat = selectedRequest?.location?.lat;
+      const lng = selectedRequest?.location?.lng;
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      const address = await getAddressFromCoordinates(lat, lng);
+
+      setAddressMap((prev) => ({
+        ...prev,
+        [selectedRequest.id]: address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      }));
+    };
+
+    loadSelectedAddress();
+  }, [selectedRequest, addressMap]);
+
+  const extractApiData = (res) => {
+    if (!res) return null;
+
+    if (Array.isArray(res)) return res;
+
+    if (Array.isArray(res.data)) return res.data;
+
+    if (Array.isArray(res.content)) return res.content;
+
+    if (Array.isArray(res.content?.data)) return res.content.data;
+
+    if (Array.isArray(res.data?.data)) return res.data.data;
+
+    if (Array.isArray(res.data?.content)) return res.data.content;
+
+    return [];
+  };
+
+  useEffect(() => {
+
+    const handleTeamAccepted = (data) => {
+      console.log("TeamAcceptedNotification:", data);
+
+      setAllRequests((prev) =>
+        prev.map((r) =>
+          r.requestId === (data.requestShortCode || data.ShortCode)
+            ? {
+              ...r,
+              status: "in_progress",
+              assignedTeamName: data.teamName,
+              rescueMissionId: data.rescueMissionID,
+            }
+            : r
+        )
+      );
+
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "equipment",
+          title: "Team Accepted Mission",
+          message: `${data.teamName} accepted rescue request #${data.requestShortCode}`,
+          requestId: data.requestShortCode,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    };
+
+    const handleTeamRejected = (data) => {
+      console.log("TeamRejectedNotification:", data);
+
+      setAllRequests((prev) =>
+        prev.map((r) =>
+          r.requestId === data.requestShortCode
+            ? {
+              ...r,
+              status: "pending",
+              assignedTeamId: null,
+              assignedTeamName: null,
+              rescueMissionId: null,
+            }
+            : r
+        )
+      );
+
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "critical",
+          title: "Mission Rejected",
+          message: `${data.teamName} rejected request #${data.requestShortCode}`,
+          requestId: data.requestShortCode,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    };
+
+    const handleMissionCompleted = (data) => {
+      console.log("MissionCompletedNotification:", data);
+
+      setAllRequests((prev) =>
+        prev.map((r) =>
+          r.requestId === data.requestShortCode
+            ? { ...r, status: "completed" }
+            : r
+        )
+      );
+
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "supply",
+          title: "Mission Completed",
+          message: `${data.teamName} completed rescue request #${data.requestShortCode}`,
+          requestId: data.requestShortCode,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    };
+
+    const handleIncidentReported = (data) => {
+      console.log("IncidentReportedNotification:", data);
+
+      setPendingIncidents((prev) => [
+        {
+          incidentReportID: data.incidentReportID,
+          rescueMissionID: data.rescueMissionID,
+          teamName: data.teamName,
+          title: data.title,
+          description: data.description,
+          createdTime: new Date(data.createdTime),
+        },
+        ...prev,
+      ]);
+
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "critical",
+          title: "Incident Reported",
+          message: `${data.teamName} reported: ${data.title}`,
+          requestId: data.rescueMissionID,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    };
+
+    const handleNewRescueRequest = (data) => {
+      console.log("NewRescueRequest:", data);
+
+      const newRequest = mapRequestToUI(data);
+
+      setAllRequests((prev) => [newRequest, ...prev]);
+
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: "critical",
+          title: "New Rescue Request",
+          message: `New rescue request #${newRequest.requestId}`,
+          requestId: newRequest.requestId,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    };
+
+    const init = async () => {
+      await signalRService.startConnection();
+      signalRService.on("ReceiveTeamResponse", handleTeamAccepted);
+      signalRService.on("MissionCompleted", handleMissionCompleted);
+      signalRService.on("IncidentReported", handleIncidentReported);
+      signalRService.on("NewRescueRequest", handleNewRescueRequest);
+    };
+
+    init();
+
+    return () => {
+      signalRService.off("ReceiveTeamResponse", handleTeamAccepted);
+      signalRService.off("MissionCompleted", handleMissionCompleted);
+      signalRService.off("IncidentReported", handleIncidentReported);
+      signalRService.off("NewRescueRequest", handleNewRescueRequest);
+    };
+
+  }, []);
+
+  const loadPendingIncidents = async () => {
+    try {
+      setIncidentLoading(true);
+      setIncidentError("");
+
+      const res = await incidentReportService.getPendingReports();
+      const data = extractApiData(res);
+      console.log("Teams extracted:", data);
+
+      setPendingIncidents(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      setIncidentError("Failed to load pending incidents.");
+    } finally {
+      setIncidentLoading(false);
+    }
+  };
+
+  const loadIncidentHistory = async () => {
+    try {
+      const res = await incidentReportService.getIncidentHistory();
+      const data = extractApiData(res);
+      console.log("Teams extracted:", data);
+
+      setIncidentHistory(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  useEffect(() => {
+    loadPendingIncidents();
+    loadIncidentHistory();
+  }, []);
+  const handleResolveIncident = async (incidentReportID) => {
+    if (!incidentReportID) return;
+    if (!resolveNote.trim()) {
+      alert("Please enter coordinator note.");
+      return;
+    }
+
+    try {
+      setResolvingIncident(true);
+      setIncidentError("");
+
+      const res = await incidentReportService.resolveIncident({
+        incidentReportID,
+        coordinatorNote: resolveNote.trim(),
+      });
+
+      alert(res?.message || "Incident resolved successfully.");
+
+      setResolveNote("");
+      setSelectedIncident(null);
+
+      await loadPendingIncidents();
+      await loadIncidentHistory();
+    } catch (e) {
+      console.error(e);
+      setIncidentError("Resolve incident failed.");
+      alert(e?.message || "Resolve incident failed.");
+    } finally {
+      setResolvingIncident(false);
+    }
+  };
 
   // Thống kê theo chủ đề lũ lụt
   const stats = {
@@ -332,18 +516,30 @@ const Dashboard = () => {
   };
 
   const filteredRequests = getFilteredRequests();
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
 
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
+  const availableTeams = teams;
 
   //load team
   useEffect(() => {
     const loadTeams = async () => {
-      setTeamsLoading(true);
-      setTeamsError("");
       try {
-        const res = await getAllRescueTeams(); // ApiResponse<List<...>>
-        if (res?.success && Array.isArray(res.data)) {
-          setTeams(res.data);
+        setTeamsLoading(true);
+        setTeamsError("");
+
+        const res = await getAllRescueTeams();
+        console.log("teams API:", res);
+
+        const data = extractApiData(res);
+        console.log("Teams extracted:", data);
+
+        if (Array.isArray(data)) {
+          setTeams(data);
           setSelectedTeamId("");
           setDispatchError("");
           setDispatchSuccess("");
@@ -351,8 +547,10 @@ const Dashboard = () => {
           setTeams([]);
           setTeamsError(res?.message || "Failed to load rescue teams");
         }
-      } catch (e) {
-        setTeamsError(e?.message || "Failed to load rescue teams");
+      } catch (err) {
+        console.error("Load teams error:", err);
+        setTeams([]);
+        setTeamsError("Failed to load rescue teams");
       } finally {
         setTeamsLoading(false);
       }
@@ -361,150 +559,44 @@ const Dashboard = () => {
     loadTeams();
   }, []);
 
-
   // Cập nhật unread count
   useEffect(() => {
-    const unread = notifications.filter((n) => !n.read).length;
-    setUnreadCount(unread);
+    setUnreadCount(notifications.filter((n) => !n.read).length);
   }, [notifications]);
   //load data thực tế
-  useEffect(() => {
-    const loadRealRequests = async () => {
-      try {
-        const res = await getAllRescueRequests();
-        console.log("GET /RescueRequests:", res);
+  const loadRealRequests = async () => {
+    try {
+      const res = await getAllRescueRequests();
+      console.log("GET /RescueRequests:", res);
 
-        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
-          const normalized = res.data.map(mapRequestToUI);
-          setAllRequests(normalized); //  replace mock bằng data thật
-          setUsingRealData(true);
-        }
-      } catch (e) {
-        console.warn("API failed -> keep mock:", e?.message);
-        // không setAllRequests gì cả => giữ mock
+      const data = extractApiData(res);
+
+      if (!Array.isArray(data)) {
+        setAllRequests([]);
+        return;
       }
-    };
 
+      const mapped = data
+        .map(mapRequestToUI)
+        .filter(
+          (item) =>
+            item?.id &&
+            Number.isFinite(item?.location?.lat) &&
+            Number.isFinite(item?.location?.lng),
+        );
+
+      console.log("Requests mapped:", mapped);
+
+      setAllRequests(mapped);
+    } catch (error) {
+      console.warn("Load rescue requests failed:", error);
+      setAllRequests([]);
+    }
+  };
+
+  useEffect(() => {
     loadRealRequests();
   }, []);
-
-
-
-  // Giả lập nhận yêu cầu mới cho lũ lụt
-  useEffect(() => {
-    if (usingRealData) return;
-    const simulateNewFloodRequest = () => {
-      const floodTypes = [
-        "Người mắc kẹt trong nước",
-        "Nhà bị ngập",
-        "Cần thực phẩm/ nước uống",
-        "Cần thuốc men",
-        "Cần áo phao/thuyền",
-        "Cần di dời khẩn cấp",
-        "Sạt lở đất",
-        "Cây đổ/ đường sá hư hỏng",
-        "Mất điện/ mất liên lạc",
-      ];
-
-      const categories = [
-        "life_threatening",
-        "evacuation",
-        "supply",
-        "medical",
-        "equipment",
-      ];
-      const priorities = ["Critical", "High", "Medium"];
-
-      const newId = Date.now();
-      const newRequest = {
-        id: newId,
-        requestId: `FLOOD-${newId.toString().slice(-4)}`,
-        fullName: `Công dân ${Math.floor(Math.random() * 1000)}`,
-        phoneNumber: `09${Math.floor(Math.random() * 90000000 + 10000000)}`,
-        address: `${Math.floor(Math.random() * 1000)} Đường, Quận ${Math.floor(Math.random() * 12) + 1}`,
-        location: {
-          lat: 10.775 + (Math.random() - 0.5) * 0.1,
-          lng: 106.686 + (Math.random() - 0.5) * 0.1,
-        },
-        emergencyType:
-          floodTypes[Math.floor(Math.random() * floodTypes.length)],
-        emergencyCategory:
-          categories[Math.floor(Math.random() * categories.length)],
-        peopleCount: Math.floor(Math.random() * 6) + 1,
-        priorityLevel:
-          priorities[Math.floor(Math.random() * priorities.length)],
-        description: "Yêu cầu cứu trợ lũ lụt khẩn cấp",
-        status: "pending",
-        timestamp: new Date().toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        contactVia: "Phone Call",
-        imageUrl: "https://via.placeholder.com/150",
-        isNew: true,
-        waterLevel: `${(Math.random() * 3).toFixed(1)}m`,
-        specialNeeds: Math.random() > 0.5 ? "Có người già/trẻ nhỏ" : "Không",
-      };
-
-      setAllRequests((prev) => [newRequest, ...prev]);
-
-      // Tạo thông báo phù hợp
-      let notificationType = "info";
-      let notificationTitle = "🌧️ Yêu cầu cứu trợ mới";
-
-      if (newRequest.emergencyCategory === "life_threatening") {
-        notificationType = "critical";
-        notificationTitle = "🚨 CẤP CỨU: Nguy hiểm tính mạng!";
-
-        if (audioRef.current) {
-          audioRef.current
-            .play()
-            .catch((e) => console.log("Audio play failed:", e));
-          setIsPlayingAlert(true);
-          setTimeout(() => setIsPlayingAlert(false), 5000);
-        }
-      } else if (newRequest.emergencyCategory === "medical") {
-        notificationType = "medical";
-        notificationTitle = "💊 Yêu cầu thuốc khẩn";
-      } else if (newRequest.emergencyCategory === "supply") {
-        notificationType = "supply";
-        notificationTitle = "📦 Cần tiếp tế thực phẩm";
-      } else if (newRequest.emergencyCategory === "evacuation") {
-        notificationType = "evacuation";
-        notificationTitle = "🚨 Cần di dời khẩn cấp";
-      } else if (newRequest.emergencyCategory === "equipment") {
-        notificationType = "equipment";
-        notificationTitle = "🛟 Cần thiết bị cứu hộ";
-      }
-
-      const newNotification = {
-        id: newId,
-        type: notificationType,
-        title: notificationTitle,
-        message: `${newRequest.emergencyType} - ${newRequest.peopleCount} người, nước ngập ${newRequest.waterLevel}`,
-        timestamp: new Date().toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        requestId: newRequest.requestId,
-        read: false,
-      };
-
-      setNotifications((prev) => [newNotification, ...prev]);
-    };
-
-    // Simulate nhận yêu cầu mới mỗi 3 phút
-    const interval = setInterval(simulateNewFloodRequest, 180000);
-
-    // Simulate ngay 1 request để demo
-    const timeoutId = setTimeout(simulateNewFloodRequest, 3000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeoutId);
-    };
-  }, [usingRealData]);
-
 
   // Các hàm xử lý
   const handleRequestClick = (request) => {
@@ -515,7 +607,8 @@ const Dashboard = () => {
     setDispatchError("");
     setDispatchSuccess("");
     // nếu đã assign team thì set dropdown theo
-    if (request?.assignedTeamId) setSelectedTeamId(String(request.assignedTeamId));
+    if (request?.assignedTeamId)
+      setSelectedTeamId(String(request.assignedTeamId));
     else setSelectedTeamId("");
 
     if (request.isNew) {
@@ -526,6 +619,7 @@ const Dashboard = () => {
       );
     }
   };
+
   const handleDispatchMission = async () => {
     setDispatchError("");
     setDispatchSuccess("");
@@ -535,7 +629,6 @@ const Dashboard = () => {
       return;
     }
 
-    // chỉ dispatch khi pending
     if (selectedRequest.status !== "pending") {
       setDispatchError("Only PENDING requests can be dispatched.");
       return;
@@ -549,63 +642,47 @@ const Dashboard = () => {
     try {
       setDispatching(true);
 
-      const teamIdNum = Number(selectedTeamId);
-
       const res = await rescueMissionService.dispatch({
         rescueRequestID: selectedRequest.id,
-        rescueTeamID: teamIdNum,
+        rescueTeamID: selectedTeamId,
       });
 
-      if (!res?.success) {
+      console.log("Dispatch API response:", res);
+
+      // ✅ check success đúng
+      if (res?.success === false) {
         setDispatchError(res?.message || "Dispatch mission failed.");
         return;
       }
 
-      // backend có thể trả DispatchMissionResponseDTO, mình đọc kiểu “defensive”
-      const data = res?.data || {};
+      const data = res?.content || {};
+
       const missionId =
-        data?.rescueMissionID ??
-        data?.RescueMissionID ??
-        data?.missionId ??
-        data?.MissionId ??
+        data.rescueMissionID ??
+        data.RescueMissionID ??
         null;
 
-      const assignedTeamName = findTeamLabelById(teamIdNum);
+      const assignedTeamName = findTeamLabelById(selectedTeamId);
 
       updateRequestAfterDispatch(selectedRequest.id, {
-        assignedTeamId: teamIdNum,
+        assignedTeamId: selectedTeamId,
         assignedTeamName,
         rescueMissionId: missionId,
       });
 
       setDispatchSuccess(
-        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}` +
-        (missionId ? ` (Mission #${missionId})` : "")
+        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`
       );
+
+      await loadRealRequests();
     } catch (e) {
+      console.error(e);
       setDispatchError(e?.message || "Dispatch mission failed.");
     } finally {
       setDispatching(false);
     }
   };
 
-  const updateRequestStatus = (requestId, newStatus) => {
-    setAllRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId
-          ? { ...req, status: newStatus, isNew: false }
-          : req,
-      ),
-    );
-
-    if (selectedRequest && selectedRequest.id === requestId) {
-      setSelectedRequest((prev) => ({
-        ...prev,
-        status: newStatus,
-        isNew: false,
-      }));
-    }
-  };
   const updateRequestAfterDispatch = (requestId, payload) => {
     setAllRequests((prev) =>
       prev.map((req) => {
@@ -614,12 +691,9 @@ const Dashboard = () => {
         return {
           ...req,
           status: "in_progress",
-          isNew: false,
-
-          // lưu thông tin assign để UI dùng lại
-          assignedTeamId: payload.assignedTeamId ?? req.assignedTeamId,
-          assignedTeamName: payload.assignedTeamName ?? req.assignedTeamName,
-          rescueMissionId: payload.rescueMissionId ?? req.rescueMissionId,
+          assignedTeamId: payload.assignedTeamId,
+          assignedTeamName: payload.assignedTeamName,
+          rescueMissionId: payload.rescueMissionId,
         };
       })
     );
@@ -628,13 +702,13 @@ const Dashboard = () => {
       setSelectedRequest((prev) => ({
         ...prev,
         status: "in_progress",
-        isNew: false,
-        assignedTeamId: payload.assignedTeamId ?? prev.assignedTeamId,
-        assignedTeamName: payload.assignedTeamName ?? prev.assignedTeamName,
-        rescueMissionId: payload.rescueMissionId ?? prev.rescueMissionId,
+        assignedTeamId: payload.assignedTeamId,
+        assignedTeamName: payload.assignedTeamName,
+        rescueMissionId: payload.rescueMissionId,
       }));
     }
   };
+
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((noti) => ({ ...noti, read: true })));
   };
@@ -696,23 +770,22 @@ const Dashboard = () => {
       <div className="dashboard-content">
         {/* Dashboard Header */}
         <div className="dashboard-header">
-          <div>
+          <div className="noti">
             <h1>🌊 Flood Relief Coordination Board</h1>
-
-            <div className="noti">
-              <p className="dashboard-subtitle">
-                Emergency relief management and coordination system in flood
-                situations.
-              </p>
-
+            <div className="button">
               <button
-                className="notification-bell"
+                className={`notification-bell ${unreadCount > 0 ? "active" : ""}`}
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 🔔
                 {unreadCount > 0 && (
                   <span className="notification-badge">{unreadCount}</span>
                 )}
+              </button>
+
+              <button className="logout-btn" onClick={handleLogout}>
+                <span className="logout-icon">↩</span>
+                <span>Logout</span>
               </button>
             </div>
           </div>
@@ -808,15 +881,6 @@ const Dashboard = () => {
               <div className="stat-number">{stats.critical}</div>
             </div>
           </div>
-
-          <div className="stat-card">
-            <div className="stat-icon flood">💦</div>
-            <div className="stat-info">
-              <h3>High water level areas</h3>
-              <div className="stat-number">{stats.highWaterLevel}</div>
-              <div className="stat-sub">(&gt;1.5m)</div>
-            </div>
-          </div>
         </div>
 
         {/* Alert Banner cho tình huống nguy cấp */}
@@ -858,79 +922,67 @@ const Dashboard = () => {
 
         {/* Filter Controls */}
         <div className="filter-section">
-          <h3>🔍 Filter rescue requests</h3>
+          <h3>🔎 Filter rescue requests</h3>
+
           <div className="filter-controls">
             <div className="filter-group">
-              <label>Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="filter-select"
-              >
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="all">All</option>
-              </select>
+              <span className="filter-label">Rescue request status</span>
+              <div className="status-tabs">
+                <button
+                  className={`status-tab ${statusFilter === "active" ? "active" : ""}`}
+                  onClick={() => setStatusFilter("active")}
+                >
+                  ACTIVE
+                </button>
+
+                <button
+                  className={`status-tab ${statusFilter === "pending" ? "active" : ""}`}
+                  onClick={() => setStatusFilter("pending")}
+                >
+                  PENDING
+                </button>
+
+                <button
+                  className={`status-tab ${statusFilter === "in_progress" ? "active" : ""}`}
+                  onClick={() => setStatusFilter("in_progress")}
+                >
+                  IN_PROGRESS
+                </button>
+
+                <button
+                  className={`status-tab ${statusFilter === "completed" ? "active" : ""}`}
+                  onClick={() => setStatusFilter("completed")}
+                >
+                  COMPLETED
+                </button>
+              </div>
             </div>
 
             <div className="filter-group">
-              <label>Type of request</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="filter-select"
-              >
-                {emergencyTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type === "all" ? "All types" : type}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <span className="filter-label">Type of request</span>
+              <div className="type-tabs">
+                <button
+                  className={`type-tab ${typeFilter === "all" ? "active" : ""}`}
+                  onClick={() => setTypeFilter("all")}
+                >
+                  All
+                </button>
 
-            <div className="filter-group">
-              <label>Priority Level</label>
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All priorities</option>
-                <option value="Critical">Critical</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
+                <button
+                  className={`type-tab emergency ${typeFilter === "emergency" ? "active" : ""}`}
+                  onClick={() => setTypeFilter("emergency")}
+                >
+                  🚨 Emergency
+                </button>
 
-            <div className="filter-group">
-              <label>Flood Level</label>
-              <select
-                value={floodLevelFilter}
-                onChange={(e) => setFloodLevelFilter(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All flood levels</option>
-                <option value="low">Low (&lt;0.5m)</option>
-                <option value="medium">Medium (0.5-1.5m)</option>
-                <option value="high">High (&gt;1.5m)</option>
-              </select>
+                <button
+                  className={`type-tab supply ${typeFilter === "supply" ? "active" : ""}`}
+                  onClick={() => setTypeFilter("supply")}
+                >
+                  📦 Supply
+                </button>
+              </div>
             </div>
-
-            <button
-              className="reset-filters-btn"
-              onClick={() => {
-                setStatusFilter("active");
-                setTypeFilter("all");
-                setPriorityFilter("all");
-                setFloodLevelFilter("all");
-                setShowCompleted(false);
-              }}
-            >
-              🔄 Reset filters
-            </button>
           </div>
         </div>
 
@@ -939,7 +991,7 @@ const Dashboard = () => {
           {/* Left: Requests List */}
           <div className="requests-panel">
             <div className="panel-header">
-              <div>
+              <div className="list">
                 <h2>📋 List of requirements ({filteredRequests.length})</h2>
                 <span className="last-update">
                   {stats.newRequests > 0 && (
@@ -949,18 +1001,13 @@ const Dashboard = () => {
                   )}
                 </span>
               </div>
-              <div className="request-counts">
-                <span className="count-badge pending">{stats.pending}</span>
-                <span className="count-badge in-progress">
-                  {stats.inProgress}
-                </span>
-              </div>
+
             </div>
 
             <div className="requests-list">
               {filteredRequests.length === 0 ? (
                 <div className="no-requests">
-                  <p>No requests found with current filters</p>
+                  <p>No rescue requests found</p>
                   <button
                     className="btn-show-completed"
                     onClick={() => setShowCompleted(true)}
@@ -969,7 +1016,7 @@ const Dashboard = () => {
                   </button>
                 </div>
               ) : (
-                filteredRequests.map((request) => (
+                paginatedRequests.map((request) => (
                   <div
                     key={request.id}
                     className={`request-card ${selectedRequest?.id === request.id ? "selected" : ""} ${request.isNew ? "new" : ""}`}
@@ -1028,21 +1075,9 @@ const Dashboard = () => {
                         <div className="detail-row">
                           <span className="detail-label">📍 Address:</span>
                           <span className="detail-value">
-                            {request.address}
-                          </span>
-                        </div>
-
-                        <div className="detail-row">
-                          <span className="detail-label">💦 Water level:</span>
-                          <span className="detail-value">
-                            {request.waterLevel}
-                          </span>
-                        </div>
-
-                        <div className="detail-row">
-                          <span className="detail-label">👥 Numbers:</span>
-                          <span className="detail-value">
-                            {request.peopleCount} people
+                            {selectedRequest?.id === request.id
+                              ? addressMap[request.id] || request.address
+                              : request.address}
                           </span>
                         </div>
                       </div>
@@ -1085,52 +1120,94 @@ const Dashboard = () => {
                 ))
               )}
             </div>
+
+            {filteredRequests.length > 0 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Previous
+                </button>
+
+                <div className="pagination-pages">
+                  {Array.from({ length: totalPages }, (_, index) => {
+                    const page = index + 1;
+                    return (
+                      <button
+                        key={page}
+                        className={`pagination-page ${currentPage === page ? "active" : ""}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  className="pagination-btn"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right: Map and Details */}
+
           <div className="map-details-panel">
-            {/* Map Section */}
             <div className="map-section">
-              <div className="panel-header">
-                <h2>🗺️ Flood Map</h2>
-                <div className="map-legend">
-                  <div className="legend-item">
-                    <span className="legend-dot critical"></span>
-                    <span>Emergency</span>
-                  </div>
-                  <div className="legend-item">
-                    <span className="legend-dot medical"></span>
-                    <span>Medical</span>
-                  </div>
-                  <div className="legend-item">
-                    <span className="legend-dot supply"></span>
-                    <span>Supply</span>
+              <div className="map-wrapper">
+                <div className="panel-header">
+                  <h2>🗺️ Flood Map</h2>
+
+                  <div className="map-legend">
+                    <div className="legend-item">
+                      <span className="legend-dot critical"></span>
+                      <span>Emergency</span>
+                    </div>
+
+                    <div className="legend-item">
+                      <span className="legend-dot supply"></span>
+                      <span>Supply</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="map-container">
-                <MapContainer
-                  center={mapCenter}
-                  zoom={mapZoom}
-                  style={{
-                    height: "400px",
-                    width: "100%",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <ChangeView center={mapCenter} zoom={mapZoom} />
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  />
+                <div className="map-container">
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={mapZoom}
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      borderRadius: "18px",
+                    }}
+                  >
+                    <ChangeView center={mapCenter} zoom={mapZoom} />
 
-                  {allRequests
-                    .filter((req) =>
-                      !showCompleted ? req.status !== "completed" : true,
-                    )
-                    .map((request) => {
-                      return (
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution="&copy; OpenStreetMap contributors"
+                    />
+
+                    {allRequests
+                      .filter((req) =>
+                        !showCompleted ? req.status !== "completed" : true,
+                      )
+                      .filter(
+                        (req) =>
+                          req.location &&
+                          Number.isFinite(req.location.lat) &&
+                          Number.isFinite(req.location.lng),
+                      )
+                      .map((request) => (
                         <Marker
                           key={request.id}
                           position={[
@@ -1138,9 +1215,11 @@ const Dashboard = () => {
                             request.location.lng,
                           ]}
                           icon={
-                            request.priorityLevel === "Critical"
+                            request.emergencyCategory === "life_threatening"
                               ? dotIcon("red")
-                              : dotIcon("green")
+                              : request.emergencyCategory === "supply"
+                                ? dotIcon("gold")
+                                : dotIcon("gray")
                           }
                           eventHandlers={{
                             click: () => handleRequestClick(request),
@@ -1154,297 +1233,403 @@ const Dashboard = () => {
                               <br />
                               <small>Water level: {request.waterLevel}</small>
                               <br />
-                              <small>
-                                Number of people: {request.peopleCount}
-                              </small>
+                              <small>People: {request.peopleCount}</small>
                               <br />
                               {request.isNew && <small>🆕 NEW</small>}
                             </div>
                           </Popup>
                         </Marker>
-                      );
-                    })}
-                </MapContainer>
-              </div>
-            </div>
+                      ))}
+                  </MapContainer>
+                </div>
 
-            {/* Details Section */}
-            <div className="details-section">
-              {selectedRequest ? (
-                <div className="request-details-card">
-                  <div className="details-header">
-                    <h3>📋 Request details #{selectedRequest.requestId}</h3>
-                    {selectedRequest.isNew && (
-                      <span className="new-tag">🆕 NEW</span>
-                    )}
-                  </div>
+                {/* PANEL NỔI */}
+                <div
+                  className={`details-overlay ${selectedRequest ? "open" : ""}`}
+                >
+                  {selectedRequest && (
+                    <div className="details-section floating">
+                      <div className="request-details-card1">
+                        <div className="details-header1">
+                          <h3>
+                            📋 Request details #{selectedRequest.requestId}
+                          </h3>
 
-                  <div className="details-grid">
-                    <div className="detail-group">
-                      <h4>👤 Information of requester</h4>
-                      <div className="detail-item">
-                        <span className="detail-label">
-                          Full name:{" "}
-                          <span className="detail-value">
-                            {selectedRequest.fullName}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">
-                          Phone number:{" "}
-                          <a
-                            href={`tel:${selectedRequest.phoneNumber}`}
-                            className="detail-value link"
-                          >
-                            {selectedRequest.phoneNumber}
-                          </a>
-                        </span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">
-                          Contact via:{" "}
-                          <span className="detail-value">
-                            {selectedRequest.contactVia}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="detail-group">
-                      <h4>🌊 Flood Status</h4>
-                      <div className="detail-item">
-                        <span className="detail-label">
-                          Emergency type:{" "}
-                          <span className="detail-value badge">
-                            {selectedRequest.emergencyType ===
-                              "People trapped in the water"
-                              ? "🌊"
-                              : selectedRequest.emergencyType ===
-                                "The house was flooded."
-                                ? "🏠"
-                                : selectedRequest.emergencyType ===
-                                  "Food/water is needed."
-                                  ? "📦"
-                                  : selectedRequest.emergencyType ===
-                                    "Medicine is needed."
-                                    ? "💊"
-                                    : selectedRequest.emergencyType ===
-                                      "Life jackets/boat needed."
-                                      ? "🛟"
-                                      : selectedRequest.emergencyType ===
-                                        "Landslide"
-                                        ? "⛰️"
-                                        : "🚨"}
-                            {selectedRequest.emergencyType}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">
-                          Water level:{" "}
-                          <span className="detail-value flood-level">
-                            {selectedRequest.waterLevel}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">
-                          Number of people:{" "}
-                          <span className="detail-value">
-                            {selectedRequest.peopleCount} people
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="detail-group full-width">
-                      <h4>📍 Location Information</h4>
-                      <div className="detail-item">
-                        <span className="detail-label1">
-                          Address:{" "}
-                          <span className="detail-value">
-                            {selectedRequest.address}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label1">
-                          Coordinates:{" "}
-                          <span className="detail-value">
-                            {selectedRequest.location.lat.toFixed(6)},{" "}
-                            {selectedRequest.location.lng.toFixed(6)}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="detail-group full-width">
-                      <h4>📝 Description of situation</h4>
-                      <div className="description-box">
-                        {selectedRequest.description}
-                      </div>
-                    </div>
-
-                    <div className="detail-group">
-                      <h4>🎯 Special needs</h4>
-                      <div className="special-needs">
-                        {selectedRequest.specialNeeds}
-                      </div>
-                    </div>
-
-                    <div className="detail-group">
-                      <h4>🖼️ Images</h4>
-                      <div className="image-preview">
-                        <img
-                          src={selectedRequest.imageUrl}
-                          alt="Hình ảnh tình trạng"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="action-buttons">
-                    <div className="status-info">
-                      <span className="status-label">Current status:</span>
-                      <span
-                        className={`status-badge ${selectedRequest.status}`}
-                      >
-                        {selectedRequest.status === "pending"
-                          ? "⏳ Pending"
-                          : selectedRequest.status === "in_progress"
-                            ? "🚤 In progress"
-                            : "✅ Completed"}
-                      </span>
-
-                      {selectedRequest.status === "pending" && (
-                        <button
-                          className="btn btn-primary"
-                          onClick={() =>
-                            updateRequestStatus(
-                              selectedRequest.id,
-                              "in_progress",
-                            )
-                          }
-                        >
-                          🚤 Receiving rescue
-                        </button>
-                      )}
-
-                      {selectedRequest.status === "in_progress" && (
-                        <button
-                          className="btn btn-success"
-                          onClick={() =>
-                            updateRequestStatus(selectedRequest.id, "completed")
-                          }
-                        >
-                          ✅ Mark as completed
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="action-buttons-group">
-
-                      {/* DISPATCH SECTION */}
-                      <div className="dispatch-section">
-                        {selectedRequest?.assignedTeamId && (
-                          <div className="dispatch-assigned">
-                            Assigned: <b>{selectedRequest.assignedTeamName || `Team #${selectedRequest.assignedTeamId}`}</b>
-                            {selectedRequest.rescueMissionId && (
-                              <span className="dispatch-mission"> • Mission #{selectedRequest.rescueMissionId}</span>
+                          <div style={{ display: "flex", gap: "10px" }}>
+                            {selectedRequest.isNew && (
+                              <span className="new-tag">🆕 NEW</span>
                             )}
+
+                            <button
+                              className="details-close-btn"
+                              onClick={() => setSelectedRequest(null)}
+                            >
+                              ×
+                            </button>
                           </div>
-                        )}
-                        <div className="dispatch-row">
-                          <select
-                            className="dispatch-select"
-                            value={selectedTeamId}
-                            onChange={(e) => setSelectedTeamId(e.target.value)}
-                            disabled={teamsLoading || !selectedRequest || selectedRequest.status !== "pending"}
-                          >
-                            <option value="">
-                              {teamsLoading ? "Loading teams..." : "Select rescue team"}
-                            </option>
-
-                            {teams.map((t) => {
-                              const id = t.rescueTeamID ?? t.RescueTeamID ?? t.id ?? t.Id;
-                              const label =
-                                t.teamName ??
-                                t.name ??
-                                t.rescueTeamName ??
-                                t.RescueTeamName ??
-                                `Team #${id}`;
-                              return (
-                                <option key={id} value={id}>
-                                  {label}
-                                </option>
-                              );
-                            })}
-                          </select>
-
-                          <button
-                            className="btn btn-dispatch"
-                            onClick={handleDispatchMission}
-                            disabled={
-                              dispatching ||
-                              !selectedTeamId ||
-                              !selectedRequest ||
-                              selectedRequest.status !== "pending"}
-                          >
-                            {dispatching ? "Dispatching..." : "🚑 Dispatch Team"}
-                          </button>
                         </div>
 
-                        {teamsError && <div className="dispatch-msg error">{teamsError}</div>}
-                        {dispatchError && <div className="dispatch-msg error">{dispatchError}</div>}
-                        {dispatchSuccess && (
-                          <div className="dispatch-msg success"> {dispatchSuccess}</div>
-                        )}
+                        <div className="details-grid1">
+                          <div className="detail-group1">
+                            <h4>👤 Information of requester</h4>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Full name:
+                                <span className="detail-value1">
+                                  {selectedRequest.fullName}
+                                </span>
+                              </span>
+                            </div>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Phone:
+                                {selectedRequest.phoneNumber ? (
+                                  <a
+                                    href={`tel:${selectedRequest.phoneNumber}`}
+                                    className="detail-value link"
+                                  >
+                                    {selectedRequest.phoneNumber}
+                                  </a>
+                                ) : (
+                                  <span className="detail-value">N/A</span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="detail-group1">
+                            <h4>🌊 Flood Status</h4>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Emergency type:
+                                <span className="detail-value badge">
+                                  {selectedRequest.emergencyType}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="detail-group1 full-width1">
+                            <h4>📍 Location</h4>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Address:
+                                <span className="detail-value">
+                                  {addressMap[selectedRequest.id] ||
+                                    selectedRequest.address}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="action-buttons1">
+                          <div className="dispatch-box">
+                            <div className="dispatch-header">
+                              <h4>🚑 Dispatch rescue team</h4>
+                            </div>
+
+                            <div className="dispatch-form">
+                              <select
+                                className="team-select"
+                                value={selectedTeamId}
+                                onChange={(e) => setSelectedTeamId(e.target.value)}
+                                disabled={
+                                  dispatching ||
+                                  selectedRequest.status !== "pending" ||
+                                  teamsLoading
+                                }
+                              >
+                                <option value="">
+                                  {teamsLoading
+                                    ? "Loading teams..."
+                                    : availableTeams.length === 0
+                                      ? "No available rescue teams"
+                                      : "Select rescue team"}
+                                </option>
+
+                                {teams.map((team) => (
+                                  <option
+                                    key={getTeamId(team)}
+                                    value={getTeamId(team)}
+                                    disabled={String(team.currentStatus).toLowerCase() !== "available"}
+                                  >
+                                    {getTeamLabel(team)} ({team.currentStatus})
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                className="btn btn-primary"
+                                onClick={handleDispatchMission}
+                                disabled={
+                                  dispatching ||
+                                  !selectedTeamId ||
+                                  selectedRequest.status !== "pending"
+                                }
+                              >
+                                {dispatching
+                                  ? "Dispatching..."
+                                  : "🚀 Dispatch Mission"}
+                              </button>
+                            </div>
+
+                            {selectedRequest.assignedTeamName && (
+                              <div className="dispatch-info">
+                                <strong>Assigned team:</strong>{" "}
+                                {selectedRequest.assignedTeamName}
+                                {selectedRequest.rescueMissionId && (
+                                  <span>
+                                    {" "}
+                                    | Mission ID: #
+                                    {selectedRequest.rescueMissionId}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {dispatchError && (
+                              <p className="dispatch-error">{dispatchError}</p>
+                            )}
+                            {dispatchSuccess && (
+                              <p className="dispatch-success">
+                                {dispatchSuccess}
+                              </p>
+                            )}
+                            {teamsError && (
+                              <p className="dispatch-error">{teamsError}</p>
+                            )}
+                          </div>
+
+                          <div className="status-info1">
+                            <span className="status-label1">
+                              Current status:
+                            </span>
+
+                            <span
+                              className={`status-badge ${selectedRequest.status}`}
+                            >
+                              {selectedRequest.status === "pending"
+                                ? "⏳ Pending"
+                                : selectedRequest.status === "in_progress"
+                                  ? "🚤 In progress"
+                                  : "✅ Completed"}
+                            </span>
+                          </div>
+
+                          <div className="button-row1">
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() =>
+                                window.open(
+                                  `https://maps.google.com/?q=${selectedRequest.location.lat},${selectedRequest.location.lng}`,
+                                  "_blank",
+                                )
+                              }
+                            >
+                              🗺️ View map
+                            </button>
+
+                            <button
+                              className="btn btn-emergency"
+                              onClick={() =>
+                                window.open(
+                                  `tel:${selectedRequest.phoneNumber}`,
+                                )
+                              }
+                            >
+                              📞 Call
+                            </button>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                      {/* OLD BUTTONS */}
-                      <div className="button-row1">
-                        ...
-                      </div>
+        <div className="incident-section">
+          <div className="panel-header">
+            <h2>⚠️ Pending Incident Reports</h2>
+          </div>
 
+          {incidentLoading && (
+            <p className="incident-state">Loading incidents...</p>
+          )}
+          {incidentError && <p className="incident-error">{incidentError}</p>}
 
-                      <div className="button-row1">
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() =>
-                            window.open(
-                              `https://maps.google.com/?q=${selectedRequest.location.lat},${selectedRequest.location.lng}`,
-                              "_blank",
-                            )
-                          }
-                        >
-                          🗺️ View map
-                        </button>
+          {!incidentLoading && pendingIncidents.length === 0 && (
+            <p className="incident-state">No pending incidents.</p>
+          )}
 
-                        <button
-                          className="btn btn-emergency"
-                          onClick={() =>
-                            window.open(`tel:${selectedRequest.phoneNumber}`)
-                          }
-                        >
-                          📞 Call now
-                        </button>
-                      </div>
+          <div className="incident-list">
+            {pendingIncidents.map((incident) => (
+              <div
+                key={incident.incidentReportID}
+                className={`incident-card ${selectedIncident?.incidentReportID === incident.incidentReportID ? "selected" : ""}`}
+                onClick={() => setSelectedIncident(incident)}
+              >
+                <div className="incident-card-header">
+                  <div className="incident-id">
+                    #{incident.incidentReportID}
+                  </div>
+                  <div className="incident-status pending">Pending</div>
+                </div>
+
+                <div className="incident-card-body">
+                  <h4 className="incident-title">⚠️ {incident.title}</h4>
+
+                  <div className="incident-details">
+                    <div className="incident-row">
+                      <span className="incident-label">Team:</span>
+                      <span className="incident-value">
+                        {incident.teamName}
+                      </span>
+                    </div>
+
+                    <div className="incident-row">
+                      <span className="incident-label">Reporter:</span>
+                      <span className="incident-value">
+                        {incident.reporterName}
+                      </span>
+                    </div>
+
+                    <div className="incident-row">
+                      <span className="incident-label">Description:</span>
+                      <span className="incident-value">
+                        {incident.description}
+                      </span>
+                    </div>
+
+                    <div className="incident-row">
+                      <span className="incident-label">Created:</span>
+                      <span className="incident-value">
+                        {incident.createdTime
+                          ? new Date(incident.createdTime).toLocaleString()
+                          : ""}
+                      </span>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="no-selection">
-                  <div className="no-selection-icon">👈</div>
-                  <h3>Select a rescue request</h3>
-                  <p>
-                    Click on any request from the list to view details and
-                    coordinate rescue efforts
-                  </p>
+              </div>
+            ))}
+          </div>
+        </div>
+        {selectedIncident && (
+          <div className="incident-section">
+            <div className="panel-header">
+              <h2>🛠 Resolve Incident</h2>
+            </div>
+
+            <div className="request-details-card">
+              <div className="details-grid">
+                <div className="detail-group full-width">
+                  <h4>Title</h4>
+                  <div className="description-box">
+                    {selectedIncident.title}
+                  </div>
                 </div>
-              )}
+
+                <div className="detail-group full-width">
+                  <h4>Description</h4>
+                  <div className="description-box">
+                    {selectedIncident.description}
+                  </div>
+                </div>
+
+                <div className="detail-group">
+                  <h4>Team</h4>
+                  <div className="special-needs">
+                    {selectedIncident.teamName}
+                  </div>
+                </div>
+
+                <div className="detail-group">
+                  <h4>Reporter</h4>
+                  <div className="special-needs">
+                    {selectedIncident.reporterName}
+                  </div>
+                </div>
+
+                <div className="detail-group full-width">
+                  <h4>Coordinator Note</h4>
+                  <textarea
+                    value={resolveNote}
+                    onChange={(e) => setResolveNote(e.target.value)}
+                    rows={4}
+                    placeholder="Enter coordinator note..."
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="button-row1">
+                <button
+                  className="btn btn-success"
+                  onClick={() =>
+                    handleResolveIncident(selectedIncident.incidentReportID)
+                  }
+                  disabled={resolvingIncident || !resolveNote.trim()}
+                >
+                  {resolvingIncident ? "Resolving..." : "✅ Resolve Incident"}
+                </button>
+              </div>
             </div>
           </div>
+        )}
+        <div className="incident-section">
+          <div className="panel-header">
+            <h2>📜 Incident History</h2>
+          </div>
+
+          {incidentHistory.length === 0 ? (
+            <p>No resolved incidents yet.</p>
+          ) : (
+            <div className="history-tablewrap">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Team</th>
+                    <th>Reporter</th>
+                    <th>Resolver</th>
+                    <th>Created</th>
+                    <th>Resolved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incidentHistory.map((item) => (
+                    <tr key={item.incidentReportID}>
+                      <td>{item.title}</td>
+                      <td>{item.teamName}</td>
+                      <td>{item.reporterName}</td>
+                      <td>{item.resolverName}</td>
+                      <td>
+                        {item.createdTime
+                          ? new Date(item.createdTime).toLocaleString()
+                          : ""}
+                      </td>
+                      <td>
+                        {item.resolvedTime
+                          ? new Date(item.resolvedTime).toLocaleString()
+                          : ""}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -3,7 +3,14 @@ import { useNavigate } from "react-router-dom";
 import "./RequestRescue.css";
 import Header from "../../../components/common/Header";
 
-import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -36,11 +43,42 @@ const locationIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
+const toApiRequestType = (uiValue) => {
+  // nếu UI đang lưu key dạng enum/string khác, map về chuẩn BE
+  if (uiValue === "Rescue" || uiValue === "Supply") return uiValue;
+
+  // ví dụ UI đang dùng: "Supplies" hoặc "SUPPLY_TYPE"
+  if (uiValue === "Supplies" || uiValue === "SUPPLY_TYPE") return "Supply";
+
+  // ví dụ UI đang dùng: "RESCUE" hoặc "RESCUE_TYPE"
+  if (uiValue === "RESCUE" || uiValue === "RESCUE_TYPE") return "Rescue";
+
+  // fallback
+  return "Rescue";
+};
+
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom]);
+    if (!center || center.length !== 2) return;
+
+    map.invalidateSize();
+    map.flyTo(center, zoom, {
+      animate: true,
+      duration: 1.2,
+    });
+  }, [map, center, zoom]);
+
+  return null;
+};
+
+const MapClickHandler = ({ onMapClick }) => {
+  useMapEvents({
+    click(e) {
+      onMapClick(e);
+    },
+  });
+
   return null;
 };
 
@@ -55,12 +93,14 @@ const RequestRescue = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
+    email: "",
     address: "",
     emergencyType: "Medical Emergency",
     peopleCount: 1,
     priorityLevel: "Medium",
     description: "",
     contactVia: "Phone Call",
+    agreeTerms: false,
   });
 
   // IMAGE upload (Cloudinary)
@@ -77,11 +117,11 @@ const RequestRescue = () => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?` +
-        `format=json` +
-        `&q=${encodeURIComponent(address)}` +
-        `&countrycodes=vn` +
-        `&addressdetails=1` +
-        `&limit=1`,
+          `format=json` +
+          `&q=${encodeURIComponent(address)}` +
+          `&countrycodes=vn` +
+          `&addressdetails=1` +
+          `&limit=1`,
         {
           headers: {
             "Accept-Language": "vi",
@@ -110,9 +150,9 @@ const RequestRescue = () => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?` +
-        `format=json` +
-        `&lat=${lat}` +
-        `&lon=${lng}`,
+          `format=json` +
+          `&lat=${lat}` +
+          `&lon=${lng}`,
         {
           headers: {
             "Accept-Language": "vi",
@@ -147,6 +187,7 @@ const RequestRescue = () => {
         const { latitude, longitude } = position.coords;
         setMapCenter([latitude, longitude]);
         setUserLocation([latitude, longitude]);
+        setMapZoom(16);
 
         // Lấy địa chỉ từ tọa độ
         const address = await getAddressFromCoordinates(latitude, longitude);
@@ -232,71 +273,60 @@ const RequestRescue = () => {
 
   const emergencyTypes = [
     {
-      value: "Người mắc kẹt trong nước",
+      value: "People trapped in floodwater",
       icon: "🌊",
-      description: "Người bị mắc kẹt do nước lũ dâng cao",
+      description: "People trapped due to rising floodwater",
     },
     {
-      value: "Nhà bị ngập",
+      value: "House flooded",
       icon: "🏠",
-      description: "Nhà cửa bị ngập nước, cần di dời",
+      description: "House flooded and needs evacuation",
     },
     {
-      value: "Cần thực phẩm/ nước uống",
+      value: "Need food / drinking water",
       icon: "📦",
-      description: "Cần tiếp tế lương thực, nước sạch",
+      description: "Require food supplies and clean water",
     },
     {
-      value: "Cần thuốc men",
+      value: "Need medical supplies",
       icon: "💊",
-      description: "Cần thuốc men, vật tư y tế",
+      description: "Require medicine and medical equipment",
     },
     {
-      value: "Cần áo phao/thuyền",
+      value: "Need life jackets / boats",
       icon: "🛟",
-      description: "Cần phương tiện cứu hộ, thiết bị an toàn",
+      description: "Require rescue equipment or safety devices",
     },
     {
-      value: "Cần di dời khẩn cấp",
+      value: "Urgent evacuation needed",
       icon: "🚨",
-      description: "Cần sơ tán đến nơi an toàn",
+      description: "Need to be evacuated to a safe location immediately",
     },
     {
-      value: "Sạt lở đất",
+      value: "Landslide",
       icon: "⛰️",
-      description: "Sạt lở đất đá, đe dọa nhà cửa",
+      description: "Landslide threatening houses or people",
     },
     {
-      value: "Cây đổ/ đường sá hư hỏng",
+      value: "Fallen trees / damaged roads",
       icon: "🛣️",
-      description: "Cây đổ, đường sá hư hỏng do lũ",
+      description: "Fallen trees or damaged roads due to flooding",
     },
     {
-      value: "Mất điện/ mất liên lạc",
+      value: "Power outage / communication loss",
       icon: "📡",
-      description: "Mất điện, mất liên lạc với bên ngoài",
+      description: "Power outage or loss of communication",
     },
   ];
 
-  const priorityLevels = [
-    {
-      value: "Critical",
-      color: "#ef4444",
-      label: "Life-threatening situation",
-    },
-    { value: "High", color: "#f97316", label: "Urgent assistance needed" },
-    { value: "Medium", color: "#eab308", label: "Serious situation" },
-    { value: "Low", color: "#22c55e", label: "Non-critical emergency" },
-  ];
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setIsLoading(true);
 
     // Validation
     const requiredFields = [
       "fullName",
       "phoneNumber",
+      "email",
       "address",
       "emergencyType",
     ];
@@ -316,11 +346,7 @@ const RequestRescue = () => {
       return;
     }
 
-    const agreeChecked = document.querySelector(
-      'input[name="agreeTerms"]'
-    )?.checked;
-
-    if (!agreeChecked) {
+    if (!formData.agreeTerms) {
       alert("Please confirm the emergency agreement before submitting.");
       setIsLoading(false);
       return;
@@ -339,47 +365,61 @@ const RequestRescue = () => {
       }
 
       // lat/long lấy từ mapCenter (giữ map không đổi)
-      const lat = mapCenter?.[0];
-      const long = mapCenter?.[1];
+      const locationLatitude = mapCenter?.[0];
+      const locationLongitude = mapCenter?.[1];
 
       // Map emergencyType -> requestType backend
       const isSupply =
-        formData.emergencyType === "Cần thực phẩm/ nước uống" ||
-        formData.emergencyType === "Cần thuốc men" ||
-        formData.emergencyType === "Cần áo phao/thuyền";
+        formData.emergencyType === "Need food / drinking water" ||
+        formData.emergencyType === "Need medical supplies" ||
+        formData.emergencyType === "Need life jackets / boats";
 
       const payload = {
-        requestType: isSupply ? "SUPPLY_TYPE" : "RESCUE_TYPE",
-        description: formData.description?.trim() || "",
-        lat,
-        long,
+        citizenName: formData.fullName.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        images: imageUrls,
+        citizenEmail: formData.email.trim(),
+        address: formData.address.trim(),
+        requestType: isSupply ? "Supply" : "Rescue",
+        description: formData.description?.trim() || "",
+        locationLatitude: Number(locationLatitude),
+        locationLongitude: Number(locationLongitude),
+        peopleCount: Number(formData.peopleCount) || 1,
+        imageUrls: imageUrls,
       };
 
-      console.log("CREATE RESCUE REQUEST PAYLOAD:", payload);
+      console.log(
+        "CREATE RESCUE REQUEST PAYLOAD:",
+        JSON.stringify(payload, null, 2),
+      );
 
       // Gọi API
       const api = await createRescueRequest(payload);
-
+      console.log("API RESPONSE:", api);
       // ApiResponse -> shortCode nằm trong api.data
-      const shortCode = api?.data?.shortCode ?? api?.data?.ShortCode;
+      const created = api?.content;
+      const shortCode = created?.shortCode;
+
       if (!shortCode) throw new Error("Server did not return shortCode");
 
       // Lưu shortCode để trang status dùng
       localStorage.setItem("lastShortCode", shortCode);
 
       setShowSuccess(true);
-      setIsLoading(false);
-
-      // chuyển trang (nếu bạn muốn truyền code thì dùng query)
+      localStorage.setItem("lastShortCode", shortCode);
+      navigate(`/citizen/request-status`);
       setTimeout(() => {
-        navigate(`/citizen/request-status?code=${shortCode}`);
-      }, 800);
+        navigate(`/citizen/request-status`);
+      }, 2000);
+      return;
+      // chuyển trang (nếu bạn muốn truyền code thì dùng query)
     } catch (error) {
       console.error(error);
-      alert("Failed to submit rescue request. Please try again!");
+      alert(
+        error?.message || "Failed to submit rescue request. Please try again!",
+      );
+    } finally {
       setIsLoading(false);
+      setUploadingImage(false);
     }
   };
 
@@ -447,7 +487,7 @@ const RequestRescue = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="request-form">
+        <form className="request-form">
           {/* Step 1: Basic Information */}
           {currentStep === 1 && (
             <div className="form-step">
@@ -456,118 +496,129 @@ const RequestRescue = () => {
                 Personal Information
               </h2>
 
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">
-                    Full Name <span className="label-required">Required</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    Phone Number{" "}
-                    <span className="label-required">Required</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
-                    placeholder="Enter your phone number"
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label className="form-label">
-                    Address / Location{" "}
-                    <span className="label-required">Required</span>
-                    <button
-                      type="button"
-                      className="location-btn"
-                      onClick={getCurrentLocation}
-                      disabled={gettingLocation}
-                    >
-                      {gettingLocation
-                        ? "📡 Locating..."
-                        : "📍 Use current location"}
-                    </button>
-                  </label>
-
-                  {/* Address input + button */}
-                  <div className="address-row">
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      onBlur={handleAddressBlur}
-                      placeholder="Enter exact address or landmark"
-                      className="form-input"
-                      required
-                    />
-                  </div>
-
-                  {/* Error */}
-                  {locationError && (
-                    <div className="location-error">
-                      <span className="error-icon">⚠️</span>
-                      {locationError}
+              {/* Wrapper 2 cột */}
+              <div className="step-two-columns">
+                {/* Cột trái: form nhập liệu */}
+                <div className="step-left">
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label className="form-label">
+                        Full Name{" "}
+                        <span className="label-required">Required</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        placeholder="Enter your full name"
+                        className="form-input"
+                        required
+                      />
                     </div>
-                  )}
 
-                  {/* Location settings (checkbox + info) */}
-                </div>
-              </div>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Phone Number{" "}
+                        <span className="label-required">Required</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                        placeholder="Enter your phone number"
+                        className="form-input"
+                        required
+                      />
+                    </div>
 
-              <div className="map-container">
-                <div className="map-header">
-                  <div className="map-actions"></div>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Email <span className="label-required">Required</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="Enter your email"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group full-width">
+                      <label className="form-label">
+                        Address / Location{" "}
+                        <span className="label-required">Required</span>
+                        <button
+                          type="button"
+                          className="location-btn"
+                          onClick={getCurrentLocation}
+                          disabled={gettingLocation}
+                        >
+                          {gettingLocation
+                            ? "📡 Locating..."
+                            : "📍 Use current location"}
+                        </button>
+                      </label>
+
+                      <div className="address-row">
+                        <textarea
+                          name="address"
+                          value={formData.address}
+                          onChange={handleChange}
+                          onBlur={handleAddressBlur}
+                          placeholder="Enter exact address or landmark"
+                          className="form-input1"
+                          required
+                        />
+                      </div>
+
+                      {locationError && (
+                        <div className="location-error">
+                          <span className="error-icon">⚠️</span>
+                          {locationError}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="map-wrapper">
-                  <MapContainer
-                    center={mapCenter}
-                    zoom={mapZoom}
-                    style={{
-                      height: "400px",
-                      width: "100%",
-                      borderRadius: "12px",
-                    }}
-                    onClick={handleMapClick}
-                  >
-                    <ChangeView center={mapCenter} zoom={mapZoom} />
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    />
-                    <Marker position={mapCenter} icon={emergencyIcon}>
-                      <Popup>
-                        <strong>Emergency Location</strong>
-                        <br />
-                        Click anywhere on the map to update this position
-                      </Popup>
-                    </Marker>
-                    {userLocation && (
-                      <Marker position={userLocation}>
-                        <Popup>
-                          <strong>Your Current Location</strong>
-                          <br />
-                          GPS Coordinates: {userLocation[0].toFixed(6)},{" "}
-                          {userLocation[1].toFixed(6)}
-                        </Popup>
-                      </Marker>
-                    )}
-                  </MapContainer>
+
+                {/* Cột phải: bản đồ */}
+                <div className="step-right">
+                  <div className="request-map-container2">
+                    <div className="request-map-header"></div>
+
+                    <div className="request-map-wrapper1">
+                      <MapContainer
+                        center={mapCenter}
+                        zoom={mapZoom}
+                        style={{
+                          height: "100%",
+                          width: "100%",
+                          borderRadius: "12px",
+                        }}
+                      >
+                        <ChangeView center={mapCenter} zoom={mapZoom} />
+                        <MapClickHandler onMapClick={handleMapClick} />
+
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution="&copy; OpenStreetMap contributors"
+                        />
+
+                        <Marker position={mapCenter} icon={emergencyIcon}>
+                          <Popup>
+                            <strong>Emergency Location</strong>
+                            <br />
+                            Click anywhere on the map to update this position
+                          </Popup>
+                        </Marker>
+                      </MapContainer>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -592,10 +643,11 @@ const RequestRescue = () => {
                       <button
                         key={type.value}
                         type="button"
-                        className={`emergency-type-btn ${formData.emergencyType === type.value
+                        className={`emergency-type-btn ${
+                          formData.emergencyType === type.value
                             ? "selected"
                             : ""
-                          }`}
+                        }`}
                         onClick={() =>
                           setFormData({
                             ...formData,
@@ -654,31 +706,6 @@ const RequestRescue = () => {
                   <p className="helper-text">Including yourself</p>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    Priority Level{" "}
-                    <span className="label-required">Required</span>
-                  </label>
-                  <select
-                    name="priorityLevel"
-                    value={formData.priorityLevel}
-                    onChange={handleChange}
-                    className="form-select"
-                    style={{
-                      borderLeft: `4px solid ${priorityLevels.find(
-                        (p) => p.value === formData.priorityLevel,
-                      )?.color || "#eab308"
-                        }`,
-                    }}
-                  >
-                    {priorityLevels.map((level) => (
-                      <option key={level.value} value={level.value}>
-                        {level.value} - {level.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="form-group full-width">
                   <label className="form-label">
                     Detailed Description{" "}
@@ -688,8 +715,9 @@ const RequestRescue = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Describe the emergency situation in detail. Include information about injuries, hazards, access routes, and any other relevant details that can help the rescue team."
-                    className="form-textarea"
+                    placeholder="  
+  Provide a detailed description of the necessary supplies for the rescue team.."
+                    className="form-textarea1"
                     rows="5"
                   />
                   <p className="helper-text">
@@ -799,6 +827,12 @@ const RequestRescue = () => {
                         {formData.phoneNumber}
                       </span>
                     </div>
+
+                    <div className="summary-item">
+                      <span className="summary-label">Email:</span>
+                      <span className="summary-value">{formData.email}</span>
+                    </div>
+
                     <div className="summary-item">
                       <span className="summary-label">Address:</span>
                       <span className="summary-value">{formData.address}</span>
@@ -829,26 +863,6 @@ const RequestRescue = () => {
                           👥 {formData.peopleCount} person
                           {formData.peopleCount !== 1 ? "s" : ""}
                         </span>
-                      </span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-label">Priority Level:</span>
-                      <span
-                        className="summary-value priority-badge"
-                        style={{
-                          backgroundColor:
-                            priorityLevels.find(
-                              (p) => p.value === formData.priorityLevel,
-                            )?.color + "20",
-                          color: priorityLevels.find(
-                            (p) => p.value === formData.priorityLevel,
-                          )?.color,
-                          borderColor: priorityLevels.find(
-                            (p) => p.value === formData.priorityLevel,
-                          )?.color,
-                        }}
-                      >
-                        {formData.priorityLevel}
                       </span>
                     </div>
                   </div>
@@ -891,22 +905,6 @@ const RequestRescue = () => {
                     </div>
                   </div>
                 )}
-
-
-                <div className="summary-section">
-                  <h3 className="summary-title">Contact Preferences</h3>
-                  <div className="summary-grid">
-                    <div className="summary-item">
-                      <span className="summary-label">Preferred Contact:</span>
-                      <span className="summary-value">
-                        <span className="contact-badge">
-                          {formData.contactVia === "Phone Call" ? "📞" : "✉️"}
-                          {formData.contactVia}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div className="terms-agreement">
@@ -914,8 +912,13 @@ const RequestRescue = () => {
                   <input
                     type="checkbox"
                     name="agreeTerms"
-
                     className="checkbox-input"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        agreeTerms: e.target.checked,
+                      }))
+                    }
                   />
                   <span className="checkbox-custom"></span>
                   <span className="checkbox-text">
@@ -953,11 +956,12 @@ const RequestRescue = () => {
                 </button>
               ) : (
                 <button
-                  type="submit"
-                  className="submit-btn"
+                  type="button"
+                  className="submit-btn1"
                   disabled={isLoading || uploadingImage}
+                  onClick={handleSubmit}
                 >
-                  {(isLoading || uploadingImage) ? (
+                  {isLoading || uploadingImage ? (
                     <>
                       <span className="spinner"></span>
                       {uploadingImage

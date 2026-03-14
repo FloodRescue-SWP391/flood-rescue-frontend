@@ -1,140 +1,268 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Header from "../../../components/common/Header";
+import { trackRescueRequest } from "../../../services/rescueRequestService";
 import "./RequestStatus.css";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import "../../../pages/home/Introduce.css";
+import signalRService from "../../../services/signalrService";
 
 const RequestStatus = () => {
-  const navigate = useNavigate();
   const [request, setRequest] = useState(null);
   const [rescueTeam, setRescueTeam] = useState(null);
   const [eta, setEta] = useState("8-10");
   const [distance, setDistance] = useState("3.2");
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
 
-  // Status flow simulation
-  const statusFlow = [
-    { status: "received", label: "Request Received", time: "2 min ago", icon: "📥" },
-    { status: "processing", label: "Processing", time: "1 min ago", icon: "⚙️" },
-    { status: "assigned", label: "Team Assigned", time: "Now", icon: "👨‍🚒" },
-    { status: "dispatched", label: "Dispatched", time: "Soon", icon: "🚑" },
-    { status: "enroute", label: "En Route", time: "Upcoming", icon: "📍" },
-    { status: "arrived", label: "Arrived", time: "Upcoming", icon: "✅" }
-  ];
+  const [inputCode, setInputCode] = useState("");
+  const [lookupError, setLookupError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Rescue team members
-  const rescueTeams = [
-    {
-      id: 1,
-      name: "Alpha Rescue Team",
-      members: [
-        { name: "John Smith", role: "Team Leader", badge: "👨‍🚒" },
-        { name: "Sarah Johnson", role: "Medical Officer", badge: "👩‍⚕️" },
-        { name: "Mike Chen", role: "Rescue Specialist", badge: "🛠️" },
-        { name: "Lisa Wang", role: "Communications", badge: "📞" }
-      ],
-      vehicle: "Rescue Vehicle #RV-7",
-      equipment: ["Medical Kit", "Rescue Tools", "Oxygen Tanks", "Communication Gear"]
-    },
-    {
-      id: 2,
-      name: "Bravo Rescue Team",
-      members: [
-        { name: "David Lee", role: "Team Leader", badge: "👨‍🚒" },
-        { name: "Emma Wilson", role: "Medical Officer", badge: "👩‍⚕️" },
-        { name: "Alex Brown", role: "Rescue Specialist", badge: "🛠️" },
-        { name: "Maria Garcia", role: "Communications", badge: "📞" }
-      ],
-      vehicle: "Ambulance #AMB-12",
-      equipment: ["Defibrillator", "First Aid", "Extrication Tools", "GPS Tracker"]
-    }
-  ];
+  const countdownRef = useRef(null);
+
+  const location = useLocation();
+
+  const shortCode = useMemo(() => {
+    const qs = new URLSearchParams(location.search);
+    return (qs.get("code") || qs.get("shortCode") || "").trim();
+  }, [location.search]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Load request data from localStorage
-    const savedRequest = localStorage.getItem('lastRescueRequest');
-    if (savedRequest) {
-      const parsedRequest = JSON.parse(savedRequest);
-      setRequest(parsedRequest);
-      
-      // Set a random rescue team
-      const randomTeam = rescueTeams[Math.floor(Math.random() * rescueTeams.length)];
-      setRescueTeam(randomTeam);
-      
-      // Simulate ETA countdown
-      startCountdown();
-    } else {
-      // No request found, redirect to request page
-      setTimeout(() => navigate("/citizen/request"), 1000);
+    if (shortCode) {
+      setInputCode(shortCode);
+      loadRequestByShortCode(shortCode);
     }
-  }, [navigate]);
+  }, [shortCode]);
+  // SIGNALR REALTIME FOR CITIZEN 
+  // Citizen sẽ nhận update realtime khi mission thay đổi
+  useEffect(() => {
 
-  const startCountdown = () => {
-    const timer = setInterval(() => {
-      setEta(prev => {
-        const [min, max] = prev.split("-").map(Number);
-        if (min > 1) {
-          return `${min - 1}-${max - 1}`;
-        } else {
-          clearInterval(timer);
-          return "Arriving";
-        }
-      });
-    }, 30000); // Update every 30 seconds
+    const handleMissionUpdate = (data) => {
+      console.log("Citizen realtime update:", data);
+
+      // Nếu request trùng shortCode thì reload lại data
+      if (data.requestShortCode === shortCode) {
+        loadRequestByShortCode(shortCode);
+      }
+    };
+
+    const initSignalR = async () => {
+      await signalRService.startConnection();
+
+      // Mission completed
+      signalRService.on("ReceiveMissionCompletedNotification", handleMissionUpdate);
+
+      // Team accepted
+      signalRService.on("ReceiveTeamAcceptedNotification", handleMissionUpdate);
+
+      // Team rejected
+      signalRService.on("ReceiveTeamRejectedNotification", handleMissionUpdate);
+    };
+
+    initSignalR();
+
+    return () => {
+      signalRService.off("ReceiveMissionCompletedNotification", handleMissionUpdate);
+      signalRService.off("ReceiveTeamAcceptedNotification", handleMissionUpdate);
+      signalRService.off("ReceiveTeamRejectedNotification", handleMissionUpdate);
+    };
+
+  }, []);
+  
+
+
+  // AUTO REFRESH REQUEST STATUS 
+  // Citizen sẽ tự động cập nhật trạng thái mỗi 10 giây
+  useEffect(() => {
+    if (!request?.shortCode) return;
+
+    const interval = setInterval(() => {
+      console.log("Auto refreshing request status...");
+      loadRequestByShortCode(request.shortCode);
+    }, 10000); // refresh mỗi 10 giây
+
+    return () => { clearInterval(interval) };
+  }, [request?.shortCode]);
+  // 
+
+  const getStatusFlow = (requestType) => {
+    const type = (requestType || "").toLowerCase();
+
+    if (type === "rescue") {
+      return [
+        { status: "Pending", label: "Pending", icon: "🕒" },
+        { status: "Processing", label: "Processing", icon: "⚙️" },
+        { status: "Completed", label: "Completed", icon: "✅" },
+      ];
+    }
+
+    return [
+      { status: "Pending", label: "Pending", icon: "🕒" },
+      { status: "Processing", label: "Processing", icon: "⚙️" },
+      { status: "Delivered", label: "Delivered", icon: "📦" },
+    ];
   };
 
-  const handleCancelRequest = () => {
-    setIsCancelling(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.removeItem('lastRescueRequest');
-      setIsCancelling(false);
-      setShowCancelModal(false);
-      navigate("/citizen/hero");
-    }, 1500);
+  const loadRequestByShortCode = async (code) => {
+    if (!code?.trim()) {
+      setLookupError("Please enter a ShortCode.");
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      setLookupError("");
+
+      setEta("8-10");
+      setDistance("3.2");
+
+      const res = await trackRescueRequest(code.trim());
+      const dto = res?.content;
+
+      if (!dto) {
+        throw new Error("No request data found.");
+      }
+
+      console.log("TRACK API RESPONSE:", res);
+      console.log("TRACK CONTENT:", dto);
+
+      const requestData = {
+        requestId: dto?.rescueRequestID || "",
+        shortCode: dto?.shortCode || "",
+        timestamp: dto?.createdTime || "",
+        emergencyType: dto?.requestType || "",
+        status: dto?.status || "",
+        missionStatus: dto?.missionStatus || "",
+        rejectedNote: dto?.rejectedNote || "",
+        peopleCount: dto?.peopleCount ?? 0,
+        fullName: dto?.citizenName || "",
+        phoneNumber: dto?.citizenPhone || "",
+        teamName: dto?.teamName || "",
+      };
+
+      const rescueTeamData = {
+        name: dto?.teamName,
+        leader: dto?.teamLeader,
+        members: dto?.members || [],
+      };
+
+      setRequest(requestData);
+      setRescueTeam(rescueTeamData);
+
+      localStorage.setItem("lastRequestData", JSON.stringify(requestData));
+      localStorage.setItem(
+        "lastRescueTeamData",
+        JSON.stringify(rescueTeamData),
+      );
+
+      const finalStatuses = ["completed", "delivered", "rejected", "cancelled"];
+      const currentStatus = (dto?.status || "").toLowerCase();
+
+      if (finalStatuses.includes(currentStatus)) {
+        localStorage.removeItem("lastShortCode");
+      } else {
+        localStorage.setItem("lastShortCode", code.trim());
+      }
+
+      // startCountdown();
+    } catch (error) {
+      console.error("Error loading request:", error);
+      setLookupError(
+        error?.message ||
+        "Failed to load request. Please check the ShortCode and try again.",
+      );
+      setRequest(null);
+      setRescueTeam(null);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // const startCountdown = () => {
+  //   if (countdownRef.current) {
+  //     clearInterval(countdownRef.current);
+  //   }
+
+  //   countdownRef.current = setInterval(() => {
+  //     setEta((prev) => {
+  //       if (prev === "Arriving") return prev;
+
+  //       const [min, max] = prev.split("-").map(Number);
+  //       if (min > 1) {
+  //         return `${min - 1}-${max - 1}`;
+  //       } else {
+  //         clearInterval(countdownRef.current);
+  //         countdownRef.current = null;
+  //         return "Arriving";
+  //       }
+  //     });
+  //   }, 30000);
+  // };
+
+  useEffect(() => {
+    if (shortCode) return; // nếu URL đã có code thì không hỏi nữa
+
+    const savedCode = localStorage.getItem("lastShortCode") || "";
+    if (!savedCode) return;
+
+    const timer = setTimeout(() => {
+      const confirmFill = window.confirm(
+        "A ShortCode was generated for your rescue request.\n\nDo you want to auto-fill it in the search box?",
+      );
+
+      if (confirmFill) {
+        setInputCode(savedCode);
+        setTimeout(() => {
+          loadRequestByShortCode(savedCode); // tự load luôn sau khi đồng ý ko cần bấm enter nữa. Không thì bỏ rồi nhấn Enter
+        }, 1000); // 1 giây rồi mới load
+      }
+    }, 1000); // đợi trang render xong rồi mới hỏi
+
+    return () => clearTimeout(timer);
+  }, [shortCode]);
+
+  // useEffect(() => {
+  //   return () => {
+  //     if (countdownRef.current) {
+  //       clearInterval(countdownRef.current);
+  //     }
+  //   };
+  // }, []);
+
+  const handleSearchShortCode = () => {
+    loadRequestByShortCode(inputCode);
+  };
+
+  const handleCodeKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      loadRequestByShortCode(inputCode);
+    }
   };
 
   const handleContactTeam = () => {
     // In a real app, this would initiate a call or chat
-    alert(`Calling rescue team: ${rescueTeam ? rescueTeam.name : 'Emergency Services'}`);
+    alert(
+      `Calling rescue team: ${rescueTeam ? rescueTeam.name : "Emergency Services"}`,
+    );
   };
 
   const handleUpdateLocation = () => {
     alert("Location update feature would open here");
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "received": return "📥";
-      case "processing": return "⚙️";
-      case "assigned": return "👨‍🚒";
-      case "dispatched": return "🚑";
-      case "enroute": return "📍";
-      case "arrived": return "✅";
-      default: return "⏳";
-    }
-  };
-
   const getStatusColor = (status) => {
-    switch (status) {
-      case "received": return "#3b82f6";
-      case "processing": return "#8b5cf6";
-      case "assigned": return "#f59e0b";
-      case "dispatched": return "#10b981";
-      case "enroute": return "#06b6d4";
-      case "arrived": return "#22c55e";
-      default: return "#64748b";
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "Critical": return "#ef4444";
-      case "High": return "#f97316";
-      case "Medium": return "#eab308";
-      case "Low": return "#22c55e";
-      default: return "#64748b";
+    switch ((status || "").toLowerCase()) {
+      case "pending":
+        return "#f59e0b";
+      case "processing":
+        return "#3b82f6";
+      case "completed":
+        return "#22c55e";
+      case "delivered":
+        return "#10b981";
+      default:
+        return "#94a3b8";
     }
   };
 
@@ -143,124 +271,115 @@ const RequestStatus = () => {
       <>
         <Header />
         <div className="request-status-container">
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <h3>Loading request details...</h3>
-            <p>Please wait while we retrieve your emergency request information.</p>
+          <div className="lookup-card">
+            <h2>Track Your Rescue Request</h2>
+            <p>Please enter your ShortCode to view the request status.</p>
+
+            <div className="lookup-form">
+              <input
+                type="text"
+                value={inputCode}
+                onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+                onKeyDown={handleCodeKeyDown}
+                placeholder="Enter ShortCode (e.g. ABC123)"
+                className="lookup-input"
+              />
+              <button
+                type="button"
+                className="lookup-btn"
+                onClick={handleSearchShortCode}
+                disabled={isSearching}
+              >
+                {isSearching ? "Searching..." : "Track Request"}
+              </button>
+            </div>
+
+            {lookupError && <p className="lookup-error">{lookupError}</p>}
           </div>
         </div>
       </>
     );
   }
 
-  const currentStatusIndex = 2; // Simulating "assigned" status
+  const statusFlow = getStatusFlow(
+    request?.emergencyType || request?.requestType,
+  );
+
+  const currentStatusIndex = Math.max(
+    statusFlow.findIndex(
+      (step) =>
+        step.status.toLowerCase() === (request?.status || "").toLowerCase(),
+    ),
+    0,
+  );
 
   return (
     <>
       <Header />
+
+      <button className="back-btn1" onClick={() => navigate("/")}>
+        ⬅ Back
+      </button>
 
       <div className="request-status-container">
         {/* Page Header */}
         <div className="status-header">
           <div className="header-content">
             <h1>Emergency Request Status</h1>
-            <p className="request-id">Request ID: <span>{request.requestId}</span></p>
+            <p className="request-id">
+              ShortCode: <span>{request.shortCode}</span>
+            </p>
             <p className="timestamp">
-              Submitted: {new Date(request.timestamp).toLocaleString('en-US', {
-                dateStyle: 'medium',
-                timeStyle: 'short'
+              Submitted:{" "}
+              {new Date(request.timestamp).toLocaleString("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short",
               })}
             </p>
           </div>
-          <button 
-            className="cancel-btn"
-            onClick={() => setShowCancelModal(true)}
-            disabled={currentStatusIndex > 2}
-          >
-            🚫 Cancel Request
-          </button>
         </div>
 
-        {/* Status Summary Card */}
-        <div className="status-summary-card">
-          <div className="summary-header">
-            <div className="emergency-type">
-              <span className="type-icon">🚨</span>
-              <div>
-                <h3>{request.emergencyType}</h3>
-                <p className="type-description">
-                  {request.description || "No additional description provided"}
-                </p>
-              </div>
-            </div>
-            <div className="priority-badge" style={{ 
-              backgroundColor: getPriorityColor(request.priorityLevel) + '20',
-              color: getPriorityColor(request.priorityLevel),
-              borderColor: getPriorityColor(request.priorityLevel)
-            }}>
-              {request.priorityLevel} Priority
-            </div>
-          </div>
-
-          <div className="summary-stats">
-            <div className="stat-item">
-              <div className="stat-label">Estimated Arrival</div>
-              <div className="stat-value eta">{eta} minutes</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-label">Distance</div>
-              <div className="stat-value">{distance} km</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-label">People</div>
-              <div className="stat-value">
-                <span className="people-count">{request.peopleCount}</span>
-                <span className="people-label">person{request.peopleCount !== 1 ? 's' : ''}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Timeline */}
+        {/* Request Status */}
         <div className="status-timeline">
-          <h2 className="section-title">Request Status</h2>
-          <div className="timeline">
-            {statusFlow.map((step, index) => (
-              <div 
-                key={step.status} 
-                className={`timeline-step ${index <= currentStatusIndex ? 'completed' : ''} ${index === currentStatusIndex ? 'current' : ''}`}
-              >
-                <div className="timeline-marker">
-                  <div 
-                    className="marker-circle" 
-                    style={{ 
-                      backgroundColor: index <= currentStatusIndex ? getStatusColor(step.status) : '#e2e8f0',
-                      borderColor: getStatusColor(step.status)
-                    }}
-                  >
-                    {getStatusIcon(step.status)}
-                  </div>
+          <h2 className="section-title status-title-center">Request Status</h2>
+
+          <div className="modern-timeline">
+            {statusFlow.map((step, index) => {
+              const isCompleted = index < currentStatusIndex;
+              const isCurrent = index === currentStatusIndex;
+
+              return (
+                <div key={step.status} className="modern-step">
                   {index < statusFlow.length - 1 && (
-                    <div 
-                      className="timeline-line" 
-                      style={{ 
-                        backgroundColor: index < currentStatusIndex ? getStatusColor(step.status) : '#e2e8f0'
-                      }}
-                    ></div>
-                  )}
-                </div>
-                <div className="timeline-content">
-                  <h4>{step.label}</h4>
-                  <p className="timeline-time">{step.time}</p>
-                  {index === currentStatusIndex && (
-                    <div className="current-status">
-                      <span className="status-pulse"></span>
-                      <span className="status-text">Active</span>
+                    <div className="modern-line">
+                      <div
+                        className={`modern-line-fill ${isCompleted ? "filled" : ""}`}
+                      />
                     </div>
                   )}
+
+                  <div
+                    className={`modern-icon ${isCompleted ? "completed" : isCurrent ? "current" : ""
+                      }`}
+                  >
+                    <span>{step.icon}</span>
+                  </div>
+
+                  <div className="modern-content">
+                    <h4
+                      className={`${isCompleted || isCurrent ? "active-text" : ""
+                        }`}
+                    >
+                      {step.label}
+                    </h4>
+
+                    {isCurrent && (
+                      <p className="modern-current-text">Current status</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -273,80 +392,118 @@ const RequestStatus = () => {
                 📞 Contact Team
               </button>
             </div>
-            
+
             <div className="team-info">
               <div className="team-overview">
-                <div className="team-name">
-                  <span className="team-icon">👨‍🚒</span>
-                  <h3>{rescueTeam.name}</h3>
-                </div>
-                <div className="team-details">
-                  <p><strong>Vehicle:</strong> {rescueTeam.vehicle}</p>
-                  <p><strong>Equipment:</strong> {rescueTeam.equipment.join(", ")}</p>
+                <div className="team-name-card">
+                  <p className="team-label">Team Name</p>
+                  <h3>{rescueTeam.name || "Not assigned yet"}</h3>
+
+                  {rescueTeam.leader ? (
+                    <div className="team-leader-box">
+                      <p>
+                        <strong>Leader:</strong>{" "}
+                        {rescueTeam.leader.fullName || "N/A"}
+                      </p>
+                      <p>
+                        <strong>Phone:</strong>{" "}
+                        {rescueTeam.leader.phone || "N/A"}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="empty-text">No leader information yet.</p>
+                  )}
                 </div>
               </div>
 
               <div className="team-members">
                 <h4>Team Members</h4>
-                <div className="members-grid">
-                  {rescueTeam.members.map((member, index) => (
-                    <div key={index} className="member-card">
-                      <div className="member-badge">{member.badge}</div>
-                      <div className="member-info">
-                        <h5>{member.name}</h5>
-                        <p>{member.role}</p>
+
+                {rescueTeam.members?.length > 0 ? (
+                  <div className="members-grid">
+                    {rescueTeam.members.map((member, index) => (
+                      <div key={member.userID || index} className="member-card">
+                        <div className="member-badge">
+                          {member.isLeader ? "👨‍🚒" : "👤"}
+                        </div>
+                        <div className="member-info">
+                          <h5>{member.fullName || "Unnamed member"}</h5>
+                          <p>
+                            {member.isLeader ? "Team Leader" : "Team Member"}
+                          </p>
+                          <p>{member.phone || "No phone"}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-members">
+                    <p>No team members assigned yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {/* Request Details */}
-        <div className="details-card">
-          <h2 className="section-title">Request Details</h2>
+
+        <div className="request-details-card">
+          <h2 className="details-title">Request Details</h2>
+
           <div className="details-grid">
             <div className="detail-item">
               <span className="detail-label">Full Name</span>
-              <span className="detail-value">{request.fullName}</span>
+              <span className="detail-value">{request.fullName || "N/A"}</span>
             </div>
+
             <div className="detail-item">
               <span className="detail-label">Phone Number</span>
-              <span className="detail-value">{request.phoneNumber}</span>
+              <span className="detail-value">
+                {request.phoneNumber || "N/A"}
+              </span>
             </div>
+
             <div className="detail-item">
-              <span className="detail-label">Location</span>
-              <span className="detail-value">{request.address}</span>
+              <span className="detail-label">People Count</span>
+              <span className="detail-value">
+                {request.peopleCount ?? "N/A"}
+              </span>
             </div>
+
+            <div className="detail-item">
+              <span className="detail-label">Short Code</span>
+              <span className="detail-value">{request.shortCode || "N/A"}</span>
+            </div>
+
             <div className="detail-item">
               <span className="detail-label">Emergency Type</span>
               <span className="detail-value">
-                <span className="type-tag">{request.emergencyType}</span>
-              </span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Location Sharing</span>
-              <span className="detail-value">
-                <span className={`status-tag ${request.shareLocation ? 'active' : 'inactive'}`}>
-                  {request.shareLocation ? '📍 Enabled' : '❌ Disabled'}
+                <span className="type-tag">
+                  {request.emergencyType || "N/A"}
                 </span>
               </span>
             </div>
+
             <div className="detail-item">
-              <span className="detail-label">Preferred Contact</span>
-              <span className="detail-value">{request.contactVia}</span>
+              <span className="detail-label">Status</span>
+              <span
+                className="detail-value status-text"
+                style={{ color: getStatusColor(request.status) }} // thêm màu theo status
+              >
+                {request.status || "N/A"}
+              </span>
             </div>
-          </div>
-          
-          <div className="action-buttons">
-            <button className="action-btn secondary" onClick={handleUpdateLocation}>
-              📍 Update Location
-            </button>
-            <button className="action-btn primary" onClick={handleContactTeam}>
-              🚑 Request Urgent Update
-            </button>
+            {/* MISSION STATUS */}
+            <div className="detail-item">
+              <span className="detail-label">Mission Status</span>
+              <span
+                className="detail-value"
+                style={{ color: getStatusColor(request.missionStatus) }} // thêm màu
+              >
+                {request.missionStatus || "Not assigned yet"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -357,7 +514,9 @@ const RequestStatus = () => {
             <div className="tip-card">
               <div className="tip-icon">🏠</div>
               <h4>Stay in a Safe Location</h4>
-              <p>Remain in a secure area away from danger until help arrives.</p>
+              <p>
+                Remain in a secure area away from danger until help arrives.
+              </p>
             </div>
             <div className="tip-card">
               <div className="tip-icon">📱</div>
@@ -367,62 +526,48 @@ const RequestStatus = () => {
             <div className="tip-card">
               <div className="tip-icon">🔦</div>
               <h4>Signal Your Location</h4>
-              <p>Use lights, sounds, or visible markers to help rescuers find you.</p>
+              <p>
+                Use lights, sounds, or visible markers to help rescuers find
+                you.
+              </p>
             </div>
             <div className="tip-card">
               <div className="tip-icon">👥</div>
               <h4>Stay With Others</h4>
-              <p>If possible, remain with other people for safety and support.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Cancel Request Modal */}
-      {showCancelModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Cancel Emergency Request?</h3>
-              <button className="modal-close" onClick={() => setShowCancelModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="warning-icon">⚠️</div>
               <p>
-                Are you sure you want to cancel this emergency request? 
-                This action cannot be undone.
+                If possible, remain with other people for safety and support.
               </p>
-              <p className="warning-text">
-                <strong>Important:</strong> Only cancel if the emergency situation has been resolved 
-                or if this was requested in error.
-              </p>
-            </div>
-            <div className="modal-actions">
-              <button 
-                className="modal-btn secondary"
-                onClick={() => setShowCancelModal(false)}
-                disabled={isCancelling}
-              >
-                Keep Request
-              </button>
-              <button 
-                className="modal-btn danger"
-                onClick={handleCancelRequest}
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <>
-                    <span className="spinner small"></span>
-                    Cancelling...
-                  </>
-                ) : (
-                  "Yes, Cancel Request"
-                )}
-              </button>
             </div>
           </div>
         </div>
-      )}
+
+        <footer className="homepage-footer">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h3>Emergency Rescue System</h3>
+              <p>
+                Smart rescue connection,
+                <br />
+                fast and effective
+              </p>
+            </div>
+            <div className="footer-section">
+              <h3>Contact</h3>
+              <p>Email: rescue@gmail.com</p>
+              <p>Hotline: 0965 782 358</p>
+            </div>
+            <div className="footer-section">
+              <h3>Support</h3>
+              <Link to="/guide">Instructions for use</Link>
+              <Link to="/faq">Frequently asked questions</Link>
+              <Link to="/contact">Contact support</Link>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            © 2026 Rescue System. All rights reserved.
+          </div>
+        </footer>
+      </div>
     </>
   );
 };
