@@ -1,6 +1,7 @@
 import "./Dashboard.css";
 import Header from "../../components/common/Header";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import { rescueMissionService } from "../../services/rescueMissionService";
 
@@ -22,7 +23,8 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-/* FIX LEAFLET ICON */
+/* ================= LEAFLET FIX ================= */
+
 delete L.Icon.Default.prototype._getIconUrl;
 
 L.Icon.Default.mergeOptions({
@@ -36,13 +38,18 @@ L.Icon.Default.mergeOptions({
 
 export default function RescueTeamMember() {
 
-  const [missions, setMissions] = useState([]);
+  const { teamId } = useParams();
 
-  const teamId = localStorage.getItem("teamId");
+  const [missions, setMissions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   /* ================= LOAD MISSIONS ================= */
 
   const loadMissions = async () => {
+
+    if (!teamId) return;
+
+    setLoading(true);
 
     try {
 
@@ -64,6 +71,8 @@ export default function RescueTeamMember() {
 
     }
 
+    setLoading(false);
+
   };
 
   /* ================= AUTO REFRESH ================= */
@@ -72,13 +81,11 @@ export default function RescueTeamMember() {
 
     loadMissions();
 
-    const interval = setInterval(() => {
-      loadMissions();
-    }, 5000);
+    const interval = setInterval(loadMissions, 5000);
 
     return () => clearInterval(interval);
 
-  }, []);
+  }, [teamId]);
 
   /* ================= STATUS STATS ================= */
 
@@ -99,6 +106,8 @@ export default function RescueTeamMember() {
   const mapMissions = missions.filter(
     m => m.locationLatitude && m.locationLongitude
   );
+
+  /* ================= UI ================= */
 
   return (
     <>
@@ -199,6 +208,10 @@ export default function RescueTeamMember() {
               All Missions
             </div>
 
+            {missions.length === 0 && (
+              <p>No missions available</p>
+            )}
+
             {missions.map(m => (
 
               <div
@@ -210,8 +223,7 @@ export default function RescueTeamMember() {
 
                 <p>
                   <FaMapMarkerAlt />
-                  {m.locationLatitude},
-                  {m.locationLongitude}
+                  {m.locationLatitude}, {m.locationLongitude}
                 </p>
 
                 <p>Status: {m.currentStatus}</p>
@@ -283,5 +295,4 @@ export default function RescueTeamMember() {
 
     </>
   );
-
 }

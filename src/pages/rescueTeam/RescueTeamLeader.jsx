@@ -1,6 +1,7 @@
 import "./Dashboard.css";
 import Header from "../../components/common/Header";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import {
   rescueMissionService,
@@ -24,7 +25,8 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-/* FIX LEAFLET ICON */
+/* ================= LEAFLET FIX ================= */
+
 delete L.Icon.Default.prototype._getIconUrl;
 
 L.Icon.Default.mergeOptions({
@@ -38,15 +40,20 @@ L.Icon.Default.mergeOptions({
 
 export default function RescueTeamLeader() {
 
+  const { teamId } = useParams();
+
   const [assigned, setAssigned] = useState([]);
   const [inProgress, setInProgress] = useState([]);
   const [completed, setCompleted] = useState([]);
-
-  const teamId = localStorage.getItem("teamId");
+  const [loading, setLoading] = useState(false);
 
   /* ================= LOAD MISSIONS ================= */
 
   const loadMissions = async () => {
+
+    if (!teamId) return;
+
+    setLoading(true);
 
     try {
 
@@ -78,6 +85,8 @@ export default function RescueTeamLeader() {
 
     }
 
+    setLoading(false);
+
   };
 
   /* ================= AUTO REFRESH ================= */
@@ -86,13 +95,11 @@ export default function RescueTeamLeader() {
 
     loadMissions();
 
-    const interval = setInterval(() => {
-      loadMissions();
-    }, 5000);
+    const interval = setInterval(loadMissions, 5000);
 
     return () => clearInterval(interval);
 
-  }, []);
+  }, [teamId]);
 
   /* ================= ACTIONS ================= */
 
@@ -108,7 +115,9 @@ export default function RescueTeamLeader() {
       loadMissions();
 
     } catch (err) {
-      console.error(err);
+
+      console.error("Accept mission error:", err);
+
     }
 
   };
@@ -126,7 +135,9 @@ export default function RescueTeamLeader() {
       loadMissions();
 
     } catch (err) {
-      console.error(err);
+
+      console.error("Reject mission error:", err);
+
     }
 
   };
@@ -143,7 +154,9 @@ export default function RescueTeamLeader() {
       loadMissions();
 
     } catch (err) {
-      console.error(err);
+
+      console.error("Confirm pickup error:", err);
+
     }
 
   };
@@ -157,7 +170,9 @@ export default function RescueTeamLeader() {
       loadMissions();
 
     } catch (err) {
-      console.error(err);
+
+      console.error("Complete mission error:", err);
+
     }
 
   };
@@ -241,13 +256,17 @@ export default function RescueTeamLeader() {
 
           <div className="panels">
 
-            {/* ASSIGNED */}
+            {/* ASSIGNED MISSIONS */}
 
             <div className="panel">
 
               <div className="panel-title">
                 Assigned Missions
               </div>
+
+              {assigned.length === 0 && (
+                <p>No assigned missions</p>
+              )}
 
               {assigned.map(mission => (
 
@@ -260,8 +279,7 @@ export default function RescueTeamLeader() {
 
                   <p>
                     <FaMapMarkerAlt/>
-                    {mission.locationLatitude},
-                    {mission.locationLongitude}
+                    {mission.locationLatitude}, {mission.locationLongitude}
                   </p>
 
                   <div className="btn-group">
@@ -288,13 +306,17 @@ export default function RescueTeamLeader() {
 
             </div>
 
-            {/* IN PROGRESS */}
+            {/* IN PROGRESS MISSIONS */}
 
             <div className="panel">
 
               <div className="panel-title">
                 In Progress
               </div>
+
+              {inProgress.length === 0 && (
+                <p>No missions in progress</p>
+              )}
 
               {inProgress.map(mission => (
 
@@ -355,7 +377,7 @@ export default function RescueTeamLeader() {
 
                     <b>{m.citizenName}</b>
 
-                    <br />
+                    <br/>
 
                     {m.description}
 
@@ -375,5 +397,4 @@ export default function RescueTeamLeader() {
 
     </>
   );
-
 }

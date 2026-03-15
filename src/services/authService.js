@@ -1,5 +1,5 @@
 /**
- * AUTH SERVICE 
+ * AUTH SERVICE
  *
  * Vai trò / Chức năng chính:
  * - Cung cấp các hàm gọi API liên quan đến Authentication.
@@ -44,7 +44,6 @@ export async function register(payload) {
   return json.data;
 }
 
-
 export async function login(username, password) {
   const res = await fetch(`${API_BASE_URL}/Auth/login`, {
     method: "POST",
@@ -55,7 +54,7 @@ export async function login(username, password) {
   let json = null;
   try {
     json = text ? JSON.parse(text) : null;
-  } catch { }
+  } catch {}
 
   if (!res.ok) {
     const msg = json?.message || json?.title || text || "Login Failed";
@@ -77,16 +76,13 @@ export async function login(username, password) {
     localStorage.setItem("role", data.roleName);
   }
 
-  // demo leader
-  if (data?.roleName === "RescueTeam") {
-    localStorage.setItem("isLeader", "true");
-    localStorage.setItem(
-      "teamId",
-      "8c6813a2-7d06-4eb1-ba5c-0e3d92765cc3"
-    );
+  if (data?.userID) {
+    localStorage.setItem("userId", data.userID);
   }
 
-
-
+  if (data?.teamId) {
+    localStorage.setItem("teamId", data.teamId);
+  }
+  localStorage.removeItem("isLeader");
   return data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
 }
