@@ -25,6 +25,6 @@ export const CLIENT_EVENTS = {
 // Lưu ý: User tự động join group theo Role khi connect (OnConnectedAsync)
 // Hoặc có thể manual join bằng JoinGroup method
 export const GROUPS = {
-    RESCUE_COORDINATOR_GROUP: "RescueCoordinatorr",        // Role Rescue Coordinator 
-    RESCUE_TEAM_GROUP: "RescueTeam"         // Role Rescue Team
+    RESCUE_COORDINATOR_GROUP: "Rescue Coordinator",        // Role Rescue Coordinator 
+    RESCUE_TEAM_GROUP: "Rescue Team"         // Role Rescue Team
 };

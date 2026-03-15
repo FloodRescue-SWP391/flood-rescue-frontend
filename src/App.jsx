@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { Toaster } from "react-hot-toast";
+
 import HomePage from "./pages/home/HomePage";
 import Introduce from "./pages/home/Introduce";
 import Contact from "./pages/home/Contact";
@@ -37,6 +39,9 @@ import Unauthorized from "./pages/common/Unauthorized";
 function App() {
   return (
     <BrowserRouter>
+    {/*Toast Notification*/ }
+      <Toaster position="top-right" />
+      
       <Routes>
         {/* ===== DEFAULT: CITIZEN HOME ===== */}
         <Route path="/" element={<Hero />} />
@@ -106,7 +111,7 @@ function App() {
         />
 
         <Route
-          path="/rescue-team"
+          path="/rescue-team/:teamId"
           element={
             <ProtectedRoute allowedRoles={["RescueTeam"]}>
               <RescueTeam />

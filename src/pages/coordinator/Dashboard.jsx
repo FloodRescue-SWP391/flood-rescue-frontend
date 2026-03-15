@@ -13,6 +13,7 @@ import {
 import { incidentReportService } from "../../services/incidentReportService.js";
 import signalRService from "../../services/signalrService.js";
 import { useNavigate } from "react-router-dom";
+import { CLIENT_EVENTS } from "../../data/signalrConstants";
 
 /* FIX ICON */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -219,7 +220,6 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-
     const handleTeamAccepted = (data) => {
       console.log("TeamAcceptedNotification:", data);
 
@@ -227,58 +227,14 @@ const Dashboard = () => {
         prev.map((r) =>
           r.requestId === (data.requestShortCode || data.ShortCode)
             ? {
-              ...r,
-              status: "in_progress",
-              assignedTeamName: data.teamName,
-              rescueMissionId: data.rescueMissionID,
-            }
-            : r
-        )
+                ...r,
+                status: "in_progress",
+                assignedTeamName: data.teamName,
+                rescueMissionId: data.rescueMissionID,
+              }
+            : r,
+        ),
       );
-
-      setNotifications((prev) => [
-        {
-          id: Date.now(),
-          type: "equipment",
-          title: "Team Accepted Mission",
-          message: `${data.teamName} accepted rescue request #${data.requestShortCode}`,
-          requestId: data.requestShortCode,
-          timestamp: new Date().toLocaleString(),
-          read: false,
-        },
-        ...prev,
-      ]);
-    };
-
-    const handleTeamRejected = (data) => {
-      console.log("TeamRejectedNotification:", data);
-
-      setAllRequests((prev) =>
-        prev.map((r) =>
-          r.requestId === data.requestShortCode
-            ? {
-              ...r,
-              status: "pending",
-              assignedTeamId: null,
-              assignedTeamName: null,
-              rescueMissionId: null,
-            }
-            : r
-        )
-      );
-
-      setNotifications((prev) => [
-        {
-          id: Date.now(),
-          type: "critical",
-          title: "Mission Rejected",
-          message: `${data.teamName} rejected request #${data.requestShortCode}`,
-          requestId: data.requestShortCode,
-          timestamp: new Date().toLocaleString(),
-          read: false,
-        },
-        ...prev,
-      ]);
     };
 
     const handleMissionCompleted = (data) => {
@@ -288,22 +244,9 @@ const Dashboard = () => {
         prev.map((r) =>
           r.requestId === data.requestShortCode
             ? { ...r, status: "completed" }
-            : r
-        )
+            : r,
+        ),
       );
-
-      setNotifications((prev) => [
-        {
-          id: Date.now(),
-          type: "supply",
-          title: "Mission Completed",
-          message: `${data.teamName} completed rescue request #${data.requestShortCode}`,
-          requestId: data.requestShortCode,
-          timestamp: new Date().toLocaleString(),
-          read: false,
-        },
-        ...prev,
-      ]);
     };
 
     const handleIncidentReported = (data) => {
@@ -320,35 +263,20 @@ const Dashboard = () => {
         },
         ...prev,
       ]);
-
-      setNotifications((prev) => [
-        {
-          id: Date.now(),
-          type: "critical",
-          title: "Incident Reported",
-          message: `${data.teamName} reported: ${data.title}`,
-          requestId: data.rescueMissionID,
-          timestamp: new Date().toLocaleString(),
-          read: false,
-        },
-        ...prev,
-      ]);
     };
 
     const handleNewRescueRequest = (data) => {
-      console.log("NewRescueRequest:", data);
+      console.log("🔔 NewRescueRequest event:", data);
 
-      const newRequest = mapRequestToUI(data);
-
-      setAllRequests((prev) => [newRequest, ...prev]);
+      const code = data.ShortCode || data.shortCode || "UNKNOWN";
 
       setNotifications((prev) => [
         {
           id: Date.now(),
           type: "critical",
           title: "New Rescue Request",
-          message: `New rescue request #${newRequest.requestId}`,
-          requestId: newRequest.requestId,
+          message: `New rescue request #${code}`,
+          requestId: code,
           timestamp: new Date().toLocaleString(),
           read: false,
         },
@@ -356,23 +284,31 @@ const Dashboard = () => {
       ]);
     };
 
-    const init = async () => {
-      await signalRService.startConnection();
-      signalRService.on("ReceiveTeamResponse", handleTeamAccepted);
-      signalRService.on("MissionCompleted", handleMissionCompleted);
-      signalRService.on("IncidentReported", handleIncidentReported);
-      signalRService.on("NewRescueRequest", handleNewRescueRequest);
+    const initSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+
+        console.log("✅ SignalR connected");
+
+        signalRService.on("ReceiveTeamResponse", handleTeamAccepted);
+        signalRService.on("MissionCompleted", handleMissionCompleted);
+        signalRService.on("IncidentReported", handleIncidentReported);
+        signalRService.on("NewRescueRequest", handleNewRescueRequest);
+      } catch (err) {
+        console.error("❌ SignalR init error:", err);
+      }
     };
 
-    init();
+    initSignalR();
 
     return () => {
+      console.log("🛑 SignalR cleanup");
+
       signalRService.off("ReceiveTeamResponse", handleTeamAccepted);
       signalRService.off("MissionCompleted", handleMissionCompleted);
       signalRService.off("IncidentReported", handleIncidentReported);
       signalRService.off("NewRescueRequest", handleNewRescueRequest);
     };
-
   }, []);
 
   const loadPendingIncidents = async () => {
@@ -657,10 +593,7 @@ const Dashboard = () => {
 
       const data = res?.content || {};
 
-      const missionId =
-        data.rescueMissionID ??
-        data.RescueMissionID ??
-        null;
+      const missionId = data.rescueMissionID ?? data.RescueMissionID ?? null;
 
       const assignedTeamName = findTeamLabelById(selectedTeamId);
 
@@ -671,7 +604,7 @@ const Dashboard = () => {
       });
 
       setDispatchSuccess(
-        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`
+        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`,
       );
 
       await loadRealRequests();
@@ -695,7 +628,7 @@ const Dashboard = () => {
           assignedTeamName: payload.assignedTeamName,
           rescueMissionId: payload.rescueMissionId,
         };
-      })
+      }),
     );
 
     if (selectedRequest?.id === requestId) {
@@ -890,35 +823,35 @@ const Dashboard = () => {
             req.priorityLevel === "Critical" &&
             req.status !== "completed",
         ) && (
-            <div className="critical-alert-banner">
-              <div className="alert-content">
-                <span className="alert-icon">🚨</span>
-                <div>
-                  <h3>WARNING: Critical life-threatening situation!</h3>
-                  <p>
-                    There are{" "}
-                    {
-                      allRequests.filter(
-                        (req) => req.isNew && req.priorityLevel === "Critical",
-                      ).length
-                    }{" "}
-                    critical rescue requests that need immediate handling
-                  </p>
-                </div>
+          <div className="critical-alert-banner">
+            <div className="alert-content">
+              <span className="alert-icon">🚨</span>
+              <div>
+                <h3>WARNING: Critical life-threatening situation!</h3>
+                <p>
+                  There are{" "}
+                  {
+                    allRequests.filter(
+                      (req) => req.isNew && req.priorityLevel === "Critical",
+                    ).length
+                  }{" "}
+                  critical rescue requests that need immediate handling
+                </p>
               </div>
-              <button
-                className="alert-action"
-                onClick={() => {
-                  const criticalRequest = allRequests.find(
-                    (req) => req.isNew && req.priorityLevel === "Critical",
-                  );
-                  if (criticalRequest) handleRequestClick(criticalRequest);
-                }}
-              >
-                Handle immediately →
-              </button>
             </div>
-          )}
+            <button
+              className="alert-action"
+              onClick={() => {
+                const criticalRequest = allRequests.find(
+                  (req) => req.isNew && req.priorityLevel === "Critical",
+                );
+                if (criticalRequest) handleRequestClick(criticalRequest);
+              }}
+            >
+              Handle immediately →
+            </button>
+          </div>
+        )}
 
         {/* Filter Controls */}
         <div className="filter-section">
@@ -1001,7 +934,6 @@ const Dashboard = () => {
                   )}
                 </span>
               </div>
-
             </div>
 
             <div className="requests-list">
@@ -1044,7 +976,7 @@ const Dashboard = () => {
                               : request.emergencyType === "Medicine is needed."
                                 ? "💊"
                                 : request.emergencyType ===
-                                  "Life jackets/boat needed."
+                                    "Life jackets/boat needed."
                                   ? "🛟"
                                   : request.emergencyType === "Landslide"
                                     ? "⛰️"
@@ -1125,7 +1057,9 @@ const Dashboard = () => {
               <div className="pagination">
                 <button
                   className="pagination-btn"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
                   disabled={currentPage === 1}
                 >
                   ← Previous
@@ -1335,7 +1269,9 @@ const Dashboard = () => {
                               <select
                                 className="team-select"
                                 value={selectedTeamId}
-                                onChange={(e) => setSelectedTeamId(e.target.value)}
+                                onChange={(e) =>
+                                  setSelectedTeamId(e.target.value)
+                                }
                                 disabled={
                                   dispatching ||
                                   selectedRequest.status !== "pending" ||
@@ -1354,7 +1290,11 @@ const Dashboard = () => {
                                   <option
                                     key={getTeamId(team)}
                                     value={getTeamId(team)}
-                                    disabled={String(team.currentStatus).toLowerCase() !== "available"}
+                                    disabled={
+                                      String(
+                                        team.currentStatus,
+                                      ).toLowerCase() !== "available"
+                                    }
                                   >
                                     {getTeamLabel(team)} ({team.currentStatus})
                                   </option>
