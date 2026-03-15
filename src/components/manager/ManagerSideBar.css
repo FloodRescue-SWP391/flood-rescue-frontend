@@ -1,16 +1,12 @@
-/* ===== SIDEBAR LAYOUT ===== */
-
-.manager-layout{
-  display:flex;
-}
+/* ===== SIDEBAR ===== */
 
 .manager-sidebar{
   width:240px;
+  min-height:calc(100vh - 66px);
+
   background:#ffffff;
   border-right:1px solid #e5e7eb;
-  height:calc(100vh - 66px);
-  position:sticky;
-  top:66px;
+
   padding:20px 14px;
 }
 
@@ -65,7 +61,7 @@
   font-weight:600;
 }
 
-/* ===== ICON SPACE ===== */
+/* icon */
 
 .manager-sidebar a::before{
   content:"";
@@ -75,8 +71,18 @@
   border-radius:50%;
 }
 
-/* active icon */
-
 .manager-sidebar a.active::before{
   background:#2563eb;
+}
+
+/* logout */
+
+.logout-btn{
+  margin-top:20px;
+  padding:10px;
+  border-radius:20px;
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  font-weight:600;
+  cursor:pointer;
 }

@@ -40,7 +40,7 @@ export const reliefOrdersService = {
         return await safeJson(res);
     },
     async getPending() {
-        const res = await fetchWithAuth(`${BASE}?status=Pending`);
+        const res = await fetchWithAuth(`${BASE}/pending`);
         return await safeJson(res);
     },
 

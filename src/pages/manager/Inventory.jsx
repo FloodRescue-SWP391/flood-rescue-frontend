@@ -176,10 +176,6 @@ export default function Inventory() {
 
       <div className="inventory-header">
 
-        <div className="header-icon">
-          <Package size={26} />
-        </div>
-
         <div>
           <h2>Inventory Management</h2>
           <p>Disaster Relief Supply System</p>

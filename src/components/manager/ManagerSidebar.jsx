@@ -1,7 +1,13 @@
-import { NavLink } from "react-router-dom";
+import { NavLink , useNavigate} from "react-router-dom";
 import "./ManagerSidebar.css";
 
 export default function ManagerSidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth"); // xóa token
+    navigate("/login"); // quay về trang login
+  };
 
   return (
 
@@ -36,7 +42,10 @@ export default function ManagerSidebar() {
         <NavLink to="/manager/report">
           Usage Report
         </NavLink>
-
+        {/* Logout Button */}
+        <button className="logout-btn" onClick={handleLogout}>
+          Logout
+        </button>
       </nav>
 
     </div>

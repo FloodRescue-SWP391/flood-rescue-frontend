@@ -1,74 +1,83 @@
-/* ===== LAYOUT ===== */
+/* ======================
+   LAYOUT
+====================== */
 
-.mp-wrap{
-  width:95%;
-  max-width:1400px;
-  padding:24px 0;
+.manager-layout{
+  display:flex;
+  width:100%;
 }
 
 .manager-content{
-  min-height:calc(100vh - 66px);
-  padding:25px;
-  display:flex;
-  justify-content:center;
+  flex:1;
+  padding:30px;
   background:#f4f6f9;
 }
 
+.mp-wrap{
+  width:100%;
+  max-width:1400px;
+}
 
-/* ===== PANEL CARD ===== */
+
+/* ======================
+   CARD
+====================== */
 
 .panel-card{
   background:#ffffff;
   border-radius:12px;
-  padding:18px;
-  margin-bottom:18px;
+  padding:22px;
+  margin-bottom:20px;
   box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 
 
-/* ===== HEADER ===== */
+/* ======================
+   HEADER
+====================== */
 
 .panel-head{
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:14px;
 }
 
 .panel-icon{
-  width:38px;
-  height:38px;
-  border-radius:50%;
-  background:#fff8ed;
-  border:1px solid #f1e2c9;
+  width:42px;
+  height:42px;
+  border-radius:10px;
+  background:#2563eb;
+  color:white;
   display:flex;
   align-items:center;
   justify-content:center;
-}
-
-.panel-title{
-  font-weight:800;
-  font-size:20px;
-}
-
-.panel-sub{
-  font-size:13px;
-  color:#6b7280;
+  font-size:18px;
 }
 
 
-/* ===== KPI ===== */
+
+
+/* ======================
+   KPI
+====================== */
 
 .kpi-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:16px;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+
+@media(max-width:900px){
+  .kpi-grid{
+    grid-template-columns:1fr;
+  }
 }
 
 .kpi{
-  background:#fff8ed;
-  border:1px solid #f1e2c9;
+  background:#ffffff;
+  border:1px solid #e5e7eb;
   border-radius:10px;
-  padding:16px;
+  padding:18px;
 }
 
 .kpi-label{
@@ -77,236 +86,56 @@
 }
 
 .kpi-value{
-  font-size:28px;
+  font-size:30px;
   font-weight:800;
-  margin-top:4px;
+  margin-top:6px;
+  color:#111827;
 }
 
 
-/* ===== GRID CHART ===== */
+/* ======================
+   CHART GRID
+====================== */
 
 .mp-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:18px;
+  gap:22px;
 }
 
-@media (max-width:900px){
+@media(max-width:900px){
   .mp-grid{
     grid-template-columns:1fr;
   }
 }
 
+
+/* ======================
+   CHART CARD
+====================== */
+
+.panel-card-title{
+  font-weight:700;
+  font-size:16px;
+  margin-bottom:14px;
+}
+
 .chart-box{
   width:100%;
-  height:260px;
-  background:#fff8ed;
-  border-radius:10px;
+  height:280px;
   padding:10px;
-}
-
-
-/* ===== PRODUCT LIST ===== */
-
-.product-list{
-  margin-top:12px;
-  max-height:260px;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.product-item{
-  background:#fff8ed;
+  background:#f9fafb;
   border-radius:10px;
-  padding:12px 14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
 }
-
-.product-name{
+.dashboardManager-title{
+  font-size:34px;
   font-weight:700;
+  color:#111827;
+  margin-bottom:5px;
 }
 
-.product-meta{
-  font-size:13px;
+.panel-sub{
+  font-size:15px;
   color:#6b7280;
-  margin-top:2px;
-}
-
-.product-right{
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
-
-.badge{
-  border-radius:20px;
-  padding:4px 10px;
-  font-size:12px;
-  font-weight:600;
-}
-
-.badge-available{
-  background:#e8f9ee;
-  color:#2f7d46;
-}
-
-.badge-outofstock{
-  background:#fde8e8;
-  color:#b42318;
-}
-
-
-/* ===== BUTTON ===== */
-
-.btn-yellow{
-  background:#ffc107;
-  border:none;
-  font-weight:700;
-  border-radius:20px;
-  padding:6px 14px;
-}
-
-.btn-yellow:hover{
-  background:#ffb300;
-}
-
-
-/* ===== INVENTORY ===== */
-
-.inventory-toolbar{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-}
-
-.inventory-toolbar input{
-  width:160px;
-}
-
-.inventory-table-wrap{
-  max-height:320px;
-  overflow:auto;
-}
-
-
-/* ===== REPORT TABLE ===== */
-
-.report-layout{
-  display:grid;
-  grid-template-columns:320px 1fr;
-  gap:16px;
-  margin-top:10px;
-}
-
-@media (max-width:900px){
-  .report-layout{
-    grid-template-columns:1fr;
-  }
-}
-
-.report-tablebox{
-  background:white;
-  border-radius:10px;
-  overflow:hidden;
-  box-shadow:0 2px 6px rgba(0,0,0,0.05);
-}
-
-.report-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-.report-table th{
-  background:#f3f4f6;
-  font-weight:700;
-}
-
-.report-table th,
-.report-table td{
-  padding:12px;
-  border-bottom:1px solid #eee;
-}
-
-
-/* ===== MODAL ===== */
-
-.mp-modal-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.45);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:999;
-}
-
-.mp-modal{
-  width:min(520px,92vw);
-  background:white;
-  border-radius:12px;
-  padding:18px;
-}
-
-.mp-modal-title{
-  font-weight:800;
-  font-size:18px;
-  margin-bottom:12px;
-}
-
-.field{
-  margin-bottom:10px;
-}
-
-.field input,
-.field select{
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #e5e7eb;
-  background:#fff;
-}
-
-.mp-modal-actions{
-  display:flex;
-  gap:10px;
-  margin-top:14px;
-}
-
-.btn-red{
-  flex:1;
-  background:#ef4444;
-  color:white;
-  border:none;
-  padding:10px;
-  border-radius:8px;
-  font-weight:700;
-}
-
-.btn-ghost{
-  flex:1;
-  background:#2563eb;
-  color:white;
-  border:none;
-  padding:10px;
-  border-radius:8px;
-  font-weight:700;
-}
-.manager-layout{
-  display:flex;
-}
-
-
-.manager-content{
-  flex:1;
-  padding:24px;
-  background:#f4f6f9;
-}
-
-.mp-wrap{
-  max-width:1200px;
+  margin-bottom:20px;
 }

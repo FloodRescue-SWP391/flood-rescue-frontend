@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
+import "bootstrap/dist/css/bootstrap.min.css";
 import HomePage from "./pages/home/HomePage";
 import Introduce from "./pages/home/Introduce";
 import Contact from "./pages/home/Contact";
@@ -28,14 +28,11 @@ import ReliefItems from "./pages/manager/ReliefItems";
 import PrepareOrders from "./pages/manager/PrepareOrders";
 import UsageReport from "./pages/manager/UsageReport";
 
-
-
 import RescueTeam from "./pages/rescueTeam/RescueTeam";
 import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
 
 //====unauthorized====
 import Unauthorized from "./pages/common/Unauthorized";
-
 
 function App() {
   return (
@@ -85,7 +82,6 @@ function App() {
             </ProtectedRoute>
           }
         >
-
           <Route index element={<ManagerDashboard />} />
 
           <Route path="warehouse" element={<Warehouse />} />
@@ -97,7 +93,6 @@ function App() {
           <Route path="orders" element={<PrepareOrders />} />
 
           <Route path="report" element={<UsageReport />} />
-
         </Route>
 
         {/* ===== COORDINATOR (PROTECTED) ===== */}

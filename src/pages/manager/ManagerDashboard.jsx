@@ -15,11 +15,10 @@ import {
   Tooltip,
   CartesianGrid,
   BarChart,
-  Bar
+  Bar,
 } from "recharts";
 
 export default function ManagerDashboard() {
-
   const [products, setProducts] = useState([]);
   const [inventory, setInventory] = useState([]);
 
@@ -28,40 +27,35 @@ export default function ManagerDashboard() {
   ===================== */
 
   const loadProducts = async () => {
-
     try {
-
       const res = await reliefItemsService.getAll();
 
       if (res?.success) {
         setProducts(res.content || []);
       }
-
     } catch (err) {
       console.error(err);
     }
-
   };
 
   const loadInventory = async () => {
-
     try {
-
       const res = await inventoryService.getInventoryByWarehouse(1);
 
       if (res?.success) {
         setInventory(res.content || []);
       }
-
     } catch (err) {
       console.error(err);
     }
-
   };
 
   useEffect(() => {
-    loadProducts();
-    loadInventory();
+    const fetchData = async () => {
+      loadProducts();
+      loadInventory();
+    };
+    fetchData();
   }, []);
 
   /* =====================
@@ -80,9 +74,9 @@ export default function ManagerDashboard() {
       BAR CHART DATA
   ===================== */
 
-  const barData = inventory.map(i => ({
+  const barData = inventory.map((i) => ({
     name: i.reliefItemName,
-    quantity: i.quantity
+    quantity: i.quantity,
   }));
 
   /* =====================
@@ -91,19 +85,17 @@ export default function ManagerDashboard() {
 
   const grouped = {};
 
-  inventory.forEach(i => {
-
+  inventory.forEach((i) => {
     const date = new Date(i.lastUpdated).toLocaleDateString();
 
     if (!grouped[date]) grouped[date] = 0;
 
     grouped[date] += i.quantity;
-
   });
 
-  const lineData = Object.keys(grouped).map(d => ({
+  const lineData = Object.keys(grouped).map((d) => ({
     date: d,
-    quantity: grouped[d]
+    quantity: grouped[d],
   }));
 
   /* =====================
@@ -112,35 +104,23 @@ export default function ManagerDashboard() {
 
   return (
     <>
-      <Header />
-
       <div className="manager-layout">
-
-        {/* SIDEBAR */}
-        <ManagerSidebar />
-
         {/* CONTENT */}
         <div className="manager-content">
-
           <div className="mp-wrap">
-
             {/* HEADER */}
 
-            <div className="panel-card">
+            <div className="panel-header">
               <div className="panel-head">
-
-                <div className="panel-icon">📊</div>
+              
 
                 <div>
-                  <div className="panel-title">
-                    Manager Dashboard
-                  </div>
+                  <div className="dashboardManager-title">Manager Dashboard</div>
 
                   <div className="panel-sub">
                     Manage warehouses, inventory and relief items
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -148,7 +128,6 @@ export default function ManagerDashboard() {
 
             <div className="panel-card">
               <div className="kpi-grid">
-
                 <div className="kpi">
                   <div>
                     <div className="kpi-label">Relief Items</div>
@@ -169,28 +148,21 @@ export default function ManagerDashboard() {
                     <div className="kpi-value">{totalQuantity}</div>
                   </div>
                 </div>
-
               </div>
             </div>
 
             {/* CHART GRID */}
 
             <div className="mp-grid">
-
               {/* LINE */}
 
               <div className="panel-card">
-
                 <div className="panel-row">
-                  <div className="panel-card-title">
-                    Inventory Trend
-                  </div>
+                  <div className="panel-card-title">Inventory Trend</div>
                 </div>
 
                 <div className="chart-box">
-
                   <ResponsiveContainer width="100%" height="100%">
-
                     <LineChart data={lineData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
@@ -203,58 +175,36 @@ export default function ManagerDashboard() {
                         stroke="#ff3b3b"
                         strokeWidth={3}
                       />
-
                     </LineChart>
-
                   </ResponsiveContainer>
-
                 </div>
-
               </div>
 
               {/* BAR */}
 
               <div className="panel-card">
-
                 <div className="panel-row">
-                  <div className="panel-card-title">
-                    Inventory Distribution
-                  </div>
+                  <div className="panel-card-title">Inventory Distribution</div>
                 </div>
 
                 <div className="chart-box">
-
                   <ResponsiveContainer width="100%" height="100%">
-
                     <BarChart data={barData}>
-
                       <CartesianGrid strokeDasharray="3 3" />
 
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip />
 
-                      <Bar
-                        dataKey="quantity"
-                        fill="#ff7a00"
-                      />
-
+                      <Bar dataKey="quantity" fill="#ff7a00" />
                     </BarChart>
-
                   </ResponsiveContainer>
-
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
     </>
   );
-
 }
