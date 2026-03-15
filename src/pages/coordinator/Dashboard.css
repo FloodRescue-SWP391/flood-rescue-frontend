@@ -4,28 +4,39 @@
   justify-content: space-between;
   background: #ffffff;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(15, 14, 14, 0.12);
+  border-bottom: 1px solid rgba(168, 168, 168, 0.12);
   width: 100%;
   border-radius: 12px;
   margin-left: 15px;
+  box-shadow: 0 4px 10px rgb(194, 194, 194);
 }
 
+.noti h1{
+  font-weight: 500;
+  font-family: fantasy;
+}
 .header-actions {
   display: flex;
   align-items: center;
   gap: 18px;
 }
 
+.button{
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 .logout-btn {
   padding: 10px 22px;
   border: 1px solid #d0d0d0;
   border-radius: 60px;
-  background: #fff;
-  color: #000;
+  background: hsl(197, 100%, 71%);
+  color: #ffffff;
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.25s ease;
+  margin-top: -5px;
 }
 
 .logout-btn:hover {
@@ -222,9 +233,8 @@
   border-radius: 18px;
   padding: 18px;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  gap: 20px;
+  box-shadow: 0 6px 20px rgba(187, 187, 187, 0.4);
 }
 
 .stat-icon {
@@ -289,7 +299,7 @@
 
 .filter-section h3 {
   margin: 0 0 14px;
-  font-size: 16px;
+  font-size: 25px;
   font-weight: 800;
   color: #0f172a;
 }
@@ -386,12 +396,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 12px ;
+  background-color: rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgb(231, 231, 231);
 }
 
 .new-indicator{
-  border: 1px solid rgb(255, 209, 196);
+  border: 1px solid rgb(252, 173, 151);
   background-color: #fde6e6;
-  padding: 3px;
+  padding: 5px;
   border-radius: 12px;
   color: red;
   font-weight: 700;
@@ -552,7 +565,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 19px;
   font-weight: 700;
   color: #64748b;
 }
@@ -568,7 +581,7 @@
 }
 
 .legend-dot.supply {
-  background: #22c55e;
+  background: #fff01c;
 }
 
 .map-container {

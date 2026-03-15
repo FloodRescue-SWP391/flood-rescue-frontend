@@ -1231,8 +1231,6 @@ const Dashboard = () => {
                               <br />
                               <small>ID: {request.requestId}</small>
                               <br />
-                              <small>Water level: {request.waterLevel}</small>
-                              <br />
                               <small>People: {request.peopleCount}</small>
                               <br />
                               {request.isNew && <small>🆕 NEW</small>}

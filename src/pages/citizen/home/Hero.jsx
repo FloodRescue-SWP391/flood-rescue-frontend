@@ -71,7 +71,7 @@ const Hero = () => {
               className="hero-cta-btn"
               onClick={() => navigate("/citizen/request")}
             >
-              <span className="btn-icon">⚠️</span>
+              <span className="btn-icon-1">⚠️</span>
               <span className="btn-text">REQUEST RESCUE NOW!</span>
             </button>
           </div>
