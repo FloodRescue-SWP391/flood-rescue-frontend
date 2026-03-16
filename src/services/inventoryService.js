@@ -12,6 +12,10 @@ async function parseJsonResponse(res) {
   return json;
 }
 
+
+/**
+ * GET /api/Inventories?warehouseId=1
+ */
 // Lấy tồn kho theo warehouse cho dashboard manager.
 export async function getInventoryByWarehouse(warehouseId) {
   if (!warehouseId || Number(warehouseId) <= 0) {
@@ -23,9 +27,19 @@ export async function getInventoryByWarehouse(warehouseId) {
     { method: "GET" },
   );
 
+  // // ApiResponse<T>: { success, message, statusCode, content }
+  // if (res?.success === false) {
+  //   throw new Error(res?.message || "Failed to get inventory.");
+  // }
+
+  // return res; // UI lấy res.content
   return await parseJsonResponse(res);
 }
 
+/**
+ * POST /api/Inventories/receive
+ * body: { warehouseID, items: [{ reliefItemID, quantity }] }
+ */
 // Nhập hàng vào kho.
 export async function receiveInventory(payload) {
   if (!payload || typeof payload !== "object") {
@@ -38,9 +52,17 @@ export async function receiveInventory(payload) {
     body: JSON.stringify(payload),
   });
 
-  return await parseJsonResponse(res);
-}
+  // if (res?.success === false) {
+  //   throw new Error(res?.message || "Receive inventory failed.");
+  // }
 
+  // return res; // UI lấy res.content
+    return await parseJsonResponse(res);
+}
+/**
+ * PUT /api/Inventories/adjust
+ * body: { warehouseID, items: [{ reliefItemID, adjustmentQuantity }] }
+ */
 // Điều chỉnh số lượng tồn kho.
 export async function adjustInventory(payload) {
   if (!payload || typeof payload !== "object") {
@@ -53,7 +75,12 @@ export async function adjustInventory(payload) {
     body: JSON.stringify(payload),
   });
 
-  return await parseJsonResponse(res);
+  // if (res?.success === false) {
+  //   throw new Error(res?.message || "Adjust inventory failed.");
+  // }
+
+  // return res; // UI lấy res.content
+    return await parseJsonResponse(res);
 }
 
 export const inventoryService = {

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { reliefOrdersService } from "../../services/reliefOrdersService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
-
 export default function PrepareOrder() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -47,6 +46,10 @@ export default function PrepareOrder() {
     };
   }, []);
 
+  /* =========================
+        VIEW ORDER
+  ========================= */
+
   const handleView = async (id) => {
     try {
       const res = await reliefOrdersService.getById(id);
@@ -86,10 +89,15 @@ export default function PrepareOrder() {
         items: items.map((i) => ({ reliefItemID: i.reliefItemID, quantity: Number(i.quantity) })),
       };
 
+      // await reliefOrdersService.prepareOrder(payload);
       const res = await reliefOrdersService.prepareOrder(payload);
       if (!res?.success) throw new Error(res?.message || "Prepare order failed");
+
       setShowPrepare(false);
+
+      // loadOrders();
       await loadOrders();
+
     } catch (err) {
       alert(err.message);
     }
@@ -105,6 +113,15 @@ export default function PrepareOrder() {
       <div className="prepare-table-container">
         <table className="prepare-table">
           <thead>
+
+            <tr>
+              <th>Order ID</th>
+              <th>Rescue Request</th>
+              <th>Team</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
             <tr><th>Order ID</th><th>Rescue Request</th><th>Team</th><th>Status</th><th>Created</th><th>Actions</th></tr>
           </thead>
           <tbody>
@@ -116,8 +133,22 @@ export default function PrepareOrder() {
                 <td>{o.missionStatus}</td>
                 <td>{o.createdTime}</td>
                 <td>
-                  <button className="btn-icon" onClick={() => handleView(o.reliefOrderID)}>View</button>
-                  <button className="btn-icon btn-primary" onClick={() => openPrepare(o.reliefOrderID)}>Prepare</button>
+
+                  <button
+                    className="btn-icon"
+                    onClick={() => handleView(o.reliefOrderID)}
+                  >
+                    View
+                  </button>
+
+                  <button
+                    className="btn-icon btn-primary"
+                    onClick={() => openPrepare(o.reliefOrderID)}
+                  >
+                    Prepare
+                  </button>
+
+                
                 </td>
               </tr>
             ))}

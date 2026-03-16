@@ -1,6 +1,5 @@
 import * as signalR from "@microsoft/signalr";
 import { HUB_URL } from "../data/signalrConstants";
-
 // Service này quản lý 1 kết nối SignalR dùng chung cho toàn app.
 class SignalRService {
   constructor() {
@@ -29,6 +28,7 @@ class SignalRService {
   // Hàm private để khởi tạo HubConnection thật sự.
   async _connect() {
     try {
+      console.log("Creating SignalR connection...");
       this.connection = new signalR.HubConnectionBuilder()
         .withUrl(HUB_URL, {
           // Luôn đọc token mới nhất từ localStorage để tránh dính token cũ sau khi login/refresh.

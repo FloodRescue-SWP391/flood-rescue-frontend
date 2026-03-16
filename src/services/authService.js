@@ -38,13 +38,17 @@ export async function login(username, password) {
   const data = json?.content ?? json?.data ?? json;
   localStorage.setItem("auth", JSON.stringify(data));
 
-  // Lưu token để API thường và SignalR đều đọc được token mới nhất.
+  // FIX: lưu token để apiClient gửi Authorization header
+    // Lưu token để API thường và SignalR đều đọc được token mới nhất.
   const token = data?.accessToken ?? data?.AccessToken;
-  if (token) localStorage.setItem("token", token);
-
-  // Hỗ trợ cả camelCase và PascalCase vì response backend có thể không đồng nhất giữa các endpoint.
-  const roleName = data?.roleName ?? data?.RoleName ?? data?.role ?? data?.Role;
-  if (roleName) localStorage.setItem("role", roleName);
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+  // lưu role
+    const roleName = data?.roleName ?? data?.RoleName ?? data?.role ?? data?.Role;
+  if (roleName) {
+    localStorage.setItem("role", roleName);
+  }
 
   // userId dùng để xác định user hiện tại ở frontend, nhất là màn Rescue Team.
   const userId = data?.userID ?? data?.UserID ?? data?.userId ?? data?.UserId;
@@ -59,6 +63,5 @@ export async function login(username, password) {
   if (typeof isLeader !== "undefined") {
     localStorage.setItem("isLeader", String(isLeader));
   }
-
-  return data;
+  return data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
 }

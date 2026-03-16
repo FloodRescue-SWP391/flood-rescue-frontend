@@ -4,6 +4,8 @@ export const HUB_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/hubs/notification`
   : "https://apifloodrescue.huydevops.id.vn/hubs/notification";
 
+
+// Tên method mà Backend "bắn" về (trong RealtimeNotificationService)
 export const CLIENT_EVENTS = {
   NEW_RESCUE_REQUEST: "NewRescueRequest",
   RECEIVE_TEAM_RESPONSE: "ReceiveTeamResponse",
@@ -16,6 +18,11 @@ export const CLIENT_EVENTS = {
   MISSION_COMPLETED: "MissionCompleted",
   DAILY_SUMMARY_REPORT: "DailySummaryReport",
 };
+
+// Tên Group
+// Tên Group phải khớp với Backend
+// Lưu ý: User tự động join group theo Role khi connect (OnConnectedAsync)
+// Hoặc có thể manual join bằng JoinGroup method
 
 export const GROUPS = {
   RESCUE_COORDINATOR_GROUP: "Rescue Coordinator",
