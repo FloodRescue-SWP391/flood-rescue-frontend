@@ -22,6 +22,11 @@ const Dashboard = () => {
     }, duration);
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleLogin();
+  };
+
   const handleLogin = async () => {
     if (!username || !password) {
       showToast("Vui lòng điền đầy đủ thông tin", "info");
@@ -117,7 +122,7 @@ const Dashboard = () => {
         <div className="a2">
           <h2>Login Account</h2>
 
-          <div className="login">
+          <form className="login" onSubmit={handleSubmit}>
             <p>User Name</p>
             <input
               value={username}
@@ -133,7 +138,7 @@ const Dashboard = () => {
               placeholder="Enter password"
             />
 
-            <button type="button" onClick={handleLogin}>
+            <button type="submit" onClick={handleLogin}>
               Login
             </button>
 
@@ -141,7 +146,7 @@ const Dashboard = () => {
               <span>🚨</span>
               <span>Emergency Hotline: 115</span>
             </div>
-          </div>
+          </form>
         </div>
 
         {/* Right: System Intro */}
