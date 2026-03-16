@@ -33,42 +33,43 @@ const RequestStatus = () => {
       loadRequestByShortCode(shortCode);
     }
   }, [shortCode]);
-  // SIGNALR REALTIME FOR CITIZEN 
-  // Citizen sẽ nhận update realtime khi mission thay đổi
   useEffect(() => {
+    if (!shortCode) return;
 
+    // Khi backend báo request có thay đổi trạng thái, citizen sẽ gọi lại API track theo shortCode.
     const handleMissionUpdate = (data) => {
-      console.log("Citizen realtime update:", data);
-
-      // Nếu request trùng shortCode thì reload lại data
-      if (data.requestShortCode === shortCode) {
+      const code = data?.requestShortCode ?? data?.RequestShortCode ?? data?.shortCode;
+      if (code && code === shortCode) {
         loadRequestByShortCode(shortCode);
       }
     };
 
     const initSignalR = async () => {
-      await signalRService.startConnection();
-
-      // Mission completed
-      signalRService.on("ReceiveMissionCompletedNotification", handleMissionUpdate);
-
-      // Team accepted
-      signalRService.on("ReceiveTeamAcceptedNotification", handleMissionUpdate);
-
-      // Team rejected
-      signalRService.on("ReceiveTeamRejectedNotification", handleMissionUpdate);
+      try {
+        await signalRService.startConnection();
+        // Event mới: mission hoàn thành.
+        await signalRService.on("MissionCompleted", handleMissionUpdate);
+        // Event mới dạng tổng quát cho accept/reject nếu backend đã chuẩn hóa.
+        await signalRService.on("ReceiveTeamResponse", handleMissionUpdate);
+        // Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
+        await signalRService.on("ReceiveMissionCompletedNotification", handleMissionUpdate);
+        await signalRService.on("ReceiveTeamAcceptedNotification", handleMissionUpdate);
+        await signalRService.on("ReceiveTeamRejectedNotification", handleMissionUpdate);
+      } catch (err) {
+        console.error("Citizen SignalR init error:", err);
+      }
     };
 
     initSignalR();
 
     return () => {
+      signalRService.off("MissionCompleted", handleMissionUpdate);
+      signalRService.off("ReceiveTeamResponse", handleMissionUpdate);
       signalRService.off("ReceiveMissionCompletedNotification", handleMissionUpdate);
       signalRService.off("ReceiveTeamAcceptedNotification", handleMissionUpdate);
       signalRService.off("ReceiveTeamRejectedNotification", handleMissionUpdate);
     };
-
-  }, []);
-  
+  }, [shortCode]);
 
 
   // AUTO REFRESH REQUEST STATUS 
