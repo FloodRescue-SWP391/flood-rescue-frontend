@@ -1,5 +1,6 @@
 import { NavLink , useNavigate} from "react-router-dom";
-import "./ManagerSidebar.css";
+import "./ManagerSideBar.css";
+
 
 export default function ManagerSidebar() {
   const navigate = useNavigate();

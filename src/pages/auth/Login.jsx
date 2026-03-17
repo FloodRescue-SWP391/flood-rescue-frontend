@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header";
-import "./login.css";
+import "./Login.css";
 import { login } from "../../services/authService";
 
 const Dashboard = () => {
