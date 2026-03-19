@@ -709,7 +709,7 @@ const RequestRescue = () => {
                 <div className="form-group full-width">
                   <label className="form-label">
                     Detailed Description{" "}
-                    <span className="label-optional">Optional</span>
+                    <span className="label-required">Required</span>
                   </label>
                   <textarea
                     name="description"

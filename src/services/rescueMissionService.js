@@ -1,20 +1,23 @@
-// src/services/rescueMissionService.js
-
 import { fetchWithAuth } from "./apiClient";
 
 const BASE = "/RescueMission";
-
-/* ================= COMPLETE MISSION ================= */
 
 export const completeMission = async (rescueMissionID) => {
   if (!rescueMissionID) {
     throw new Error("rescueMissionID is required");
   }
 
-  const json = await fetchWithAuth(`${BASE}/complete`, {
+  const res = await fetchWithAuth(`${BASE}/complete`, {
     method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ rescueMissionID }),
   });
+
+  const json = await res.json();
+
+  console.log("COMPLETE RESPONSE:", json);
 
   if (!json?.success) {
     throw new Error(json?.message || "Complete mission failed");
@@ -23,28 +26,40 @@ export const completeMission = async (rescueMissionID) => {
   return json.content;
 };
 
-/* ================= SERVICE ================= */
-
 export const rescueMissionService = {
-  /* -------- DISPATCH (Coordinator) -------- */
-
   dispatch: async ({ rescueRequestID, rescueTeamID }) => {
-    const res = await fetchWithAuth(`${BASE}/dispatch`, {
+    const url = `${BASE}/dispatch`;
+
+    console.log("DISPATCH URL:", url);
+    console.log("DISPATCH PAYLOAD:", {
+      rescueRequestID,
+      rescueTeamID,
+    });
+
+    const res = await fetchWithAuth(url, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         rescueRequestID,
         rescueTeamID,
       }),
     });
 
-    return await res.json();
+    console.log("DISPATCH RAW RESPONSE:", res);
+
+    const json = await res.json();
+    console.log("DISPATCH RESPONSE JSON:", json);
+
+    return json;
   },
-
-  /* -------- ACCEPT / REJECT -------- */
-
   respond: async ({ rescueMissionID, isAccepted, rejectReason }) => {
     const res = await fetchWithAuth(`${BASE}/respond`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         rescueMissionID,
         isAccepted,
@@ -55,25 +70,24 @@ export const rescueMissionService = {
     return await res.json();
   },
 
-  /* -------- CONFIRM PICKUP -------- */
-
-  confirmPickup: ({ rescueMissionID, reliefOrderID }) => {
+  confirmPickup: async ({ rescueMissionID, reliefOrderID }) => {
     if (!rescueMissionID || !reliefOrderID) {
       throw new Error("rescueMissionID and reliefOrderID are required");
     }
 
-    return fetchWithAuth(`${BASE}/confirm-pickup`, {
+    const res = await fetchWithAuth(`${BASE}/confirm-pickup`, {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         rescueMissionID,
         reliefOrderID,
       }),
     });
+
+    return await res.json();
   },
-
-  /* ================= LOAD MISSIONS ================= */
-
-  /* -------- FILTER MISSIONS (MAIN API) -------- */
 
   filter: async ({ rescueTeamID, statuses, pageNumber = 1, pageSize = 20 }) => {
     const params = new URLSearchParams();
@@ -91,23 +105,22 @@ export const rescueMissionService = {
       method: "GET",
     });
 
-    const json = await res.json(); // 🔥 THIẾU DÒNG NÀY
-
-    return json;
-  },
-  /* -------- GET MISSION DETAIL -------- */
-
-  getById: (id) => {
-    return fetchWithAuth(`${BASE}/${id}`, {
-      method: "GET",
-    });
+    return await res.json();
   },
 
-  /* -------- TEAM MEMBERS -------- */
-
-  getTeamMembers: (teamId) => {
-    return fetchWithAuth(`${BASE}/teams/${teamId}/members`, {
+  getById: async (id) => {
+    const res = await fetchWithAuth(`${BASE}/${id}`, {
       method: "GET",
     });
+
+    return await res.json();
+  },
+
+  getTeamMembers: async (teamId) => {
+    const res = await fetchWithAuth(`${BASE}/teams/${teamId}/members`, {
+      method: "GET",
+    });
+
+    return await res.json();
   },
 };
