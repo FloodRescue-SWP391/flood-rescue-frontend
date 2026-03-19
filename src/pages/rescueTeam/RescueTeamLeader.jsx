@@ -2,6 +2,7 @@
 import "./Dashboard.css";
 import Header from "../../components/common/Header";
 import { useEffect, useMemo, useState } from "react";
+
 import {
   rescueMissionService,
   completeMission,
@@ -56,7 +57,60 @@ export default function RescueTeamLeader({ teamId }) {
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load lại mission từ backend mỗi khi vào màn hoặc khi có event realtime.
+  /* ================= HELPERS ================= */
+
+  const getMissionId = (mission) =>
+    mission?.rescueMissionID ||
+    mission?.rescueMissionId ||
+    mission?.id;
+
+  const getCitizenName = (mission) =>
+    mission?.citizenName ||
+    mission?.fullName ||
+    mission?.rescueRequest?.citizenName ||
+    mission?.rescueRequest?.fullName ||
+    mission?.incidentReport?.citizenName ||
+    "Citizen";
+
+  const getDescription = (mission) =>
+    mission?.description ||
+    mission?.rescueRequest?.description ||
+    mission?.incidentReport?.description ||
+    "No description";
+
+  const getLatitude = (mission) =>
+    mission?.locationLatitude ??
+    mission?.latitude ??
+    mission?.lat ??
+    mission?.rescueRequest?.locationLatitude ??
+    mission?.rescueRequest?.latitude ??
+    mission?.rescueRequest?.lat ??
+    mission?.incidentReport?.locationLatitude ??
+    mission?.incidentReport?.latitude ??
+    mission?.incidentReport?.lat;
+
+  const getLongitude = (mission) =>
+    mission?.locationLongitude ??
+    mission?.longitude ??
+    mission?.lng ??
+    mission?.lon ??
+    mission?.rescueRequest?.locationLongitude ??
+    mission?.rescueRequest?.longitude ??
+    mission?.rescueRequest?.lng ??
+    mission?.rescueRequest?.lon ??
+    mission?.incidentReport?.locationLongitude ??
+    mission?.incidentReport?.longitude ??
+    mission?.incidentReport?.lng ??
+    mission?.incidentReport?.lon;
+
+  const isValidCoord = (lat, lng) => {
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+    return !Number.isNaN(latNum) && !Number.isNaN(lngNum);
+  };
+
+  /* ================= LOAD MISSIONS ================= */
+
   const loadMissions = async () => {
     if (!teamId || loading) return;
     setLoading(true);
@@ -68,28 +122,33 @@ export default function RescueTeamLeader({ teamId }) {
         pageSize: 50,
       });
 
-      const rawMissions =
-        json?.content?.data ?? json?.content?.items ?? json?.content ?? [];
+      console.log("MISSION DATA:", json);
+      console.log("MISSION ARRAY:", json?.content?.data);
 
-      // const missions =
-      //   json?.content?.data || json?.content?.items || json?.content || [];
+      const missions =
+        json?.content?.data ||
+        json?.content?.items ||
+        json?.content ||
+        [];
 
-      // setAssigned(missions.filter((m) => m.status === "Assigned"));
+      const assignedList = missions.filter((m) => m.status === "Assigned");
+      const inProgressList = missions.filter((m) => m.status === "InProgress");
+      const completedList = missions.filter((m) => m.status === "Completed");
 
-      // setInProgress(missions.filter((m) => m.status === "InProgress"));
+      setAssigned(assignedList);
+      setInProgress(inProgressList);
+      setCompleted(completedList);
 
-      // setCompleted(missions.filter((m) => m.status === "Completed"));
-
-      setMissions(
-        Array.isArray(rawMissions) ? rawMissions.map(normalizeMission) : [],
-      );
+      if (missions.length > 0) {
+        console.log("FIRST MISSION:", missions[0]);
+        console.log("LAT:", getLatitude(missions[0]));
+        console.log("LNG:", getLongitude(missions[0]));
+      }
     } catch (err) {
       console.error("Load mission error:", err);
     } finally {
       setLoading(false);
     }
-
-    // setLoading(false);
   };
 
   /* ================= AUTO REFRESH ================= */
@@ -174,11 +233,12 @@ export default function RescueTeamLeader({ teamId }) {
         isAccepted: true,
       });
 
-      if (res.success) {
-        //loadMissions();
-        await loadMissions();
+      console.log("ACCEPT RESPONSE:", res);
+
+      if (res?.success) {
+        loadMissions();
       } else {
-        console.error(res.message);
+        console.error(res?.message || "Accept failed");
       }
     } catch (err) {
       console.error("Accept mission error:", err);
@@ -187,14 +247,14 @@ export default function RescueTeamLeader({ teamId }) {
 
   const handleReject = async (id) => {
     try {
-      await rescueMissionService.respond({
+      const res = await rescueMissionService.respond({
         rescueMissionID: id,
         isAccepted: false,
         rejectReason: "Team unavailable",
       });
 
-      // loadMissions();
-      await loadMissions();
+      console.log("REJECT RESPONSE:", res);
+      loadMissions();
     } catch (err) {
       console.error("Reject mission error:", err);
     }
@@ -207,8 +267,9 @@ export default function RescueTeamLeader({ teamId }) {
         return;
       }
       await rescueMissionService.confirmPickup({
-        rescueMissionID: mission.rescueMissionID,
-        reliefOrderID: mission.reliefOrderID,
+        rescueMissionID:
+          mission.rescueMissionID || mission.rescueMissionId || mission.id,
+        reliefOrderID: mission.reliefOrderID || mission.reliefOrderId,
       });
 
       // loadMissions();
@@ -221,9 +282,7 @@ export default function RescueTeamLeader({ teamId }) {
   const handleComplete = async (id) => {
     try {
       await completeMission(id);
-
-      // loadMissions();
-      await loadMissions();
+      loadMissions();
     } catch (err) {
       console.error("Complete mission error:", err);
     }
@@ -231,16 +290,16 @@ export default function RescueTeamLeader({ teamId }) {
 
   /* ================= MAP MISSIONS ================= */
 
-  // const mapMissions = [];
-  const mapMissions = useMemo(
-    () =>
-      missions.filter(
-        (m) =>
-          Number.isFinite(Number(m.locationLatitude)) &&
-          Number.isFinite(Number(m.locationLongitude)),
-      ),
-    [missions],
-  );
+  const mapMissions = useMemo(() => {
+    const all = [...assigned, ...inProgress, ...completed];
+
+    return all.filter((m) => isValidCoord(getLatitude(m), getLongitude(m)));
+  }, [assigned, inProgress, completed]);
+
+  const defaultCenter =
+    mapMissions.length > 0
+      ? [Number(getLatitude(mapMissions[0])), Number(getLongitude(mapMissions[0]))]
+      : [10.8231, 106.6297];
 
   /* ================= UI ================= */
 
@@ -258,9 +317,29 @@ export default function RescueTeamLeader({ teamId }) {
           </div>
 
           <div className="stats">
-            <div className="stat-card blue"><div className="stat-info"><span>Assigned</span><h3>{assigned.length}</h3></div><FaClipboardList className="stat-icon" /></div>
-            <div className="stat-card green"><div className="stat-info"><span>In Progress</span><h3>{inProgress.length}</h3></div><FaCheckCircle className="stat-icon" /></div>
-            <div className="stat-card gray"><div className="stat-info"><span>Completed</span><h3>{completed.length}</h3></div><FaCheckCircle className="stat-icon" /></div>
+            <div className="stat-card blue">
+              <div className="stat-info">
+                <span>Assigned</span>
+                <h3>{assigned.length}</h3>
+              </div>
+              <FaClipboardList className="stat-icon" />
+            </div>
+
+            <div className="stat-card green">
+              <div className="stat-info">
+                <span>In Progress</span>
+                <h3>{inProgress.length}</h3>
+              </div>
+              <FaCheckCircle className="stat-icon" />
+            </div>
+
+            <div className="stat-card gray">
+              <div className="stat-info">
+                <span>Completed</span>
+                <h3>{completed.length}</h3>
+              </div>
+              <FaCheckCircle className="stat-icon" />
+            </div>
           </div>
 
           <div className="panels">
@@ -268,12 +347,32 @@ export default function RescueTeamLeader({ teamId }) {
               <div className="panel-title">Assigned Missions</div>
               {assigned.length === 0 && <p>No assigned missions</p>}
               {assigned.map((mission) => (
-                <div className="request-card" key={mission.rescueMissionID}>
-                  <p><b>{mission.citizenName}</b></p>
-                  <p><FaMapMarkerAlt /> {mission.citizenAddress}</p>
+                <div className="request-card" key={getMissionId(mission)}>
+                  <p>
+                    <b>{getCitizenName(mission)}</b>
+                  </p>
+
+                  <p>{getDescription(mission)}</p>
+
+                  <p>
+                    <FaMapMarkerAlt /> {String(getLatitude(mission) ?? "N/A")},{" "}
+                    {String(getLongitude(mission) ?? "N/A")}
+                  </p>
+
                   <div className="btn-group">
-                    <button className="btn-accept" onClick={() => handleAccept(mission.rescueMissionID)}>Accept</button>
-                    <button className="btn-reject" onClick={() => handleReject(mission.rescueMissionID)}>Reject</button>
+                    <button
+                      className="btn-accept"
+                      onClick={() => handleAccept(getMissionId(mission))}
+                    >
+                      Accept
+                    </button>
+
+                    <button
+                      className="btn-reject"
+                      onClick={() => handleReject(getMissionId(mission))}
+                    >
+                      Reject
+                    </button>
                   </div>
                 </div>
               ))}
@@ -283,22 +382,55 @@ export default function RescueTeamLeader({ teamId }) {
               <div className="panel-title">In Progress</div>
               {inProgress.length === 0 && <p>No missions in progress</p>}
               {inProgress.map((mission) => (
-                <div className="request-card" key={mission.rescueMissionID}>
-                  <p><b>{mission.citizenName}</b></p>
-                  <p><FaMapMarkerAlt /> {mission.citizenAddress}</p>
-                  <button className="btn-accept" onClick={() => handlePickup(mission)}>Confirm Pickup</button>
-                  <button className="btn-complete" onClick={() => handleComplete(mission.rescueMissionID)}>Complete Mission</button>
+                <div className="request-card" key={getMissionId(mission)}>
+                  <p>
+                    <b>{getCitizenName(mission)}</b>
+                  </p>
+
+                  <p>{getDescription(mission)}</p>
+
+                  <p>
+                    <FaMapMarkerAlt /> {String(getLatitude(mission) ?? "N/A")},{" "}
+                    {String(getLongitude(mission) ?? "N/A")}
+                  </p>
+
+                  <button
+                    className="btn-accept"
+                    onClick={() => handlePickup(mission)}
+                  >
+                    Confirm Pickup
+                  </button>
+
+                  <button
+                    className="btn-complete"
+                    onClick={() => handleComplete(getMissionId(mission))}
+                  >
+                    Complete Mission
+                  </button>
                 </div>
               ))}
             </div>
           </div>
 
           <div style={{ marginTop: 30 }}>
-            <MapContainer center={[10.8231, 106.6297]} zoom={13} style={{ height: "400px" }}>
+            <MapContainer
+              center={defaultCenter}
+              zoom={13}
+              style={{ height: "400px" }}
+            >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               {mapMissions.map((m) => (
-                <Marker key={m.rescueMissionID} position={[Number(m.locationLatitude), Number(m.locationLongitude)]}>
-                  <Popup><b>{m.citizenName}</b><br />{m.description || m.citizenAddress}</Popup>
+                <Marker
+                  key={getMissionId(m)}
+                  position={[Number(getLatitude(m)), Number(getLongitude(m))]}
+                >
+                  <Popup>
+                    <b>{getCitizenName(m)}</b>
+                    <br />
+                    {getDescription(m)}
+                    <br />
+                    Status: {m.status}
+                  </Popup>
                 </Marker>
               ))}
             </MapContainer>
