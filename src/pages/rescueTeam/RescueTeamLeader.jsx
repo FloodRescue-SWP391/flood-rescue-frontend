@@ -1,3 +1,4 @@
+// Màn hình dành cho Rescue Team Leader: nhận mission mới, OrderPrepared và IncidentResolved.
 import "./Dashboard.css";
 import Header from "../../components/common/Header";
 import { useEffect, useMemo, useState } from "react";
@@ -6,34 +7,54 @@ import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService";
-
 import {
   FaShieldAlt,
   FaClipboardList,
   FaCheckCircle,
   FaMapMarkerAlt,
 } from "react-icons/fa";
-
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import signalRService from "../../services/signalrService";
+import { CLIENT_EVENTS } from "../../data/signalrConstants";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-/* ================= LEAFLET FIX ================= */
-
 delete L.Icon.Default.prototype._getIconUrl;
-
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// Đọc status mềm để tránh lệch tên field giữa backend và frontend.
+const getStatus = (mission) =>
+  String(
+    mission?.status ?? mission?.Status ?? mission?.missionStatus ?? "",
+  ).toLowerCase();
+
+const normalizeMission = (mission) => ({
+  ...mission,
+  rescueMissionID: mission?.rescueMissionID ?? mission?.RescueMissionID,
+  rescueRequestID: mission?.rescueRequestID ?? mission?.RescueRequestID,
+  status: mission?.status ?? mission?.Status ?? mission?.missionStatus,
+  citizenName:
+    mission?.citizenName ??
+    mission?.CitizenName ??
+    mission?.requestShortCode ??
+    mission?.RescueRequestID,
+  citizenAddress:
+    mission?.citizenAddress ?? mission?.CitizenAddress ?? "No address",
+  description: mission?.description ?? mission?.Description ?? "",
+  locationLatitude: mission?.locationLatitude ?? mission?.LocationLatitude,
+  locationLongitude: mission?.locationLongitude ?? mission?.LocationLongitude,
+  reliefOrderID: mission?.reliefOrderID ?? mission?.ReliefOrderID ?? null,
+});
+
 export default function RescueTeamLeader({ teamId }) {
-  const [assigned, setAssigned] = useState([]);
-  const [inProgress, setInProgress] = useState([]);
-  const [completed, setCompleted] = useState([]);
+  // const [assigned, setAssigned] = useState([]);
+  // const [inProgress, setInProgress] = useState([]);
+  // const [completed, setCompleted] = useState([]);
+  const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   /* ================= HELPERS ================= */
@@ -92,7 +113,6 @@ export default function RescueTeamLeader({ teamId }) {
 
   const loadMissions = async () => {
     if (!teamId || loading) return;
-
     setLoading(true);
 
     try {
@@ -133,17 +153,78 @@ export default function RescueTeamLeader({ teamId }) {
 
   /* ================= AUTO REFRESH ================= */
 
+  // useEffect(() => {
+  //   loadMissions();
+
+  //   const interval = setInterval(() => {
+  //     loadMissions();
+  //   }, 5000);
+
+  //   return () => clearInterval(interval);
+  // }, [teamId]);
   useEffect(() => {
     loadMissions();
-
-    const interval = setInterval(() => {
-      loadMissions();
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, [teamId]);
+  useEffect(() => {
+    const handleMissionNotification = () => loadMissions();
+    const handleOrderPrepared = (data) => {
+      console.log("OrderPrepared:", data);
+      loadMissions();
+      window.alert("Manager đã chuẩn bị xong hàng cho team leader.");
+    };
+    const handleIncidentResolved = (data) => {
+      console.log("IncidentResolved:", data);
+      loadMissions();
+      window.alert("Coordinator đã xử lý incident của đội bạn.");
+    };
 
+    const init = async () => {
+      try {
+        await signalRService.startConnection();
+        await signalRService.on(
+          CLIENT_EVENTS.RECEIVE_MISSION_NOTIFICATION,
+          handleMissionNotification,
+        );
+        await signalRService.on(
+          CLIENT_EVENTS.ORDER_PREPARED,
+          handleOrderPrepared,
+        );
+        await signalRService.on(
+          CLIENT_EVENTS.INCIDENT_RESOLVED,
+          handleIncidentResolved,
+        );
+      } catch (err) {
+        console.error("SignalR init error in RescueTeamLeader:", err);
+      }
+    };
+    init();
+
+    return () => {
+      signalRService.off(
+        CLIENT_EVENTS.RECEIVE_MISSION_NOTIFICATION,
+        handleMissionNotification,
+      );
+      signalRService.off(CLIENT_EVENTS.ORDER_PREPARED, handleOrderPrepared);
+      signalRService.off(
+        CLIENT_EVENTS.INCIDENT_RESOLVED,
+        handleIncidentResolved,
+      );
+    };
+  }, [teamId]);
   /* ================= ACTIONS ================= */
+
+  const assigned = useMemo(
+    () => missions.filter((m) => getStatus(m) === "assigned"),
+    [missions],
+  );
+  const inProgress = useMemo(
+    () => missions.filter((m) => getStatus(m) === "inprogress"),
+    [missions],
+  );
+  const completed = useMemo(
+    () => missions.filter((m) => getStatus(m) === "completed"),
+    [missions],
+  );
 
   const handleAccept = async (id) => {
     try {
@@ -181,13 +262,18 @@ export default function RescueTeamLeader({ teamId }) {
 
   const handlePickup = async (mission) => {
     try {
+      if (!mission.reliefOrderID) {
+        window.alert("Mission này chưa có relief order để confirm pickup.");
+        return;
+      }
       await rescueMissionService.confirmPickup({
         rescueMissionID:
           mission.rescueMissionID || mission.rescueMissionId || mission.id,
         reliefOrderID: mission.reliefOrderID || mission.reliefOrderId,
       });
 
-      loadMissions();
+      // loadMissions();
+      await loadMissions();
     } catch (err) {
       console.error("Confirm pickup error:", err);
     }
@@ -220,12 +306,10 @@ export default function RescueTeamLeader({ teamId }) {
   return (
     <>
       <Header />
-
       <div className="dashboard-container">
         <div className="dashboard-content">
           <div className="dashboard-header">
             <FaShieldAlt size={32} color="red" />
-
             <div>
               <h1 className="dashboard-title">Rescue Team Leader</h1>
               <p className="dashboard-sub">Team ID: {teamId}</p>
@@ -261,9 +345,7 @@ export default function RescueTeamLeader({ teamId }) {
           <div className="panels">
             <div className="panel">
               <div className="panel-title">Assigned Missions</div>
-
               {assigned.length === 0 && <p>No assigned missions</p>}
-
               {assigned.map((mission) => (
                 <div className="request-card" key={getMissionId(mission)}>
                   <p>
@@ -298,9 +380,7 @@ export default function RescueTeamLeader({ teamId }) {
 
             <div className="panel">
               <div className="panel-title">In Progress</div>
-
               {inProgress.length === 0 && <p>No missions in progress</p>}
-
               {inProgress.map((mission) => (
                 <div className="request-card" key={getMissionId(mission)}>
                   <p>
@@ -339,7 +419,6 @@ export default function RescueTeamLeader({ teamId }) {
               style={{ height: "400px" }}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
               {mapMissions.map((m) => (
                 <Marker
                   key={getMissionId(m)}

@@ -1,11 +1,10 @@
+// File này đã được chú thích lại để bạn biết các block realtime/API dùng để làm gì.
 import "./ManagerDashboard.css";
-import Header from "../../components/common/Header";
-import ManagerSidebar from "../../components/manager/ManagerSidebar";
 import { useEffect, useState } from "react";
-
 import { reliefItemsService } from "../../services/reliefItemService";
 import { inventoryService } from "../../services/inventoryService";
-
+import signalRService from "../../services/signalrService";
+import { CLIENT_EVENTS } from "../../data/signalrConstants";
 import {
   ResponsiveContainer,
   LineChart,
@@ -17,22 +16,14 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-
 export default function ManagerDashboard() {
   const [products, setProducts] = useState([]);
   const [inventory, setInventory] = useState([]);
 
-  /* =====================
-      LOAD DATA
-  ===================== */
-
   const loadProducts = async () => {
     try {
       const res = await reliefItemsService.getAll();
-
-      if (res?.success) {
-        setProducts(res.content || []);
-      }
+      if (res?.success) setProducts(res.content || []);
     } catch (err) {
       console.error(err);
     }
@@ -41,66 +32,108 @@ export default function ManagerDashboard() {
   const loadInventory = async () => {
     try {
       const res = await inventoryService.getInventoryByWarehouse(1);
-
-      if (res?.success) {
-        setInventory(res.content || []);
-      }
+      if (res?.success) setInventory(res.content || []);
     } catch (err) {
       console.error(err);
     }
   };
 
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     loadProducts();
+  //     loadInventory();
+  //   };
+  //   fetchData();
+  // }, []);
+
+  // /* =====================
+  //     KPI
+  // ===================== */
+
+  // const totalProducts = products.length;
+
+  // const totalInventory = inventory.length;
+
+  // const totalQuantity = inventory.reduce((sum, i) => {
+  //   return sum + (i.quantity || 0);
+  // }, 0);
+
+  // /* =====================
+  //     BAR CHART DATA
+  // ===================== */
+
+  // const barData = inventory.map((i) => ({
+  //   name: i.reliefItemName,
+  //   quantity: i.quantity,
+  // }));
+
+  // /* =====================
+  //     LINE CHART DATA
+  // ===================== */
+
+  // const grouped = {};
+
+  // inventory.forEach((i) => {
+  //   const date = new Date(i.lastUpdated).toLocaleDateString();
+
+  //   if (!grouped[date]) grouped[date] = 0;
+
+  //   grouped[date] += i.quantity;
+  // });
+
+  // const lineData = Object.keys(grouped).map((d) => ({
+  //   date: d,
+  //   quantity: grouped[d],
+  // }));
+
   useEffect(() => {
-    const fetchData = async () => {
+    const handleReliefOrderCreated = () => {
       loadProducts();
       loadInventory();
     };
-    fetchData();
+    const init = async () => {
+      try {
+        await signalRService.startConnection();
+        await signalRService.on(
+          CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR,
+          handleReliefOrderCreated,
+        );
+      } catch (err) {
+        console.error("SignalR init error in ManagerDashboard:", err);
+      }
+    };
+    init();
+    return () => {
+      signalRService.off(
+        CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR,
+        handleReliefOrderCreated,
+      );
+    };
   }, []);
 
-  /* =====================
-      KPI
-  ===================== */
-
   const totalProducts = products.length;
-
   const totalInventory = inventory.length;
-
-  const totalQuantity = inventory.reduce((sum, i) => {
-    return sum + (i.quantity || 0);
-  }, 0);
-
-  /* =====================
-      BAR CHART DATA
-  ===================== */
-
+  const totalQuantity = inventory.reduce(
+    (sum, i) => sum + (i.quantity || 0),
+    0,
+  );
   const barData = inventory.map((i) => ({
     name: i.reliefItemName,
     quantity: i.quantity,
   }));
-
-  /* =====================
-      LINE CHART DATA
-  ===================== */
-
   const grouped = {};
-
   inventory.forEach((i) => {
     const date = new Date(i.lastUpdated).toLocaleDateString();
-
-    if (!grouped[date]) grouped[date] = 0;
-
-    grouped[date] += i.quantity;
+    grouped[date] = (grouped[date] || 0) + i.quantity;
   });
-
   const lineData = Object.keys(grouped).map((d) => ({
     date: d,
     quantity: grouped[d],
   }));
 
-  /* =====================
-      UI
-  ===================== */
+  // /* =====================
+  //     UI
+  // ===================== */
 
   return (
     <>
@@ -112,10 +145,10 @@ export default function ManagerDashboard() {
 
             <div className="panel-header">
               <div className="panel-head">
-              
-
                 <div>
-                  <div className="dashboardManager-title">Manager Dashboard</div>
+                  <div className="dashboardManager-title">
+                    Manager Dashboard
+                  </div>
 
                   <div className="panel-sub">
                     Manage warehouses, inventory and relief items

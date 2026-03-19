@@ -1,3 +1,4 @@
+// File này đã được chú thích lại để bạn biết các block realtime/API dùng để làm gì.
 import React, { useState, useEffect, useRef } from "react";
 import "./Dashboard.css";
 import Header from "../../components/common/Header.jsx";
@@ -97,7 +98,7 @@ const Dashboard = () => {
     floodLevelFilter,
     showCompleted,
   ]);
-
+  // Logout thì dừng SignalR để tránh connection cũ còn sống sau khi ra khỏi màn.
   const handleLogout = async () => {
     try {
       await signalRService.stopConnection();
@@ -220,36 +221,97 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const handleTeamAccepted = (data) => {
-      console.log("TeamAcceptedNotification:", data);
+    // const handleTeamAccepted = (data) => {
+    //   console.log("TeamAcceptedNotification:", data);
+
+    //   setAllRequests((prev) =>
+    //     prev.map((r) =>
+    //       r.requestId === (data.requestShortCode || data.ShortCode)
+    //         ? {
+    //             ...r,
+    //             status: "in_progress",
+    //             assignedTeamName: data.teamName,
+    //             rescueMissionId: data.rescueMissionID,
+    //           }
+    //         : r,
+    //     ),
+    //   );
+    // };
+    // Rescue Team Leader accept/reject -> coordinator reload request/mission để thấy trạng thái mới.
+    const handleTeamResponse = async (data) => {
+      console.log("ReceiveTeamResponse:", data);
+
+      const code =
+        data.requestShortCode || data.RequestShortCode || data.ShortCode;
+      const type = String(
+        data.notificationType || data.NotificationType || "",
+      ).toLowerCase();
+      const nextStatus = type.includes("reject") ? "pending" : "in_progress";
 
       setAllRequests((prev) =>
         prev.map((r) =>
-          r.requestId === (data.requestShortCode || data.ShortCode)
+          r.requestId === code
             ? {
                 ...r,
-                status: "in_progress",
-                assignedTeamName: data.teamName,
-                rescueMissionId: data.rescueMissionID,
+                status: nextStatus,
+                assignedTeamName:
+                  data.teamName || data.TeamName || r.assignedTeamName,
+                rescueMissionId:
+                  data.rescueMissionID ||
+                  data.RescueMissionID ||
+                  r.rescueMissionId,
               }
             : r,
         ),
       );
+
+      await loadRealRequests();
     };
 
-    const handleMissionCompleted = (data) => {
+    // const handleMissionCompleted = (data) => {
+    //   console.log("MissionCompletedNotification:", data);
+
+    //   setAllRequests((prev) =>
+    //     prev.map((r) =>
+    //       r.requestId === data.requestShortCode
+    //         ? { ...r, status: "completed" }
+    //         : r,
+    //     ),
+    //   );
+    // };
+
+    // Mission hoàn thành -> coordinator cập nhật thông báo và reload danh sách.
+    const handleMissionCompleted = async (data) => {
       console.log("MissionCompletedNotification:", data);
 
       setAllRequests((prev) =>
         prev.map((r) =>
-          r.requestId === data.requestShortCode
+          r.requestId === (data.requestShortCode || data.RequestShortCode)
             ? { ...r, status: "completed" }
             : r,
         ),
       );
+
+      await loadRealRequests();
     };
 
-    const handleIncidentReported = (data) => {
+    // const handleIncidentReported = (data) => {
+    //   console.log("IncidentReportedNotification:", data);
+
+    //   setPendingIncidents((prev) => [
+    //     {
+    //       incidentReportID: data.incidentReportID,
+    //       rescueMissionID: data.rescueMissionID,
+    //       teamName: data.teamName,
+    //       title: data.title,
+    //       description: data.description,
+    //       createdTime: new Date(data.createdTime),
+    //     },
+    //     ...prev,
+    //   ]);
+    // };
+
+    const handleIncidentReported = async (data) => {
       console.log("IncidentReportedNotification:", data);
 
       setPendingIncidents((prev) => [
@@ -263,9 +325,28 @@ const Dashboard = () => {
         },
         ...prev,
       ]);
+      await loadPendingIncidents();
     };
 
-    const handleNewRescueRequest = (data) => {
+    // const handleNewRescueRequest = (data) => {
+    //   console.log("🔔 NewRescueRequest event:", data);
+
+    //   const code = data.ShortCode || data.shortCode || "UNKNOWN";
+
+    //   setNotifications((prev) => [
+    //     {
+    //       id: Date.now(),
+    //       type: "critical",
+    //       title: "New Rescue Request",
+    //       message: `New rescue request #${code}`,
+    //       requestId: code,
+    //       timestamp: new Date().toLocaleString(),
+    //       read: false,
+    //     },
+    //     ...prev,
+    //   ]);
+    // };
+    const handleNewRescueRequest = async (data) => {
       console.log("🔔 NewRescueRequest event:", data);
 
       const code = data.ShortCode || data.shortCode || "UNKNOWN";
@@ -282,6 +363,7 @@ const Dashboard = () => {
         },
         ...prev,
       ]);
+      await loadRealRequests();
     };
 
     const initSignalR = async () => {
@@ -290,10 +372,27 @@ const Dashboard = () => {
 
         console.log("✅ SignalR connected");
 
-        signalRService.on("ReceiveTeamResponse", handleTeamAccepted);
-        signalRService.on("MissionCompleted", handleMissionCompleted);
-        signalRService.on("IncidentReported", handleIncidentReported);
-        signalRService.on("NewRescueRequest", handleNewRescueRequest);
+        // signalRService.on("ReceiveTeamResponse", handleTeamAccepted);
+        // signalRService.on("MissionCompleted", handleMissionCompleted);
+        // signalRService.on("IncidentReported", handleIncidentReported);
+        // signalRService.on("NewRescueRequest", handleNewRescueRequest);
+
+        signalRService.on(
+          CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
+          handleTeamResponse,
+        );
+        signalRService.on(
+          CLIENT_EVENTS.MISSION_COMPLETED,
+          handleMissionCompleted,
+        );
+        signalRService.on(
+          CLIENT_EVENTS.INCIDENT_REPORTED,
+          handleIncidentReported,
+        );
+        signalRService.on(
+          CLIENT_EVENTS.NEW_RESCUE_REQUEST,
+          handleNewRescueRequest,
+        );
       } catch (err) {
         console.error("❌ SignalR init error:", err);
       }
@@ -304,10 +403,26 @@ const Dashboard = () => {
     return () => {
       console.log("🛑 SignalR cleanup");
 
-      signalRService.off("ReceiveTeamResponse", handleTeamAccepted);
-      signalRService.off("MissionCompleted", handleMissionCompleted);
-      signalRService.off("IncidentReported", handleIncidentReported);
-      signalRService.off("NewRescueRequest", handleNewRescueRequest);
+      // signalRService.off("ReceiveTeamResponse", handleTeamAccepted);
+      // signalRService.off("MissionCompleted", handleMissionCompleted);
+      // signalRService.off("IncidentReported", handleIncidentReported);
+      // signalRService.off("NewRescueRequest", handleNewRescueRequest);
+      signalRService.off(
+        CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
+        handleTeamResponse,
+      );
+      signalRService.off(
+        CLIENT_EVENTS.MISSION_COMPLETED,
+        handleMissionCompleted,
+      );
+      signalRService.off(
+        CLIENT_EVENTS.INCIDENT_REPORTED,
+        handleIncidentReported,
+      );
+      signalRService.off(
+        CLIENT_EVENTS.NEW_RESCUE_REQUEST,
+        handleNewRescueRequest,
+      );
     };
   }, []);
 
