@@ -39,7 +39,7 @@ const Introduce = () => {
               className="back-button"
               onClick={() => navigate("/")}
             >
-              ← Trở về
+              ← Back
             </Button>
           </div>
 
