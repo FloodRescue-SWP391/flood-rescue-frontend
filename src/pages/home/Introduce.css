@@ -1,12 +1,12 @@
 .intro-bg {
-  min-height: 100vh;
+  min-height: calc(100vh - 100px);
   background: linear-gradient(180deg, #e1f4f8 0%, #fffafa 100%);
   padding: 20px 0;
 }
 
 .intro-card {
   width: 100%;
-  max-width: 1500px;
+  max-width: 1400px;
   margin: 0 auto;
   border: none;
   border-radius: 18px;
