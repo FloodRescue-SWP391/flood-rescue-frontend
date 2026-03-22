@@ -1,76 +1,150 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-
-import Header from "../../components/common/Header";
+import { useNavigate } from "react-router-dom";
+import { Container, Card, Form, Button, Row, Col } from "react-bootstrap";
+import {
+  FaPhoneAlt,
+  FaEnvelope,
+  FaMapMarkerAlt,
+  FaClock,
+} from "react-icons/fa";
 import "./Contact.css";
 
 const Contact = () => {
   const navigate = useNavigate();
 
   return (
-    <div>
-      <Header />
-
-      <div className="contact">
-        <button className="back-btn1" onClick={() => navigate("/")}>
-          ⬅ Back
-        </button>
-        
-        <div className="contact-page">
-          <h4>Contact Us</h4>
-          <p className="lienhe">
-           If you need assistance or have any questions, please contact us using the information below.
-          </p>
-
-          <div className="ngang"></div>
-
-          <div className="lienhe1">
-            <h5>Contact information</h5>
-            <p>📍 Address: 123 Rescue Street, TP.HCM</p>
-            <p>📞 Phone Number: 0965 782 358</p>
-            <p>📧 Email: rescue@gmail.com</p>
-            <p>⏰ Timework: 24/7</p>
+    <div className="contact-bg">
+      <Container fluid className="py-4">
+        <Card className="contact-card shadow-sm">
+          <div className="top-bar">
+            <Button
+              variant="light"
+              className="back-button"
+              onClick={() => navigate("/")}
+            >
+              ← Back
+            </Button>
           </div>
 
-          <div className="ngang"></div>
+          <div className="contact-content">
+            <div className="text-center contact-header">
+              <h2 className="contact-title" >Contact RESCUE System</h2>
+              <p className="contact-subtitle">
+                If you need assistance or have any questions, please contact us.
+              </p>
+            </div>
 
-          <h5>Send contact</h5>
-          <form className="contact-form">
-            <input type="text" placeholder="Fullname" />
-            <input type="email" placeholder="Email" />
-            <input type="text" placeholder="Phone number" />
-            <textarea placeholder="Contact information"></textarea>
-            <button type="submit">Send contact</button>
-          </form>         
-        </div>
+            <hr />
 
-        <footer className="homepage-footer">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h3>Emergency Rescue System</h3>
-            <p>Smart rescue connection, 
-              <br />
-              fast and effective</p>
-          </div>
-          <div className="footer-section">
-            <h3>Contact</h3>
-            <p>Email: rescue@gmail.com</p>
-            <p>Hotline: 0965 782 358</p>
-          </div>
-          <div className="footer-section">
-            <h3>Support</h3>
-            <Link to="/guide">Instructions for use</Link>
-            <Link to="/faq">Frequently asked questions</Link>
-            <Link to="/contact">Contact support</Link>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          © 2026 Rescue System. All rights reserved.
-        </div>
-      </footer>
-      </div>
+            {/* 4 ô icon - 2 trên 2 dưới */}
+            <Row className="g-3 mb-4">
+              <Col xs={12} md={6}>
+                <div className="feature-box">
+                  <div className="feature-icon">
+                    <FaMapMarkerAlt />
+                  </div>
+                  <h6>Address</h6>
+                  <p>123 Rescue Street, TP.HCM</p>
+                </div>
+              </Col>
 
-       
+              <Col xs={12} md={6}>
+                <div className="feature-box">
+                  <div className="feature-icon">
+                    <FaPhoneAlt />
+                  </div>
+                  <h6>Phone</h6>
+                  <p>0965 782 358</p>
+                </div>
+              </Col>
+
+              <Col xs={12} md={6}>
+                <div className="feature-box">
+                  <div className="feature-icon">
+                    <FaEnvelope />
+                  </div>
+                  <h6>Email</h6>
+                  <p>rescue@gmail.com</p>
+                </div>
+              </Col>
+
+              <Col xs={12} md={6}>
+                <div className="feature-box">
+                  <div className="feature-icon">
+                    <FaClock />
+                  </div>
+                  <h6>Working Time</h6>
+                  <p>24/7 Support</p>
+                </div>
+              </Col>
+            </Row>
+
+            {/* Khối thông tin liên hệ + form */}
+            <Form className="contact-form">
+              <div className="contact-info-box">
+                <h4 className="mb-3">Contact Information</h4>
+                <p>
+                  Please fill in the form below and our team will get back to
+                  you as soon as possible.
+                </p>
+
+                <Row className="g-3 mt-1">
+                  <Col xs={12} md={6}>
+                    <Form.Group>
+                      <Form.Label>Fullname</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Enter your fullname"
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={12} md={6}>
+                    <Form.Group>
+                      <Form.Label>Email</Form.Label>
+                      <Form.Control
+                        type="email"
+                        placeholder="Enter your email"
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={12}>
+                    <Form.Group>
+                      <Form.Label>Phone number</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Enter your phone number"
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={12}>
+                    <Form.Group>
+                      <Form.Label>Message</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={5}
+                        placeholder="Write your message here..."
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={12} className="d-flex justify-content-center">
+                    <Button
+                      variant="danger"
+                      type="submit"
+                      className="send-btn1"
+                    >
+                      Send Contact
+                    </Button>
+                  </Col>
+                </Row>
+              </div>
+            </Form>
+          </div>
+        </Card>
+      </Container>
     </div>
   );
 };

@@ -1,202 +1,143 @@
-/* Contact.css */
-.contact {
+.contact-bg {
   min-height: 100vh;
-  
-}
-
-.contact-page {
-  max-width: 900px;
-  padding: 80px auto 40px;
-  margin-left: 300px;
   background: linear-gradient(180deg, #e1f4f8 0%, #fffafa 100%);
-  padding: 50px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-  animation: slideUp 0.5s ease-out;
+  padding: 30px 0;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.contact-page h4 {
+/* ===== FEATURE BOX ===== */
+.feature-box {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 18px;
+  padding: 22px;
   text-align: center;
-  font-size: 2.5rem;
-  color: #2d3748;
-  margin-bottom: 20px;
-  font-weight: 700;
-  position: relative;
-  padding-bottom: 20px;
-}
-
-.contact-page h4::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 4px;
-  background: linear-gradient(to right, #667eea, #764ba2);
-  border-radius: 2px;
-}
-
-.contact-page .lienhe {
-  text-align: center;
-  color: #4a5568;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  margin-bottom: 40px;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.ngang {
-  height: 2px;
-  background: linear-gradient(to right, transparent, #aaabac, transparent);
-  margin: 40px 0;
-  width: 100%;
-}
-
-.lienhe1 {
-  background: #f8fafc;
-  border-radius: 15px;
-  padding: 30px;
-  margin-bottom: 30px;
-  border: 1px solid #e2e8f0;
-  transition: transform 0.3s;
-}
-
-.lienhe1:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-}
-
-.lienhe1 h5 {
-  font-size: 1.4rem;
-  color: #2d3748;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.lienhe1 h5::before {
-  content: '📞';
-}
-
-.lienhe1 p {
-  color: #4a5568;
-  margin-bottom: 12px;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-left: 10px;
-}
-
-.lienhe1 p::before {
-  font-size: 1.2rem;
-}
-
-.contact-page h5 {
-  font-size: 1.5rem;
-  color: #2d3748;
-  margin-bottom: 25px;
-  text-align: center;
-  position: relative;
-  padding-bottom: 15px;
-}
-
-.contact-page h5::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 3px;
-  background: linear-gradient(to right, #667eea, #764ba2);
-  border-radius: 2px;
-}
-
-.contact-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.contact-form input,
-.contact-form textarea {
-  padding: 16px 20px;
-  border: 2px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: all 0.3s;
-  background: #f8fafc;
-}
-
-.contact-form input:focus,
-.contact-form textarea:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-  outline: none;
-  background: white;
-}
-
-.contact-form input::placeholder,
-.contact-form textarea::placeholder {
-  color: #a0aec0;
-}
-
-.contact-form textarea {
-  min-height: 150px;
-  resize: vertical;
-  font-family: inherit;
-}
-
-.contact-form button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 16px;
-  border: none;
-  border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 10px;
-  position: relative;
-  overflow: hidden;
-}
-
-.contact-form button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-}
-
-.contact-form button:active {
-  transform: translateY(0);
-}
-
-.contact-form button::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
 }
 
-.contact-form button:hover::after {
-  left: 100%;
+.feature-box:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+  border: 0.5px solid rgb(220, 53, 69, 0.5);
+}
+
+.feature-icon {
+  font-size: 30px;
+  color: #dc3545;
+  margin-bottom: 12px;
+}
+
+.feature-box h6 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 6px;
+}
+
+.feature-box p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+/* ===== FORM ===== */
+.contact-form {
+  max-width: 950px;
+  margin: 0 auto;
+  margin-top: 10px;
+}
+
+.contact-info-box {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(165, 164, 164, 0.6);
+}
+
+.contact-info-box h4 {
+  font-size: 2.2rem;
+  text-align: center;
+  font-weight: 600;
+  color: #0e4173;
+  margin-bottom: 14px;
+}
+
+.contact-info-box p {
+  font-size: 1rem;
+  text-align: center;
+  color: #6c757d;
+  margin-bottom: 30px;
+}
+
+/* INPUT */
+.contact-info-box .form-control {
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid #ced4da;
+  transition: all 0.2s ease;
+}
+
+.contact-info-box .form-control:focus {
+  border:0.5px solid rgba(39, 39, 39, 0.5);
+  box-shadow: 0 0 0 0.15rem rgba(100, 100, 100, 0.15);
+}
+
+/* ===== BUTTON ===== */
+.send-btn1 {
+  border-radius: 14px !important;
+  font-weight: 700;
+  padding: 13px 32px !important;
+  font-size: 1.2rem;
+  border: none !important;
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  box-shadow: 0 10px 20px rgba(220, 53, 69, 0.22);
+  transition: all 0.25s ease;
+  min-width: 230px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-btn1:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(220, 53, 69, 0.3);
+}
+
+/* ===== SPACING ===== */
+hr {
+  border: none;
+  border-top: 1px solid #e9ecef;
+  margin: 24px 0;
+}
+
+.contact-card {
+  max-width: 1000px;     /* thu nhỏ lại (trước 1200 quá to) */
+  margin: 0 auto;
+  border: none !important;
+  border-radius: 24px !important;
+  overflow: hidden;
+  /* shadow xịn hơn */
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.12),  /* bóng chính */
+    0 15px 30px rgba(0, 0, 0, 0.08);  /* bóng phụ */
+
+  transform: translateY(-8px); /* nâng card lên */
+}
+
+.contact-title{
+  text-align: center;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #212529;
+  margin-top: 20px;
+}
+
+.contact-subtitle{
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #6c757d;
+  margin-top: 10px;
 }
