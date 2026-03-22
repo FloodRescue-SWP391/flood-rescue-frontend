@@ -4,6 +4,7 @@ import Header from "../../components/common/Header";
 import "./login.css";
 import { login } from "../../services/authService";
 import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
+import Footer from "../../components/common/Footer";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -250,6 +251,7 @@ const Dashboard = () => {
           <div className={`login-toast ${toast.type}`}>{toast.message}</div>
         )}
       </Container>
+      <Footer />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import "./Hero.css";
 import Header from "../../../components/common/Header";
 import { useState, useEffect } from "react";
 import { trackRescueRequest } from "../../../services/rescueRequestService";
+import Footer from "../../../components/common/Footer";
 const Hero = () => {
   const navigate = useNavigate();
 
@@ -99,6 +100,8 @@ const Hero = () => {
           </div>
         </div>
       </section>
+
+      <Footer />
     </>
   );
 };
