@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import Header from "../../components/common/Header";
+import Footer from "../../components/common/Footer";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -140,44 +141,7 @@ const HomePage = () => {
       </Container>
 
       {/* Footer */}
-      <footer className="bg-dark text-white py-4 mt-auto">
-        <Container>
-          <Row className="g-4">
-            <Col md={4}>
-              <h5>Emergency Rescue System</h5>
-              <p className="mb-0">
-                Smart rescue connection,
-                <br />
-                fast and effective
-              </p>
-            </Col>
-
-            <Col md={4}>
-              <h5>Contact</h5>
-              <p className="mb-1">Email: rescue@gmail.com</p>
-              <p className="mb-0">Hotline: 0901 234 567</p>
-            </Col>
-
-            <Col md={4}>
-              <h5>Support</h5>
-              <div className="d-flex flex-column">
-                <Link to="/guide" className="text-white text-decoration-none mb-1">
-                  Instructions for use
-                </Link>
-                <Link to="/faq" className="text-white text-decoration-none mb-1">
-                  Frequently asked questions
-                </Link>
-                <Link to="/contact" className="text-white text-decoration-none">
-                  Contact support
-                </Link>
-              </div>
-            </Col>
-          </Row>
-
-          <hr className="border-light" />
-          <div className="text-center">© 2026 Rescue System. All rights reserved.</div>
-        </Container>
-      </footer>
+      <Footer />
     </div>
   );
 };

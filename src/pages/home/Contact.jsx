@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa";
 import "./Contact.css";
 import Header from "../../components/common/Header";
+import Footer from "../../components/common/Footer";
 
 const Contact = () => {
   const navigate = useNavigate();
@@ -148,6 +149,8 @@ const Contact = () => {
           </div>
         </Card>
       </Container>
+
+      <Footer />
     </div>
     </>
   );

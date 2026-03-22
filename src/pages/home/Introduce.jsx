@@ -4,6 +4,7 @@ import { Container, Card, Button } from "react-bootstrap";
 import { FaAmbulance, FaMapMarkerAlt } from "react-icons/fa";
 import "./Introduce.css";
 import Header from "../../components/common/Header";
+import Footer from "../../components/common/Footer";
 
 import beai from "../../assets/images/user1.jpg";
 import gialuan from "../../assets/images/user2.jpg";
@@ -122,6 +123,7 @@ const Introduce = () => {
           </div>
         </Card>
       </Container>
+      <Footer />
     </div>
     </>
   );
