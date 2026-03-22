@@ -12,17 +12,18 @@ const Header = () => {
 
   return (
     <>
-      {/* Top Bar */}
       <div className="topbar py-2">
         <div className="marquee">
-          <div className="marquee-content" style={{color: "red", fontSize: "25px", fontWeight: "bold"}}>
+          <div
+            className="marquee-content"
+            style={{ color: "red", fontSize: "25px", fontWeight: "bold" }}
+          >
             🔔 24/7 EMERGENCY SUPPORT | ⏱️ RESPONSE WITHIN 5 MINUTES | 🚑 FLOOD
             RESCUE SYSTEM | 🛡️ SAFE & FAST RESPONSE
           </div>
         </div>
       </div>
 
-      {/* Main Header */}
       <Navbar expand="lg" className="main-navbar">
         <Container fluid className="px-4 px-lg-5">
           <Navbar.Brand
@@ -35,13 +36,15 @@ const Header = () => {
               alt="Rescue Now Logo"
               className="logo-img me-2"
             />
-            <span className="brand-text">RESCUE<strong style={{color: "orangered"}}>.</strong>NOW</span>
+            <span className="brand-text">
+              RESCUE<strong style={{ color: "orangered" }}>.</strong>NOW
+            </span>
           </Navbar.Brand>
 
           <Navbar.Toggle aria-controls="main-navbar-nav" />
 
           <Navbar.Collapse id="main-navbar-nav">
-            <Nav className="mx-auto menu-center">
+            <Nav className={`${showLogin ? "mx-auto" : "ms-auto"} menu-center`}>
               <Nav.Link as={Link} to="/introduce" className="nav-link-custom">
                 Introduce
               </Nav.Link>
@@ -63,10 +66,8 @@ const Header = () => {
               </div>
             )}
           </Navbar.Collapse>
-        </Container>       
+        </Container>
       </Navbar>
-
-      
     </>
   );
 };

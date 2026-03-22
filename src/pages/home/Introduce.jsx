@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Container, Card, Button } from "react-bootstrap";
 import { FaAmbulance, FaMapMarkerAlt } from "react-icons/fa";
 import "./Introduce.css";
+import Header from "../../components/common/Header";
 
 import beai from "../../assets/images/user1.jpg";
 import gialuan from "../../assets/images/user2.jpg";
@@ -30,7 +31,10 @@ const Introduce = () => {
   ];
 
   return (
+    <>
+    <Header />
     <div className="intro-bg">
+      
       <Container fluid className="py-4">
         <Card className="intro-card shadow-sm">
           <div className="top-bar">
@@ -119,6 +123,7 @@ const Introduce = () => {
         </Card>
       </Container>
     </div>
+    </>
   );
 };
 

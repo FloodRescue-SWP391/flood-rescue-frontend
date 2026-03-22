@@ -8,11 +8,14 @@ import {
   FaClock,
 } from "react-icons/fa";
 import "./Contact.css";
+import Header from "../../components/common/Header";
 
 const Contact = () => {
   const navigate = useNavigate();
 
   return (
+    <>
+    <Header />
     <div className="contact-bg">
       <Container fluid className="py-4">
         <Card className="contact-card shadow-sm">
@@ -146,6 +149,7 @@ const Contact = () => {
         </Card>
       </Container>
     </div>
+    </>
   );
 };
 

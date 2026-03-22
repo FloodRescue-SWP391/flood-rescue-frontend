@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header";
-import "./Login.css";
+import "./login.css";
 import { login } from "../../services/authService";
+import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -123,65 +124,132 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
+    <div className="login-page bg-light min-vh-100">
       <Header />
 
-      <button className="back-btn1" onClick={() => navigate("/")}>
-        ⬅ Back
-      </button>
+      <Container className="py-4 py-md-5">
+        <div className="top-bar1">
+          <Button
+            variant="light"
+            className="back-button"
+            onClick={() => navigate("/")}
+          >
+            ← Back
+          </Button>
+        </div>
 
-      <div className="login-container">
-        {/* Left: Login Form */}
-        <div className="a2">
-          <h2>Login Account</h2>
+        <Row className="justify-content-center  align-items-stretch g-4">
+          <Col lg={5} md={6} className="d-flex">
+            <Card className="border-0 shadow-lg rounded-4 w-100 h-100">
+              <Card.Body className="p-4 p-md-5">
+                <div className="text-center mb-4">
+                  <h2 className="fw-bold mb-2 display-5">Login Account</h2>
+                  <p className="text-muted mb-0 display-7">
+                    Sign in to access the rescue management system
+                  </p>
+                </div>
 
-          <form className="login" onSubmit={handleSubmit}>
-            <p>User Name</p>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
-            />
+                <Form onSubmit={handleSubmit}>
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-semibold fs-5">User Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      size="lg"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Enter username"
+                      className="rounded-3"
+                    />
+                  </Form.Group>
 
-            <p>Password</p>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-            />
+                  <Form.Group className="mb-4">
+                    <Form.Label className="fw-semibold fs-5">Password</Form.Label>
+                    <Form.Control
+                      type="password"
+                      size="lg"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter password"
+                      className="rounded-3"
+                    />
+                  </Form.Group>
 
-            <button type="submit" onClick={handleLogin}>
-              Login
-            </button>
+                  <div className="d-grid">
+                    <button type="submit" className="login-btn1 fw-bold">
+                      Login
+                    </button>
+                  </div>
 
-            <div className="emergency-hotline">
-              <span>🚨</span>
-              <span>Emergency Hotline: 115</span>
+                  <div className="mt-4">
+                    <div className="emergency-box">
+                      🚨 Emergency Hotline: 115
+                    </div>
+                  </div>
+                </Form>
+              </Card.Body>
+            </Card>
+          </Col>
+
+          <Col lg={6} md={6} className="d-flex">
+            <div className="ps-lg-4 w-100 h-100 d-flex flex-column justify-content-between">
+              <div className="mb-3">
+                <span className="badge rounded-pill text-bg-danger px-3 py-2">
+                  Emergency Support Platform
+                </span>
+              </div>
+
+              <h1 className="display-5 fw-bold mb-3">Flood Rescue System</h1>
+
+              <p className="lead text-muted mb-4">
+                A smart platform designed to coordinate rescue operations and
+                manage emergency requests during flood disasters.
+              </p>
+
+              <Card className="border-0 shadow-sm rounded-4 mb-3">
+                <Card.Body className="d-flex align-items-center gap-3">
+                  <div className="fs-3">⚡</div>
+                  <div>
+                    <div className="fw-bold">Fast emergency coordination</div>
+                    <div className="text-muted small">
+                      Quickly connect people with rescue coordinators
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+
+              <Card className="border-0 shadow-sm rounded-4 mb-3">
+                <Card.Body className="d-flex align-items-center gap-3">
+                  <div className="fs-3">📍</div>
+                  <div>
+                    <div className="fw-bold">Real-time rescue tracking</div>
+                    <div className="text-muted small">
+                      Monitor incidents and rescue progress efficiently
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+
+              <Card className="border-0 shadow-sm rounded-4">
+                <Card.Body className="d-flex align-items-center gap-3">
+                  <div className="fs-3">🤝</div>
+                  <div>
+                    <div className="fw-bold">
+                      Efficient rescue team management
+                    </div>
+                    <div className="text-muted small">
+                      Support teams, tasks, and emergency response workflow
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
             </div>
-          </form>
-        </div>
+          </Col>
+        </Row>
 
-        {/* Right: System Intro */}
-        <div className="login-info">
-          <h1>Flood Rescue System</h1>
-
-          <p>
-            A smart platform designed to coordinate rescue operations and manage
-            emergency requests during flood disasters.
-          </p>
-
-          <div className="feature">⚡ Fast emergency coordination</div>
-
-          <div className="feature">📍 Real-time rescue tracking</div>
-
-          <div className="feature">🤝 Efficient rescue team management</div>
-        </div>
-      </div>
-
-      {toast.show && (
-        <div className={`login-toast ${toast.type}`}>{toast.message}</div>
-      )}
+        {toast.show && (
+          <div className={`login-toast ${toast.type}`}>{toast.message}</div>
+        )}
+      </Container>
     </div>
   );
 };
