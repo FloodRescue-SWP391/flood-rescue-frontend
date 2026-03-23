@@ -16,22 +16,18 @@ export const completeMission = async (rescueMissionID) => {
     throw new Error("rescueMissionID is required");
   }
 
-  // Try endpoint format: /RescueMission/{id}/complete
-  const res = await fetchWithAuth(`${BASE}/${rescueMissionID}/complete`, {
+  // API implemented as /RescueMission/complete with rescueMissionID in body
+  const res = await fetchWithAuth(`${BASE}/complete`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ rescueMissionID }),
   });
 
-  const json = await res.json();
+  const json = await parseJsonResponse(res);
 
   console.log("COMPLETE RESPONSE:", json);
-
-  if (!json?.success) {
-    throw new Error(json?.message || "Complete mission failed");
-  }
 
   return json.content;
 };

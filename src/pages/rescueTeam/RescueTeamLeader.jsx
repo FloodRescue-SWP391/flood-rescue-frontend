@@ -102,11 +102,23 @@ export default function RescueTeamLeader({ teamId }) {
     return lng ? Number(lng) : 106.6541; // Default Saigon coordinates
   };
 
-  const getMissionStatus = (mission) =>
-    mission?.currentStatus ||
-    mission?.status ||
-    mission?.newMissionStatus ||
-    "Unknown";
+  const normalizeStatus = (status) => {
+    const s = String(status || "").trim().toLowerCase();
+    if (!s) return "unknown";
+    if (s === "assigned" || s === "assigned") return "Assigned";
+    if (s === "inprogress" || s === "in_progress" || s === "in progress") return "InProgress";
+    if (s === "completed" || s === "complete") return "Completed";
+    return status;
+  };
+
+  const getMissionStatus = (mission) => {
+    const rawStatus =
+      mission?.currentStatus ||
+      mission?.status ||
+      mission?.newMissionStatus ||
+      "Unknown";
+    return normalizeStatus(rawStatus);
+  };
 
   const isValidCoord = (lat, lng) => {
     const latNum = Number(lat);
@@ -359,6 +371,13 @@ export default function RescueTeamLeader({ teamId }) {
 
       if (!missionId) {
         console.error("Mission ID is missing");
+        return;
+      }
+
+      const status = getMissionStatus(mission);
+      if (status !== "InProgress") {
+        console.warn("Complete blocked: mission status not InProgress", missionId, status);
+        window.alert("Không thể hoàn thành: nhiệm vụ không ở trạng thái Đang thực hiện.");
         return;
       }
 

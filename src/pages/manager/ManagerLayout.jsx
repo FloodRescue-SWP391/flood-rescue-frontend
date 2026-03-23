@@ -1,4 +1,5 @@
 import Header from "../../components/common/Header";
+import Footer from "../../components/common/Footer";
 import ManagerSidebar from "../../components/manager/ManagerSidebar";
 import { Outlet } from "react-router-dom";
 import "./ManagerDashboard.css";
@@ -18,6 +19,8 @@ export default function ManagerLayout() {
         </div>
 
       </div>
+
+      <Footer />
     </>
   );
 

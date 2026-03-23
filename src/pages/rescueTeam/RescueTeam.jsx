@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import Footer from "../../components/common/Footer";
 import RescueTeamLeader from "./RescueTeamLeader";
 import RescueTeamMember from "./RescueTeamMember";
 
@@ -100,5 +101,10 @@ export default function RescueTeam() {
     return <div style={{ padding: 40 }}>Loading team...</div>;
   }
 
-  return isLeader ? <RescueTeamLeader teamId={teamId} /> : <RescueTeamMember teamId={teamId} />;
+  return (
+    <>
+      {isLeader ? <RescueTeamLeader teamId={teamId} /> : <RescueTeamMember teamId={teamId} />}
+      <Footer />
+    </>
+  );
 }

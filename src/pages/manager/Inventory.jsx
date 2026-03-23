@@ -1,5 +1,6 @@
 import "./Inventory.css";
 import { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import {
   Search,
   Sliders,
@@ -27,6 +28,13 @@ export default function Inventory() {
   const [showAdjust, setShowAdjust] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState(null);
+
+  const exportInventoryToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const sheet = XLSX.utils.json_to_sheet(inventory);
+    XLSX.utils.book_append_sheet(wb, sheet, "Inventory");
+    XLSX.writeFile(wb, "inventory_export.xlsx");
+  };
 
   const [receiveItemId, setReceiveItemId] = useState("");
   const [receiveQty, setReceiveQty] = useState("");
@@ -234,7 +242,11 @@ export default function Inventory() {
           >
             <RefreshCw size={16} /> Refresh
           </button>
-
+          <button className="btn"
+            onClick={exportInventoryToExcel}
+          >
+            <Settings size={16} /> Export
+          </button>
           <button className="btn primary">
             <Settings size={16} /> Adjust
           </button>
