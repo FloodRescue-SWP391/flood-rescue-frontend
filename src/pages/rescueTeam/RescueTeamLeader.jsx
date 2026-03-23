@@ -60,9 +60,7 @@ export default function RescueTeamLeader({ teamId }) {
   /* ================= HELPERS ================= */
 
   const getMissionId = (mission) =>
-    mission?.rescueMissionID ||
-    mission?.rescueMissionId ||
-    mission?.id;
+    mission?.rescueMissionID || mission?.rescueMissionId || mission?.id;
 
   const getCitizenName = (mission) =>
     mission?.citizenName ||
@@ -126,10 +124,7 @@ export default function RescueTeamLeader({ teamId }) {
       console.log("MISSION ARRAY:", json?.content?.data);
 
       const missions =
-        json?.content?.data ||
-        json?.content?.items ||
-        json?.content ||
-        [];
+        json?.content?.data || json?.content?.items || json?.content || [];
 
       const assignedList = missions.filter((m) => m.status === "Assigned");
       const inProgressList = missions.filter((m) => m.status === "InProgress");
@@ -213,30 +208,29 @@ export default function RescueTeamLeader({ teamId }) {
   }, [teamId]);
   /* ================= ACTIONS ================= */
 
-  const assigned = useMemo(
-    () => missions.filter((m) => getStatus(m) === "assigned"),
-    [missions],
-  );
-  const inProgress = useMemo(
-    () => missions.filter((m) => getStatus(m) === "inprogress"),
-    [missions],
-  );
-  const completed = useMemo(
-    () => missions.filter((m) => getStatus(m) === "completed"),
-    [missions],
-  );
-
-  const handleAccept = async (id) => {
+  const handleAccept = async (mission) => {
     try {
+      const missionId = getMissionId(mission);
+
+      console.log("MISSION CLICKED:", mission);
+      console.log("MISSION ID SENT:", missionId);
+      console.log("MISSION STATUS:", mission?.status);
+
+      if (!missionId) {
+        console.error("Mission ID is missing", mission);
+        return;
+      }
+
       const res = await rescueMissionService.respond({
-        rescueMissionID: id,
+        rescueMissionID: missionId,
         isAccepted: true,
+        rejectReason: "",
       });
 
       console.log("ACCEPT RESPONSE:", res);
 
       if (res?.success) {
-        loadMissions();
+        await loadMissions();
       } else {
         console.error(res?.message || "Accept failed");
       }
@@ -245,16 +239,32 @@ export default function RescueTeamLeader({ teamId }) {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (mission) => {
     try {
+      const missionId = getMissionId(mission);
+
+      console.log("MISSION CLICKED:", mission);
+      console.log("MISSION ID SENT:", missionId);
+      console.log("MISSION STATUS:", mission?.status);
+
+      if (!missionId) {
+        console.error("Mission ID is missing", mission);
+        return;
+      }
+
       const res = await rescueMissionService.respond({
-        rescueMissionID: id,
+        rescueMissionID: missionId,
         isAccepted: false,
         rejectReason: "Team unavailable",
       });
 
       console.log("REJECT RESPONSE:", res);
-      loadMissions();
+
+      if (res?.success) {
+        await loadMissions();
+      } else {
+        console.error(res?.message || "Reject failed");
+      }
     } catch (err) {
       console.error("Reject mission error:", err);
     }
@@ -262,14 +272,22 @@ export default function RescueTeamLeader({ teamId }) {
 
   const handlePickup = async (mission) => {
     try {
-      if (!mission.reliefOrderID) {
-        window.alert("Mission này chưa có relief order để confirm pickup.");
+      const rescueMissionID =
+        mission.rescueMissionID || mission.rescueMissionId || mission.id;
+      const reliefOrderID = mission.reliefOrderID || mission.reliefOrderId;
+
+      if (!rescueMissionID || !reliefOrderID) {
+        console.error("Missing rescueMissionID or reliefOrderID", {
+          rescueMissionID,
+          reliefOrderID,
+          mission,
+        });
         return;
       }
+
       await rescueMissionService.confirmPickup({
-        rescueMissionID:
-          mission.rescueMissionID || mission.rescueMissionId || mission.id,
-        reliefOrderID: mission.reliefOrderID || mission.reliefOrderId,
+        rescueMissionID,
+        reliefOrderID,
       });
 
       // loadMissions();
@@ -279,10 +297,21 @@ export default function RescueTeamLeader({ teamId }) {
     }
   };
 
-  const handleComplete = async (id) => {
+  const handleComplete = async (mission) => {
     try {
-      await completeMission(id);
-      loadMissions();
+      const missionId = getMissionId(mission);
+
+      console.log("COMPLETE MISSION OBJECT:", mission);
+      console.log("COMPLETE MISSION ID:", missionId);
+      console.log("COMPLETE MISSION STATUS:", mission?.status);
+
+      if (!missionId) {
+        console.error("Mission ID is missing");
+        return;
+      }
+
+      await completeMission(missionId);
+      await loadMissions();
     } catch (err) {
       console.error("Complete mission error:", err);
     }
@@ -298,7 +327,10 @@ export default function RescueTeamLeader({ teamId }) {
 
   const defaultCenter =
     mapMissions.length > 0
-      ? [Number(getLatitude(mapMissions[0])), Number(getLongitude(mapMissions[0]))]
+      ? [
+          Number(getLatitude(mapMissions[0])),
+          Number(getLongitude(mapMissions[0])),
+        ]
       : [10.8231, 106.6297];
 
   /* ================= UI ================= */
@@ -362,14 +394,14 @@ export default function RescueTeamLeader({ teamId }) {
                   <div className="btn-group">
                     <button
                       className="btn-accept"
-                      onClick={() => handleAccept(getMissionId(mission))}
+                      onClick={() => handleAccept(mission)}
                     >
                       Accept
                     </button>
 
                     <button
                       className="btn-reject"
-                      onClick={() => handleReject(getMissionId(mission))}
+                      onClick={() => handleReject(mission)}
                     >
                       Reject
                     </button>
@@ -394,16 +426,18 @@ export default function RescueTeamLeader({ teamId }) {
                     {String(getLongitude(mission) ?? "N/A")}
                   </p>
 
-                  <button
-                    className="btn-accept"
-                    onClick={() => handlePickup(mission)}
-                  >
-                    Confirm Pickup
-                  </button>
+                  {(mission.reliefOrderID || mission.reliefOrderId) && (
+                    <button
+                      className="btn-accept"
+                      onClick={() => handlePickup(mission)}
+                    >
+                      Confirm Pickup
+                    </button>
+                  )}
 
                   <button
                     className="btn-complete"
-                    onClick={() => handleComplete(getMissionId(mission))}
+                    onClick={() => handleComplete(mission)}
                   >
                     Complete Mission
                   </button>

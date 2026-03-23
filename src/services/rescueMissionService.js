@@ -2,65 +2,66 @@ import { fetchWithAuth } from "./apiClient";
 
 const BASE = "/RescueMission";
 
-// Chuẩn hóa mọi response về JSON để component không phải tự .json() lần nữa.
-
-// export const completeMission = async (rescueMissionID) => {
-//   if (!rescueMissionID) {
-//     throw new Error("rescueMissionID is required");
-//   }
-
-//   const json = await fetchWithAuth(`${BASE}/complete`, {
-//     method: "PUT",
-//     body: JSON.stringify({ rescueMissionID }),
-//   });
-
-//   if (!json?.success) {
-//     throw new Error(json?.message || "Complete mission failed");
-//   }
-
-//   return json.content;
-// };
-
-// Chuẩn hóa mọi response về JSON để component không phải tự .json() lần nữa.
-async function parseJsonResponse(res) {
-  const text = await res.text();
-  const json = text ? JSON.parse(text) : {};
-  if (!res.ok || json?.success === false) {
-    throw new Error(json?.message || `Request failed (${res.status})`);
+export const completeMission = async (rescueMissionID) => {
+  if (!rescueMissionID) {
+    throw new Error("rescueMissionID is required");
   }
   return json;
 }
 
-// Hoàn thành mission và trả content đã parse sẵn.
-export const completeMission = async (rescueMissionID) => {
-  if (!rescueMissionID) throw new Error("rescueMissionID is required");
-
   const res = await fetchWithAuth(`${BASE}/complete`, {
     method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ rescueMissionID }),
   });
-  const json = await parseJsonResponse(res);
+
+  const json = await res.json();
+
+  console.log("COMPLETE RESPONSE:", json);
+
+  if (!json?.success) {
+    throw new Error(json?.message || "Complete mission failed");
+  }
+
   return json.content;
 };
-/* ================= SERVICE ================= */
 
 export const rescueMissionService = {
-  // Coordinator assign request cho rescue team.
   dispatch: async ({ rescueRequestID, rescueTeamID }) => {
-    const res = await fetchWithAuth(`${BASE}/dispatch`, {
-      method: "POST",
-      body: JSON.stringify({ rescueRequestID, rescueTeamID }),
+    const url = `${BASE}/dispatch`;
+
+    console.log("DISPATCH URL:", url);
+    console.log("DISPATCH PAYLOAD:", {
+      rescueRequestID,
+      rescueTeamID,
     });
 
-    // return await res.json();
-    return await parseJsonResponse(res);
-  },
+    const res = await fetchWithAuth(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        rescueRequestID,
+        rescueTeamID,
+      }),
+    });
 
-  /* -------- ACCEPT / REJECT -------- */
-  // Leader accept/reject mission.
+    console.log("DISPATCH RAW RESPONSE:", res);
+
+    const json = await res.json();
+    console.log("DISPATCH RESPONSE JSON:", json);
+
+    return json;
+  },
   respond: async ({ rescueMissionID, isAccepted, rejectReason }) => {
     const res = await fetchWithAuth(`${BASE}/respond`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         rescueMissionID,
         isAccepted,
@@ -72,8 +73,6 @@ export const rescueMissionService = {
     return await parseJsonResponse(res);
   },
 
-  /* -------- CONFIRM PICKUP -------- */
-
   confirmPickup: async ({ rescueMissionID, reliefOrderID }) => {
     if (!rescueMissionID || !reliefOrderID) {
       throw new Error("rescueMissionID and reliefOrderID are required");
@@ -81,12 +80,18 @@ export const rescueMissionService = {
 
     const res = await fetchWithAuth(`${BASE}/confirm-pickup`, {
       method: "PUT",
-      body: JSON.stringify({ rescueMissionID, reliefOrderID }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        rescueMissionID,
+        reliefOrderID,
+      }),
     });
-    return await parseJsonResponse(res);
+
+    return await res.json();
   },
 
-  // Lấy danh sách mission theo team + status để hiển thị cho Rescue Team.
   filter: async ({ rescueTeamID, statuses, pageNumber = 1, pageSize = 20 }) => {
     const params = new URLSearchParams();
     if (rescueTeamID) params.append("RescueTeamID", rescueTeamID);
@@ -98,29 +103,22 @@ export const rescueMissionService = {
       method: "GET",
     });
 
-    // const json = await res.json(); // 🔥 THIẾU DÒNG NÀY
-
-    // return json;
-    return await parseJsonResponse(res);
+    return await res.json();
   },
-  /* -------- GET MISSION DETAIL -------- */
 
   getById: async (id) => {
     const res = await fetchWithAuth(`${BASE}/${id}`, {
       method: "GET",
     });
-    return await parseJsonResponse(res);
-  },
 
-  getById: async (id) => {
-    const res = await fetchWithAuth(`${BASE}/${id}`, { method: "GET" });
-    return await parseJsonResponse(res);
+    return await res.json();
   },
 
   getTeamMembers: async (teamId) => {
     const res = await fetchWithAuth(`${BASE}/teams/${teamId}/members`, {
       method: "GET",
     });
-    return await parseJsonResponse(res);
+
+    return await res.json();
   },
 };

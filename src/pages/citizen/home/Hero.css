@@ -1,3 +1,8 @@
+.hero {
+  min-height: 90vh; /* giảm xuống */
+  padding-bottom: 20px; /* hoặc 0 */
+}
+
 .hero-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
