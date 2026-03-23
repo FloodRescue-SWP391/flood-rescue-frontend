@@ -34,32 +34,32 @@ export const incidentReportService = {
 
     if (params.statuses?.length) {
       params.statuses.forEach((status) => {
-        searchParams.append("Statuses", status);
+        searchParams.append("statuses", status);
       });
     }
 
     if (params.createdFromDate) {
-      searchParams.append("CreatedFromDate", params.createdFromDate);
+      searchParams.append("createdFromDate", params.createdFromDate);
     }
 
     if (params.createdToDate) {
-      searchParams.append("CreatedToDate", params.createdToDate);
+      searchParams.append("createdToDate", params.createdToDate);
     }
 
     if (params.resolvedFromDate) {
-      searchParams.append("ResolvedFromDate", params.resolvedFromDate);
+      searchParams.append("resolvedFromDate", params.resolvedFromDate);
     }
 
     if (params.resolvedToDate) {
-      searchParams.append("ResolvedToDate", params.resolvedToDate);
+      searchParams.append("resolvedToDate", params.resolvedToDate);
     }
 
     if (params.pageNumber) {
-      searchParams.append("PageNumber", params.pageNumber);
+      searchParams.append("pageNumber", params.pageNumber);
     }
 
     if (params.pageSize) {
-      searchParams.append("PageSize", params.pageSize);
+      searchParams.append("pageSize", params.pageSize);
     }
 
     const query = searchParams.toString();

@@ -10,11 +10,11 @@ export const getUsers = async ({
 } = {}) => {
     const query = new URLSearchParams();
 
-    if (searchKeyword) query.append("SearchKeyword", searchKeyword);
-    if (roleId) query.append("RoleID", roleId);
-    if (isActive !== "") query.append("IsActive", isActive);
-    query.append("PageNumber", pageNumber);
-    query.append("PageSize", pageSize);
+    if (searchKeyword) query.append("searchKeyword", searchKeyword);
+    if (roleId) query.append("roleId", roleId);
+    if (isActive !== "") query.append("isActive", isActive);
+    query.append("pageNumber", pageNumber);
+    query.append("pageSize", pageSize);
 
     const response = await fetchWithAuth(
         `${API_BASE_URL}/Users?${query.toString()}`,

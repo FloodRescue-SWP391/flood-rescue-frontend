@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./apiClient";
+import { API_BASE_URL, fetchWithAuth } from "./apiClient";
 
 //fetchWithTimeout dùng để tránh tình trạng request bị treo vô hạn (pending mãi không trả về).
 const fetchWithTimeout = (url, options = {}, ms = 60000) => {
@@ -79,8 +79,8 @@ export async function getAllRescueRequests() {
 
 // GET: /api/RescueRequests/{id}
 export async function getRescueRequestById(id) {
-  const res = await fetchWithTimeout(`${API_BASE_URL}/RescueRequests/${id}`);
-  return await parseResponse(res);
+  const res = await fetchWithAuth(`/RescueRequests/${id}`);
+  return await res.json();
 }
 // GET: /api/RescueRequests/filter
 export async function filterRescueRequests(params = {}) {
@@ -88,17 +88,17 @@ export async function filterRescueRequests(params = {}) {
 
   if (params.status) {
     if (Array.isArray(params.status)) {
-      params.status.forEach((s) => query.append("Status", s));
+      params.status.forEach((s) => query.append("status", s));
     } else {
-      query.append("Status", params.status);
+      query.append("status", params.status);
     }
   }
 
-  if (params.requestType) query.append("RequestType", params.requestType);
-  if (params.fromDate) query.append("FromDate", params.fromDate);
-  if (params.toDate) query.append("ToDate", params.toDate);
-  if (params.pageNumber) query.append("PageNumber", params.pageNumber);
-  if (params.pageSize) query.append("PageSize", params.pageSize);
+  if (params.requestType) query.append("requestType", params.requestType);
+  if (params.fromDate) query.append("fromDate", params.fromDate);
+  if (params.toDate) query.append("toDate", params.toDate);
+  if (params.pageNumber) query.append("pageNumber", params.pageNumber);
+  if (params.pageSize) query.append("pageSize", params.pageSize);
 
   const url = `${API_BASE_URL}/RescueRequests/filter${query.toString() ? `?${query.toString()}` : ""
     }`;

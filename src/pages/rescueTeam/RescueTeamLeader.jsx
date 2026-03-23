@@ -18,6 +18,8 @@ import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import RequestDetailModal from "./RequestDetailModal";
+import IncidentReportForm from "./IncidentReportForm";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -33,50 +35,72 @@ export default function RescueTeamLeader({ teamId }) {
   const [completed, setCompleted] = useState([]);
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedMission, setSelectedMission] = useState(null);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
 
   /* ================= HELPERS ================= */
 
   const getMissionId = (mission) =>
     mission?.rescueMissionID || mission?.rescueMissionId || mission?.id;
 
-  const getCitizenName = (mission) =>
-    mission?.citizenName ||
-    mission?.fullName ||
-    mission?.rescueRequest?.citizenName ||
-    mission?.rescueRequest?.fullName ||
-    mission?.incidentReport?.citizenName ||
-    "Citizen";
+  const getCitizenName = (mission) => {
+    const name =
+      mission?.citizenName ||
+      mission?.fullName ||
+      mission?.userName ||
+      mission?.rescueRequest?.citizenName ||
+      mission?.rescueRequest?.fullName ||
+      mission?.rescueRequest?.userName ||
+      mission?.rescueRequest?.requesterName ||
+      mission?.incidentReport?.citizenName ||
+      mission?.incidentReport?.fullName ||
+      "Citizen";
 
-  const getDescription = (mission) =>
-    mission?.description ||
-    mission?.rescueRequest?.description ||
-    mission?.incidentReport?.description ||
-    "No description";
+    return name || "Citizen";
+  };
 
-  const getLatitude = (mission) =>
-    mission?.locationLatitude ??
-    mission?.latitude ??
-    mission?.lat ??
-    mission?.rescueRequest?.locationLatitude ??
-    mission?.rescueRequest?.latitude ??
-    mission?.rescueRequest?.lat ??
-    mission?.incidentReport?.locationLatitude ??
-    mission?.incidentReport?.latitude ??
-    mission?.incidentReport?.lat;
+  const getDescription = (mission) => {
+    const desc =
+      mission?.description ||
+      mission?.title ||
+      mission?.rescueRequest?.description ||
+      mission?.rescueRequest?.title ||
+      mission?.rescueRequest?.content ||
+      mission?.incidentReport?.description ||
+      "No description";
 
-  const getLongitude = (mission) =>
-    mission?.locationLongitude ??
-    mission?.longitude ??
-    mission?.lng ??
-    mission?.lon ??
-    mission?.rescueRequest?.locationLongitude ??
-    mission?.rescueRequest?.longitude ??
-    mission?.rescueRequest?.lng ??
-    mission?.rescueRequest?.lon ??
-    mission?.incidentReport?.locationLongitude ??
-    mission?.incidentReport?.longitude ??
-    mission?.incidentReport?.lng ??
-    mission?.incidentReport?.lon;
+    return desc || "No description";
+  };
+
+  const getLatitude = (mission) => {
+    const lat =
+      mission?.latitude ??
+      mission?.locationLatitude ??
+      mission?.lat ??
+      mission?.rescueRequest?.latitude ??
+      mission?.rescueRequest?.locationLatitude ??
+      mission?.rescueRequest?.lat ??
+      mission?.incidentReport?.latitude ??
+      mission?.incidentReport?.locationLatitude;
+
+    return lat ? Number(lat) : 10.7769; // Default Saigon coordinates
+  };
+
+  const getLongitude = (mission) => {
+    const lng =
+      mission?.longitude ??
+      mission?.locationLongitude ??
+      mission?.lng ??
+      mission?.lon ??
+      mission?.rescueRequest?.longitude ??
+      mission?.rescueRequest?.locationLongitude ??
+      mission?.rescueRequest?.lng ??
+      mission?.incidentReport?.longitude ??
+      mission?.incidentReport?.locationLongitude;
+
+    return lng ? Number(lng) : 106.6541; // Default Saigon coordinates
+  };
 
   const getMissionStatus = (mission) =>
     mission?.currentStatus ||
@@ -108,34 +132,37 @@ export default function RescueTeamLeader({ teamId }) {
         return;
       }
 
-      console.log("MISSION DATA:", json);
-      console.log("MISSION ARRAY:", json?.content?.data);
-
-      const missions =
+      let missions =
         json?.content?.data || json?.content?.items || json?.content || [];
 
-      const assignedList = missions.filter(
-        (m) => getMissionStatus(m) === "Assigned",
-      );
-      const inProgressList = missions.filter(
-        (m) => getMissionStatus(m) === "InProgress",
-      );
-      const completedList = missions.filter(
-        (m) => getMissionStatus(m) === "Completed",
-      );
-      setMissions(missions);
+      if (!Array.isArray(missions)) {
+        missions = Object.values(missions).filter(m => m?.rescueMissionID || m?.rescueMissionId);
+      }
 
+      // Add fallback data for display
+      const enrichedMissions = missions.map((mission) => ({
+        ...mission,
+        description: mission.description || "Nhiệm vụ cứu hộ đang diễn ra",
+        longitude: mission.longitude || 106.6541,
+        latitude: mission.latitude || 10.7769,
+      }));
+
+      const assignedList = enrichedMissions.filter(
+        (m) => getMissionStatus(m) === "Assigned"
+      );
+      const inProgressList = enrichedMissions.filter(
+        (m) => getMissionStatus(m) === "InProgress"
+      );
+      const completedList = enrichedMissions.filter(
+        (m) => getMissionStatus(m) === "Completed"
+      );
+
+      setMissions(enrichedMissions);
       setAssigned(assignedList);
       setInProgress(inProgressList);
       setCompleted(completedList);
-
-      if (missions.length > 0) {
-        console.log("FIRST MISSION:", missions[0]);
-        console.log("LAT:", getLatitude(missions[0]));
-        console.log("LNG:", getLongitude(missions[0]));
-      }
     } catch (err) {
-      console.error("Load mission error:", err);
+      console.error("Load mission error:", err?.message);
     } finally {
       setLoading(false);
     }
@@ -153,7 +180,9 @@ export default function RescueTeamLeader({ teamId }) {
   //   return () => clearInterval(interval);
   // }, [teamId]);
   useEffect(() => {
-    loadMissions();
+    if (teamId) {
+      loadMissions();
+    }
   }, [teamId]);
   useEffect(() => {
     const handleMissionNotification = () => loadMissions();
@@ -202,6 +231,34 @@ export default function RescueTeamLeader({ teamId }) {
     };
   }, [teamId]);
   /* ================= ACTIONS ================= */
+
+  const handleShowDetail = (mission) => {
+    setSelectedMission(mission);
+    setShowDetailModal(true);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetailModal(false);
+    setSelectedMission(null);
+  };
+
+  const handleReportIncident = (mission) => {
+    setSelectedMission(mission);
+    setShowDetailModal(false);
+    setShowIncidentModal(true);
+  };
+
+  const handleCloseIncident = () => {
+    setShowIncidentModal(false);
+    setSelectedMission(null);
+  };
+
+  const handleIncidentSubmit = async (formData) => {
+    // Mock API call - replace with real endpoint when available
+    console.log("Incident Report Submitted:", formData);
+    // After submission, refresh missions
+    await loadMissions();
+  };
 
   const handleAccept = async (mission) => {
     try {
@@ -338,15 +395,15 @@ export default function RescueTeamLeader({ teamId }) {
           <div className="dashboard-header">
             <FaShieldAlt size={32} color="red" />
             <div>
-              <h1 className="dashboard-title">Rescue Team Leader</h1>
-              <p className="dashboard-sub">Team ID: {teamId}</p>
+              <h1 className="dashboard-title">Trưởng đội cứu hộ</h1>
+              <p className="dashboard-sub">Đội: {teamId?.substring(0, 8) || "Không xác định"}</p>
             </div>
           </div>
 
           <div className="stats">
             <div className="stat-card blue">
               <div className="stat-info">
-                <span>Assigned</span>
+                <span>Gán cho tôi</span>
                 <h3>{assigned.length}</h3>
               </div>
               <FaClipboardList className="stat-icon" />
@@ -354,7 +411,7 @@ export default function RescueTeamLeader({ teamId }) {
 
             <div className="stat-card green">
               <div className="stat-info">
-                <span>In Progress</span>
+                <span>Đang thực hiện</span>
                 <h3>{inProgress.length}</h3>
               </div>
               <FaCheckCircle className="stat-icon" />
@@ -362,7 +419,7 @@ export default function RescueTeamLeader({ teamId }) {
 
             <div className="stat-card gray">
               <div className="stat-info">
-                <span>Completed</span>
+                <span>Hoàn thành</span>
                 <h3>{completed.length}</h3>
               </div>
               <FaCheckCircle className="stat-icon" />
@@ -371,8 +428,8 @@ export default function RescueTeamLeader({ teamId }) {
 
           <div className="panels">
             <div className="panel">
-              <div className="panel-title">Assigned Missions</div>
-              {assigned.length === 0 && <p>No assigned missions</p>}
+              <div className="panel-title">Nhiệm vụ được gán</div>
+              {assigned.length === 0 && <p>Không có nhiệm vụ được gán</p>}
               {assigned.map((mission) => (
                 <div className="request-card" key={getMissionId(mission)}>
                   <p>
@@ -391,14 +448,28 @@ export default function RescueTeamLeader({ teamId }) {
                       className="btn-accept"
                       onClick={() => handleAccept(mission)}
                     >
-                      Accept
+                      Chấp nhận
                     </button>
 
                     <button
                       className="btn-reject"
                       onClick={() => handleReject(mission)}
                     >
-                      Reject
+                      Từ chối
+                    </button>
+
+                    <button
+                      className="btn-report"
+                      onClick={() => handleReportIncident(mission)}
+                    >
+                      Báo cáo sự cố
+                    </button>
+
+                    <button
+                      className="btn-info"
+                      onClick={() => handleShowDetail(mission)}
+                    >
+                      Xem chi tiết
                     </button>
                   </div>
                 </div>
@@ -406,8 +477,8 @@ export default function RescueTeamLeader({ teamId }) {
             </div>
 
             <div className="panel">
-              <div className="panel-title">In Progress</div>
-              {inProgress.length === 0 && <p>No missions in progress</p>}
+              <div className="panel-title">Đang thực hiện</div>
+              {inProgress.length === 0 && <p>Không có nhiệm vụ nào đang thực hiện</p>}
               {inProgress.map((mission) => (
                 <div className="request-card" key={getMissionId(mission)}>
                   <p>
@@ -426,16 +497,32 @@ export default function RescueTeamLeader({ teamId }) {
                       className="btn-accept"
                       onClick={() => handlePickup(mission)}
                     >
-                      Confirm Pickup
+                      Xác nhận lấy hàng
                     </button>
                   )}
 
-                  <button
-                    className="btn-complete"
-                    onClick={() => handleComplete(mission)}
-                  >
-                    Complete Mission
-                  </button>
+                  <div className="btn-group">
+                    <button
+                      className="btn-complete"
+                      onClick={() => handleComplete(mission)}
+                    >
+                      Hoàn thành nhiệm vụ
+                    </button>
+
+                    <button
+                      className="btn-report"
+                      onClick={() => handleReportIncident(mission)}
+                    >
+                      Báo cáo sự cố
+                    </button>
+
+                    <button
+                      className="btn-info"
+                      onClick={() => handleShowDetail(mission)}
+                    >
+                      Xem chi tiết
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -464,6 +551,23 @@ export default function RescueTeamLeader({ teamId }) {
               ))}
             </MapContainer>
           </div>
+
+          {/* Modals */}
+          {showDetailModal && selectedMission && (
+            <RequestDetailModal
+              mission={selectedMission}
+              onClose={handleCloseDetail}
+              onReportIncident={handleReportIncident}
+            />
+          )}
+
+          {showIncidentModal && selectedMission && (
+            <IncidentReportForm
+              mission={selectedMission}
+              onClose={handleCloseIncident}
+              onSubmit={handleIncidentSubmit}
+            />
+          )}
         </div>
       </div>
     </>
