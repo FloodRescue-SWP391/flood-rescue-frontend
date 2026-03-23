@@ -34,9 +34,17 @@ export default function Warehouse() {
 
       console.log("WAREHOUSE API:", data);
 
-      if (data?.success) {
-        setWarehouses(data.content || []);
+      let list = [];
+      if (Array.isArray(data)) list = data;
+      else if (Array.isArray(data?.data)) list = data.data;
+      else if (Array.isArray(data?.content)) list = data.content;
+      else if (Array.isArray(data?.items)) list = data.items;
+      else if (Array.isArray(data?.data?.content)) list = data.data.content;
+      else if (typeof data === 'object' && data !== null) {
+        const potentialArray = Object.values(data).find(Array.isArray);
+        if (potentialArray) list = potentialArray;
       }
+      setWarehouses(list);
 
     } catch (err) {
       console.error(err);
@@ -203,9 +211,9 @@ export default function Warehouse() {
 
           <tbody>
 
-            {warehouses.map((w) => (
+            {warehouses.map((w, index) => (
 
-              <tr key={w.warehouseId}>
+              <tr key={w.warehouseId || w.id || w.warehouseID || index}>
 
                 <td>{w.name}</td>
                 <td>{w.address}</td>

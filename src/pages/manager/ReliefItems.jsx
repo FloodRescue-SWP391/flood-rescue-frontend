@@ -24,9 +24,17 @@ const ReliefItems = () => {
     try {
       const res = await reliefItemsService.getAll();
 
-      if (res?.success) {
-        setItems(res.content || []);
+      let list = [];
+      if (Array.isArray(res)) list = res;
+      else if (Array.isArray(res?.data)) list = res.data;
+      else if (Array.isArray(res?.content)) list = res.content;
+      else if (Array.isArray(res?.items)) list = res.items;
+      else if (Array.isArray(res?.data?.content)) list = res.data.content;
+      else if (typeof res === 'object' && res !== null) {
+        const potentialArray = Object.values(res).find(Array.isArray);
+        if (potentialArray) list = potentialArray;
       }
+      setItems(list);
     } catch (err) {
       console.error(err);
     }

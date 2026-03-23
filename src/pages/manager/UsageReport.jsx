@@ -34,8 +34,32 @@ export default function UsageReport() {
       const itemsRes = await reliefItemsService.getAll();
       const inventoryRes = await inventoryService.getInventoryByWarehouse(1);
 
-      if (itemsRes?.success) setItems(itemsRes.content || []);
-      if (inventoryRes?.success) setInventory(inventoryRes.content || []);
+      let itemsList = [];
+      if (Array.isArray(itemsRes)) itemsList = itemsRes;
+      else if (Array.isArray(itemsRes?.data)) itemsList = itemsRes.data;
+      else if (Array.isArray(itemsRes?.content)) itemsList = itemsRes.content;
+      else if (Array.isArray(itemsRes?.items)) itemsList = itemsRes.items;
+      else if (Array.isArray(itemsRes?.data?.content)) itemsList = itemsRes.data.content;
+      else if (typeof itemsRes === 'object' && itemsRes !== null) {
+        const potentialArray = Object.values(itemsRes).find(Array.isArray);
+        if (potentialArray) itemsList = potentialArray;
+      }
+      setItems(itemsList);
+
+      let invList = [];
+      const data = inventoryRes?.json ? await inventoryRes.json() : inventoryRes;
+      if (Array.isArray(data)) invList = data;
+      else if (Array.isArray(data?.data)) invList = data.data;
+      else if (Array.isArray(data?.content)) invList = data.content;
+      else if (Array.isArray(data?.items)) invList = data.items;
+      else if (Array.isArray(data?.data?.content)) invList = data.data.content;
+      else if (Array.isArray(data?.data?.items)) invList = data.data.items;
+      else if (typeof data === 'object' && data !== null) {
+        const potentialArray = Object.values(data).find(Array.isArray);
+        if (potentialArray) invList = potentialArray;
+        else invList = Object.values(data).filter(item => typeof item === 'object' && item !== null && (item.reliefItemID || item.id));
+      }
+      setInventory(invList);
 
     } catch (err) {
       console.error(err);

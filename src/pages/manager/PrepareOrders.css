@@ -123,6 +123,61 @@
   background:#ef4444;
   color:white;
   border:none;
-  padding:8px;
+  padding:8px 16px;
   border-radius:6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-close:hover{
+  background:#dc2626;
+}
+
+/* ORDER INFO FORM */
+
+.order-info-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.order-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.info-val {
+  font-size: 15px;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.modal-box.large{
+  width: 800px;
+  max-width: 95vw;
 }
