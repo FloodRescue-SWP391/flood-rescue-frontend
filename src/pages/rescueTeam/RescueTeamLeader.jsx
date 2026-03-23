@@ -21,39 +21,16 @@ import "leaflet/dist/leaflet.css";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Đọc status mềm để tránh lệch tên field giữa backend và frontend.
-const getStatus = (mission) =>
-  String(
-    mission?.status ?? mission?.Status ?? mission?.missionStatus ?? "",
-  ).toLowerCase();
-
-const normalizeMission = (mission) => ({
-  ...mission,
-  rescueMissionID: mission?.rescueMissionID ?? mission?.RescueMissionID,
-  rescueRequestID: mission?.rescueRequestID ?? mission?.RescueRequestID,
-  status: mission?.status ?? mission?.Status ?? mission?.missionStatus,
-  citizenName:
-    mission?.citizenName ??
-    mission?.CitizenName ??
-    mission?.requestShortCode ??
-    mission?.RescueRequestID,
-  citizenAddress:
-    mission?.citizenAddress ?? mission?.CitizenAddress ?? "No address",
-  description: mission?.description ?? mission?.Description ?? "",
-  locationLatitude: mission?.locationLatitude ?? mission?.LocationLatitude,
-  locationLongitude: mission?.locationLongitude ?? mission?.LocationLongitude,
-  reliefOrderID: mission?.reliefOrderID ?? mission?.ReliefOrderID ?? null,
-});
-
 export default function RescueTeamLeader({ teamId }) {
-  // const [assigned, setAssigned] = useState([]);
-  // const [inProgress, setInProgress] = useState([]);
-  // const [completed, setCompleted] = useState([]);
+  const [assigned, setAssigned] = useState([]);
+  const [inProgress, setInProgress] = useState([]);
+  const [completed, setCompleted] = useState([]);
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -102,7 +79,10 @@ export default function RescueTeamLeader({ teamId }) {
     mission?.incidentReport?.lon;
 
   const getMissionStatus = (mission) =>
-    mission?.currentStatus || mission?.status || mission?.newMissionStatus || "Unknown";
+    mission?.currentStatus ||
+    mission?.status ||
+    mission?.newMissionStatus ||
+    "Unknown";
 
   const isValidCoord = (lat, lng) => {
     const latNum = Number(lat);
@@ -134,9 +114,16 @@ export default function RescueTeamLeader({ teamId }) {
       const missions =
         json?.content?.data || json?.content?.items || json?.content || [];
 
-      const assignedList = missions.filter((m) => getMissionStatus(m) === "Assigned");
-      const inProgressList = missions.filter((m) => getMissionStatus(m) === "InProgress");
-      const completedList = missions.filter((m) => getMissionStatus(m) === "Completed");
+      const assignedList = missions.filter(
+        (m) => getMissionStatus(m) === "Assigned",
+      );
+      const inProgressList = missions.filter(
+        (m) => getMissionStatus(m) === "InProgress",
+      );
+      const completedList = missions.filter(
+        (m) => getMissionStatus(m) === "Completed",
+      );
+      setMissions(missions);
 
       setAssigned(assignedList);
       setInProgress(inProgressList);
