@@ -112,6 +112,21 @@ const RequestRescue = () => {
   const [mapZoom, setMapZoom] = useState(13);
   const [userLocation, setUserLocation] = useState(null);
 
+  const categories = [
+    { categoryID: 1, categoryName: "Nước uống" },
+    { categoryID: 2, categoryName: "Đồ ăn" },
+    { categoryID: 3, categoryName: "Thuốc" },
+  ];
+
+  const reliefItems = [
+    { reliefItemID: 1, reliefItemName: "Aquafina", categoryID: 1 },
+    { reliefItemID: 2, reliefItemName: "Lavie", categoryID: 1 },
+    { reliefItemID: 3, reliefItemName: "Ion Life", categoryID: 1 },
+    { reliefItemID: 4, reliefItemName: "Lương Khô", categoryID: 2 },
+    { reliefItemID: 5, reliefItemName: "Bánh Mì", categoryID: 2 },
+    { reliefItemID: 6, reliefItemName: "Mì Tôm", categoryID: 2 },
+  ];
+
   // Hàm lấy địa chỉ từ tọa độ (sử dụng Nominatim API của OpenStreetMap)
   const getCoordinatesFromAddress = async (address) => {
     try {
@@ -759,9 +774,44 @@ const RequestRescue = () => {
                           URL.createObjectURL(file),
                         ]);
 
-                        e.target.value = ""; // 👈 reset để chọn lại cùng file nếu cần
+                        e.target.value = ""; // reset để chọn lại cùng file nếu cần
                       }}
                     />
+                    <div className="suggestion-guideline-box">
+                      <div className="suggestion-guideline-title">
+                        🎒 Suggested relief supplies
+                      </div>
+
+                      <div className="suggestion-category-list">
+                        {categories.map((category) => {
+                          const itemsByCategory = reliefItems.filter(
+                            (item) => item.categoryID === category.categoryID,
+                          );
+
+                          return (
+                            <div
+                              key={category.categoryID}
+                              className="suggestion-category-card"
+                            >
+                              <h4 className="suggestion-category-name">
+                                {category.categoryName}
+                              </h4>
+
+                              <div className="suggestion-items">
+                                {itemsByCategory.map((item) => (
+                                  <span
+                                    key={item.reliefItemID}
+                                    className="suggestion-tag"
+                                  >
+                                    {item.reliefItemName}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
 
                     {/* Add button */}
                     <button
