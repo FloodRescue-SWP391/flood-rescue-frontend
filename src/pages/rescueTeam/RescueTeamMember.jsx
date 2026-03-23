@@ -38,13 +38,17 @@ export default function RescueTeamMember({ teamId }) {
     if (!teamId) return;
     setLoading(true);
     try {
-      const res = await rescueMissionService.filter({
+
+      const json = await rescueMissionService.filter({
         rescueTeamID: teamId,
         pageNumber: 1,
         pageSize: 50,
       });
 
-      const json = await res.json();
+      if (!json?.success) {
+        console.error("Filter missions failed:", json?.message);
+        return;
+      }
 
       const data = json?.content?.data || [];
 
@@ -65,24 +69,21 @@ export default function RescueTeamMember({ teamId }) {
     return () => clearInterval(interval);
   }, [teamId]);
 
+  const getMissionStatus = (mission) =>
+    mission?.currentStatus || mission?.status || mission?.newMissionStatus || "Unknown";
+
   /* ================= STATUS STATS ================= */
 
-  // const pending = missions.filter((m) => m.currentStatus === "Assigned");
-
-  // const active = missions.filter((m) => m.currentStatus === "InProgress");
-
-  // const completed = missions.filter((m) => m.currentStatus === "Completed");
-  const pending = useMemo(
-    () => missions.filter((m) => getStatus(m) === "assigned"),
-    [missions],
+  const pending = missions.filter(
+    (m) => getMissionStatus(m) === "Assigned"
   );
-  const active = useMemo(
-    () => missions.filter((m) => getStatus(m) === "inprogress"),
-    [missions],
+
+  const active = missions.filter(
+    (m) => getMissionStatus(m) === "InProgress"
   );
-  const completed = useMemo(
-    () => missions.filter((m) => getStatus(m) === "completed"),
-    [missions],
+
+  const completed = missions.filter(
+    (m) => getMissionStatus(m) === "Completed"
   );
 
   /* ================= MAP MISSIONS ================= */
@@ -178,7 +179,7 @@ export default function RescueTeamMember({ teamId }) {
                   {m.locationLatitude}, {m.locationLongitude}
                 </p>
 
-                <p>Status: {m.currentStatus}</p>
+                <p>Status: {getMissionStatus(m)}</p>
 
                 <div
                   style={{

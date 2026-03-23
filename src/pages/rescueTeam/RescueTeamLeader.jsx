@@ -101,6 +101,9 @@ export default function RescueTeamLeader({ teamId }) {
     mission?.incidentReport?.lng ??
     mission?.incidentReport?.lon;
 
+  const getMissionStatus = (mission) =>
+    mission?.currentStatus || mission?.status || mission?.newMissionStatus || "Unknown";
+
   const isValidCoord = (lat, lng) => {
     const latNum = Number(lat);
     const lngNum = Number(lng);
@@ -120,15 +123,20 @@ export default function RescueTeamLeader({ teamId }) {
         pageSize: 50,
       });
 
+      if (!json?.success) {
+        console.error("Filter missions failed:", json?.message);
+        return;
+      }
+
       console.log("MISSION DATA:", json);
       console.log("MISSION ARRAY:", json?.content?.data);
 
       const missions =
         json?.content?.data || json?.content?.items || json?.content || [];
 
-      const assignedList = missions.filter((m) => m.status === "Assigned");
-      const inProgressList = missions.filter((m) => m.status === "InProgress");
-      const completedList = missions.filter((m) => m.status === "Completed");
+      const assignedList = missions.filter((m) => getMissionStatus(m) === "Assigned");
+      const inProgressList = missions.filter((m) => getMissionStatus(m) === "InProgress");
+      const completedList = missions.filter((m) => getMissionStatus(m) === "Completed");
 
       setAssigned(assignedList);
       setInProgress(inProgressList);
@@ -214,7 +222,7 @@ export default function RescueTeamLeader({ teamId }) {
 
       console.log("MISSION CLICKED:", mission);
       console.log("MISSION ID SENT:", missionId);
-      console.log("MISSION STATUS:", mission?.status);
+      console.log("MISSION STATUS:", mission?.currentStatus);
 
       if (!missionId) {
         console.error("Mission ID is missing", mission);
@@ -245,7 +253,7 @@ export default function RescueTeamLeader({ teamId }) {
 
       console.log("MISSION CLICKED:", mission);
       console.log("MISSION ID SENT:", missionId);
-      console.log("MISSION STATUS:", mission?.status);
+      console.log("MISSION STATUS:", mission?.currentStatus);
 
       if (!missionId) {
         console.error("Mission ID is missing", mission);
@@ -303,7 +311,7 @@ export default function RescueTeamLeader({ teamId }) {
 
       console.log("COMPLETE MISSION OBJECT:", mission);
       console.log("COMPLETE MISSION ID:", missionId);
-      console.log("COMPLETE MISSION STATUS:", mission?.status);
+      console.log("COMPLETE MISSION STATUS:", mission?.currentStatus);
 
       if (!missionId) {
         console.error("Mission ID is missing");
@@ -463,7 +471,7 @@ export default function RescueTeamLeader({ teamId }) {
                     <br />
                     {getDescription(m)}
                     <br />
-                    Status: {m.status}
+                    Status: {getMissionStatus(m)}
                   </Popup>
                 </Marker>
               ))}

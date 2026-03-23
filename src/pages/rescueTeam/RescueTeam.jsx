@@ -13,39 +13,51 @@ export default function RescueTeam() {
   const [loading, setLoading] = useState(true);
   const [isLeader, setIsLeader] = useState(false);
 
-  // const loadTeam = async () => {
-  //   try {
-  //     const res = await fetchWithAuth(
-  //       `/RescueTeams/rescue-team-member-${teamId}`,
-  //     );
+  const getTeamMembers = (json) => {
+    if (!json?.success) return [];
+    return json?.content?.members || json?.content?.teamMember || json?.content || [];
+  };
 
-  //     const json = await res.json();
+  const loadTeam = async () => {
+    setLoading(true);
 
-  //     if (!res.ok || !json?.success) {
-  //       console.error("Team API error:", json?.message);
-  //       setLoading(false);
-  //       return;
-  //     }
+    const endpoints = [
+      `/RescueTeams/rescue-team-member-${teamId}`,
+      `/RescueTeams/${teamId}/members`,
+      `/RescueMission/teams/${teamId}/members`,
+    ];
 
-  //     const members = json?.content?.teamMember ?? [];
+    let members = [];
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetchWithAuth(endpoint);
+        const json = await res.json();
 
-  //     const currentUserId = localStorage.getItem("userId");
+        if (res.ok && json?.success) {
+          members = getTeamMembers(json);
+          break;
+        }
 
-  //     const currentMember = members.find(
-  //       (m) => String(m.userID) === String(currentUserId),
-  //     );
+        console.warn("Load team attempt failed", endpoint, res.status, json?.message);
+      } catch (err) {
+        console.error("Load team attempt threw", endpoint, err);
+      }
+    }
 
-  //     setIsLeader(currentMember?.isLeader === true);
-  //   } catch (err) {
-  //     console.error("Load team error:", err);
-  //   }
+    if (members.length === 0) {
+      console.error("No team members from any endpoint");
+      setLoading(false);
+      return;
+    }
 
-  //   setLoading(false);
-  // };
+    const currentUserId = localStorage.getItem("userId");
+    const currentMember = members.find(
+      (m) => String(m.userID || m.userId) === String(currentUserId),
+    );
 
-  // useEffect(() => {
-  //   if (teamId) loadTeam();
-  // }, [teamId]);
+    setIsLeader(currentMember?.isLeader === true);
+    setLoading(false);
+  };
 
   useEffect(() => {
     const savedLeader = localStorage.getItem("isLeader");
