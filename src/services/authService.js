@@ -1,34 +1,5 @@
-/**
- * AUTH SERVICE
- *
- * Vai trò / Chức năng chính:
- * - Cung cấp các hàm gọi API liên quan đến Authentication.
- * - Thực hiện đăng ký (register) và đăng nhập (login).
- * - Khi login thành công: lưu thông tin auth (token + user info) vào localStorage
- *   để các request sau dùng được (thông qua apiClient/fetchWithAuth).
- *
- * ------------------------------------------------------------
- * FLOW REGISTER:
- * 1) Nhận payload từ UI (RegisterRequestDTO).
- * 2) Gửi POST /api/Auth/register.
- * 3) Nếu OK → return json.data cho UI xử lý.
- * 4) Nếu lỗi → throw Error để UI hiển thị thông báo.
- *
- * ------------------------------------------------------------
- * FLOW LOGIN:
- * 1) Nhận username + password từ UI (LoginRequestDTO).
- * 2) Gửi POST /api/Auth/login.
- * 3) Nếu OK:
- *      - Backend trả AuthResponseDTO (AccessToken, Role, UserID, ...)
- *      - Lưu json.data vào localStorage key "auth".
- *      - Return json.data cho UI (navigate theo role, hiển thị tên,...)
- * 4) Nếu lỗi → throw Error để UI hiển thị thông báo.
- *
- */
 import { API_BASE_URL, fetchWithAuth } from "./apiClient";
 
-// nếu register public thì giữ fetch như bạn đang làm
-// nếu register cần auth thì dùng fetchWithAuth:
 export async function register(payload) {
   const res = await fetchWithAuth(`${API_BASE_URL}/Auth/register`, {
     method: "POST",
@@ -50,39 +21,47 @@ export async function login(username, password) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userName: username, password }),
   });
+
   const text = await res.text();
   let json = null;
   try {
     json = text ? JSON.parse(text) : null;
-  } catch {}
+  } catch {
+    json = null;
+  }
 
   if (!res.ok) {
-    const msg = json?.message || json?.title || text || "Login Failed";
-    throw new Error(msg);
+    throw new Error(json?.message || json?.title || text || "Login failed");
   }
-  //lưu auth để apiClient có thể tự động thêm token vào header khi gọi API sau này
-  const data = json?.content ?? json?.data ?? json; // FIX: swagger trả content
 
-  // lưu auth
+  // Backend có thể trả content/data hoặc trả thẳng object, nên gom về 1 biến data để dùng thống nhất.
+  const data = json?.content ?? json?.data ?? json;
   localStorage.setItem("auth", JSON.stringify(data));
 
   // FIX: lưu token để apiClient gửi Authorization header
+    // Lưu token để API thường và SignalR đều đọc được token mới nhất.
   const token = data?.accessToken ?? data?.AccessToken;
   if (token) {
     localStorage.setItem("token", token);
   }
   // lưu role
-  if (data?.roleName) {
-    localStorage.setItem("role", data.roleName);
+    const roleName = data?.roleName ?? data?.RoleName ?? data?.role ?? data?.Role;
+  if (roleName) {
+    localStorage.setItem("role", roleName);
   }
 
-  if (data?.userID) {
-    localStorage.setItem("userId", data.userID);
+  // userId dùng để xác định user hiện tại ở frontend, nhất là màn Rescue Team.
+  const userId = data?.userID ?? data?.UserID ?? data?.userId ?? data?.UserId;
+  if (userId) localStorage.setItem("userId", userId);
+
+  // teamId dùng để biết user thuộc đội nào; backend cũng dựa claim TeamID để auto join đúng SignalR group.
+  const teamId = data?.teamID ?? data?.TeamID ?? data?.teamId ?? data?.TeamId;
+  if (teamId) localStorage.setItem("teamId", teamId);
+
+  // isLeader giúp frontend render đúng giao diện Leader hoặc Member.
+  const isLeader = data?.isLeader ?? data?.IsLeader;
+  if (typeof isLeader !== "undefined") {
+    localStorage.setItem("isLeader", String(isLeader));
   }
-  const teamId = data?.teamID ?? data?.teamId;
-  if (teamId) {
-    localStorage.setItem("teamId", data.teamId);
-  }
-  localStorage.removeItem("isLeader");
   return data; //giả sử backend trả về { data: { accessToken, refreshToken, ... } }
 }

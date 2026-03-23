@@ -33,45 +33,75 @@ const RequestStatus = () => {
       loadRequestByShortCode(shortCode);
     }
   }, [shortCode]);
-  // SIGNALR REALTIME FOR CITIZEN 
+  // SIGNALR REALTIME FOR CITIZEN
   // Citizen sẽ nhận update realtime khi mission thay đổi
   useEffect(() => {
+    if (!shortCode) return;
 
+    // Khi backend báo request có thay đổi trạng thái, citizen sẽ gọi lại API track theo shortCode.
     const handleMissionUpdate = (data) => {
-      console.log("Citizen realtime update:", data);
+      // console.log("Citizen realtime update:", data);
 
-      // Nếu request trùng shortCode thì reload lại data
-      if (data.requestShortCode === shortCode) {
+      // // Nếu request trùng shortCode thì reload lại data
+      // if (data.requestShortCode === shortCode) {
+      //   loadRequestByShortCode(shortCode);
+      // }
+      const code =
+        data?.requestShortCode ?? data?.RequestShortCode ?? data?.shortCode;
+      if (code && code === shortCode) {
         loadRequestByShortCode(shortCode);
       }
     };
 
     const initSignalR = async () => {
-      await signalRService.startConnection();
+      // await signalRService.startConnection();
 
-      // Mission completed
-      signalRService.on("ReceiveMissionCompletedNotification", handleMissionUpdate);
 
-      // Team accepted
-      signalRService.on("ReceiveTeamAcceptedNotification", handleMissionUpdate);
+            try {
+        await signalRService.startConnection();
+        // Event mới: mission hoàn thành.
+        await signalRService.on("MissionCompleted", handleMissionUpdate);
+        // Event mới dạng tổng quát cho accept/reject nếu backend đã chuẩn hóa.
+        await signalRService.on("ReceiveTeamResponse", handleMissionUpdate);
+        // Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
+        // Mission completed
+        signalRService.on(
+          "ReceiveMissionCompletedNotification",
+          handleMissionUpdate,
+        );
 
-      // Team rejected
-      signalRService.on("ReceiveTeamRejectedNotification", handleMissionUpdate);
+        // Team accepted
+        signalRService.on("ReceiveTeamAcceptedNotification", handleMissionUpdate);
+
+        // Team rejected
+        signalRService.on("ReceiveTeamRejectedNotification", handleMissionUpdate);
+      } catch (err) {
+        console.error("Citizen SignalR init error:", err);
+      }
     };
 
     initSignalR();
 
     return () => {
-      signalRService.off("ReceiveMissionCompletedNotification", handleMissionUpdate);
-      signalRService.off("ReceiveTeamAcceptedNotification", handleMissionUpdate);
-      signalRService.off("ReceiveTeamRejectedNotification", handleMissionUpdate);
+      signalRService.off("MissionCompleted", handleMissionUpdate);
+      signalRService.off("ReceiveTeamResponse", handleMissionUpdate);
+      // -------- Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
+      signalRService.off(
+        "ReceiveMissionCompletedNotification",
+        handleMissionUpdate,
+      );
+      signalRService.off(
+        "ReceiveTeamAcceptedNotification",
+        handleMissionUpdate,
+      );
+      signalRService.off(
+        "ReceiveTeamRejectedNotification",
+        handleMissionUpdate,
+      );
     };
+  }, [shortCode]);
 
-  }, []);
-  
-
-
-  // AUTO REFRESH REQUEST STATUS 
+  // AUTO REFRESH REQUEST STATUS
   // Citizen sẽ tự động cập nhật trạng thái mỗi 10 giây
   useEffect(() => {
     if (!request?.shortCode) return;
@@ -81,9 +111,11 @@ const RequestStatus = () => {
       loadRequestByShortCode(request.shortCode);
     }, 10000); // refresh mỗi 10 giây
 
-    return () => { clearInterval(interval) };
+    return () => {
+      clearInterval(interval);
+    };
   }, [request?.shortCode]);
-  // 
+  //
 
   const getStatusFlow = (requestType) => {
     const type = (requestType || "").toLowerCase();
@@ -169,7 +201,7 @@ const RequestStatus = () => {
       console.error("Error loading request:", error);
       setLookupError(
         error?.message ||
-        "Failed to load request. Please check the ShortCode and try again.",
+          "Failed to load request. Please check the ShortCode and try again.",
       );
       setRequest(null);
       setRescueTeam(null);
@@ -359,16 +391,18 @@ const RequestStatus = () => {
                   )}
 
                   <div
-                    className={`modern-icon ${isCompleted ? "completed" : isCurrent ? "current" : ""
-                      }`}
+                    className={`modern-icon ${
+                      isCompleted ? "completed" : isCurrent ? "current" : ""
+                    }`}
                   >
                     <span>{step.icon}</span>
                   </div>
 
                   <div className="modern-content">
                     <h4
-                      className={`${isCompleted || isCurrent ? "active-text" : ""
-                        }`}
+                      className={`${
+                        isCompleted || isCurrent ? "active-text" : ""
+                      }`}
                     >
                       {step.label}
                     </h4>

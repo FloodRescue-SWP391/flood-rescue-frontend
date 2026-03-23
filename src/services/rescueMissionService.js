@@ -6,6 +6,8 @@ export const completeMission = async (rescueMissionID) => {
   if (!rescueMissionID) {
     throw new Error("rescueMissionID is required");
   }
+  return json;
+}
 
   const res = await fetchWithAuth(`${BASE}/complete`, {
     method: "PUT",
@@ -67,7 +69,8 @@ export const rescueMissionService = {
       }),
     });
 
-    return await res.json();
+    // return await res.json();
+    return await parseJsonResponse(res);
   },
 
   confirmPickup: async ({ rescueMissionID, reliefOrderID }) => {
@@ -91,13 +94,8 @@ export const rescueMissionService = {
 
   filter: async ({ rescueTeamID, statuses, pageNumber = 1, pageSize = 20 }) => {
     const params = new URLSearchParams();
-
     if (rescueTeamID) params.append("RescueTeamID", rescueTeamID);
-
-    if (statuses) {
-      statuses.forEach((s) => params.append("Statuses", s));
-    }
-
+    if (statuses) statuses.forEach((s) => params.append("Statuses", s));
     params.append("PageNumber", pageNumber);
     params.append("PageSize", pageSize);
 

@@ -1,11 +1,22 @@
-// src/services/inventoryService.js
 import { fetchWithAuth } from "./apiClient";
 
 const BASE_PATH = "/Inventories";
 
+// Parse JSON và ném lỗi thống nhất để màn Manager đọc dữ liệu ổn định.
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  const json = text ? JSON.parse(text) : {};
+  if (!res.ok || json?.success === false) {
+    throw new Error(json?.message || `Request failed (${res.status})`);
+  }
+  return json;
+}
+
+
 /**
  * GET /api/Inventories?warehouseId=1
  */
+// Lấy tồn kho theo warehouse cho dashboard manager.
 export async function getInventoryByWarehouse(warehouseId) {
   if (!warehouseId || Number(warehouseId) <= 0) {
     throw new Error("warehouseId must be a positive number.");
@@ -13,41 +24,26 @@ export async function getInventoryByWarehouse(warehouseId) {
 
   const res = await fetchWithAuth(
     `${BASE_PATH}?warehouseId=${encodeURIComponent(warehouseId)}`,
-    { method: "GET" }
+    { method: "GET" },
   );
 
-  // ApiResponse<T>: { success, message, statusCode, content }
-  if (res?.success === false) {
-    throw new Error(res?.message || "Failed to get inventory.");
-  }
+  // // ApiResponse<T>: { success, message, statusCode, content }
+  // if (res?.success === false) {
+  //   throw new Error(res?.message || "Failed to get inventory.");
+  // }
 
-  return res; // UI lấy res.content
+  // return res; // UI lấy res.content
+  return await parseJsonResponse(res);
 }
 
 /**
  * POST /api/Inventories/receive
  * body: { warehouseID, items: [{ reliefItemID, quantity }] }
  */
+// Nhập hàng vào kho.
 export async function receiveInventory(payload) {
   if (!payload || typeof payload !== "object") {
     throw new Error("payload is required.");
-  }
-
-  const { warehouseID, items } = payload;
-
-  if (!warehouseID || Number(warehouseID) <= 0) {
-    throw new Error("warehouseID must be a positive number.");
-  }
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new Error("items must be a non-empty array.");
-  }
-  for (const it of items) {
-    if (!it?.reliefItemID || Number(it.reliefItemID) <= 0) {
-      throw new Error("Each item must have a valid reliefItemID > 0.");
-    }
-    if (it?.quantity == null || Number(it.quantity) <= 0) {
-      throw new Error("Each item must have quantity > 0.");
-    }
   }
 
   const res = await fetchWithAuth(`${BASE_PATH}/receive`, {
@@ -56,42 +52,21 @@ export async function receiveInventory(payload) {
     body: JSON.stringify(payload),
   });
 
-  if (res?.success === false) {
-    throw new Error(res?.message || "Receive inventory failed.");
-  }
+  // if (res?.success === false) {
+  //   throw new Error(res?.message || "Receive inventory failed.");
+  // }
 
-  return res; // UI lấy res.content
+  // return res; // UI lấy res.content
+    return await parseJsonResponse(res);
 }
 /**
  * PUT /api/Inventories/adjust
  * body: { warehouseID, items: [{ reliefItemID, adjustmentQuantity }] }
  */
+// Điều chỉnh số lượng tồn kho.
 export async function adjustInventory(payload) {
   if (!payload || typeof payload !== "object") {
     throw new Error("payload is required.");
-  }
-
-  const { warehouseID, items } = payload;
-
-  if (!warehouseID || Number(warehouseID) <= 0) {
-    throw new Error("warehouseID must be a positive number.");
-  }
-
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new Error("items must be a non-empty array.");
-  }
-
-  for (const it of items) {
-    if (!it?.reliefItemID || Number(it.reliefItemID) <= 0) {
-      throw new Error("Each item must have a valid reliefItemID > 0.");
-    }
-
-    if (
-      it?.adjustmentQuantity == null ||
-      Number(it.adjustmentQuantity) === 0
-    ) {
-      throw new Error("Each item must have adjustmentQuantity different from 0.");
-    }
   }
 
   const res = await fetchWithAuth(`${BASE_PATH}/adjust`, {
@@ -100,11 +75,12 @@ export async function adjustInventory(payload) {
     body: JSON.stringify(payload),
   });
 
-  if (res?.success === false) {
-    throw new Error(res?.message || "Adjust inventory failed.");
-  }
+  // if (res?.success === false) {
+  //   throw new Error(res?.message || "Adjust inventory failed.");
+  // }
 
-  return res; // UI lấy res.content
+  // return res; // UI lấy res.content
+    return await parseJsonResponse(res);
 }
 
 export const inventoryService = {
