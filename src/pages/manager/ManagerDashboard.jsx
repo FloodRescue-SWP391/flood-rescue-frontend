@@ -5,6 +5,7 @@ import { reliefItemsService } from "../../services/reliefItemService";
 import { inventoryService } from "../../services/inventoryService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
+import * as XLSX from "xlsx";
 import {
   ResponsiveContainer,
   LineChart,
@@ -36,6 +37,18 @@ export default function ManagerDashboard() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const exportReliefItemsAndInventory = () => {
+    const wb = XLSX.utils.book_new();
+
+    const productsSheet = XLSX.utils.json_to_sheet(products);
+    const inventorySheet = XLSX.utils.json_to_sheet(inventory);
+
+    XLSX.utils.book_append_sheet(wb, productsSheet, "ReliefItems");
+    XLSX.utils.book_append_sheet(wb, inventorySheet, "Inventory");
+
+    XLSX.writeFile(wb, "manager_relief_items_inventory.xlsx");
   };
 
   // useEffect(() => {
@@ -87,16 +100,25 @@ export default function ManagerDashboard() {
   // }));
 
   useEffect(() => {
-    const handleReliefOrderCreated = () => {
+    const handleReliefItemsChanged = () => {
       loadProducts();
       loadInventory();
     };
+
     const init = async () => {
       try {
         await signalRService.startConnection();
         await signalRService.on(
           CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR,
-          handleReliefOrderCreated,
+          handleReliefItemsChanged,
+        );
+        await signalRService.on(
+          CLIENT_EVENTS.RELIEF_ITEM_CREATED,
+          handleReliefItemsChanged,
+        );
+        await signalRService.on(
+          CLIENT_EVENTS.RELIEF_ITEM_UPDATED,
+          handleReliefItemsChanged,
         );
       } catch (err) {
         console.error("SignalR init error in ManagerDashboard:", err);
@@ -106,7 +128,15 @@ export default function ManagerDashboard() {
     return () => {
       signalRService.off(
         CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR,
-        handleReliefOrderCreated,
+        handleReliefItemsChanged,
+      );
+      signalRService.off(
+        CLIENT_EVENTS.RELIEF_ITEM_CREATED,
+        handleReliefItemsChanged,
+      );
+      signalRService.off(
+        CLIENT_EVENTS.RELIEF_ITEM_UPDATED,
+        handleReliefItemsChanged,
       );
     };
   }, []);
@@ -153,6 +183,11 @@ export default function ManagerDashboard() {
                   <div className="panel-sub">
                     Manage warehouses, inventory and relief items
                   </div>
+                </div>
+                <div>
+                  <button className="btn btn-primary" onClick={exportReliefItemsAndInventory}>
+                    Export Relief Items + Inventory
+                  </button>
                 </div>
               </div>
             </div>

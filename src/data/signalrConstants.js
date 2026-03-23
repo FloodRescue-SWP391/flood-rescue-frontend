@@ -13,6 +13,8 @@ export const CLIENT_EVENTS = {
   INCIDENT_REPORTED: "IncidentReported",
   INCIDENT_RESOLVED: "IncidentResolved",
   RELIEF_ORDER_CREATED_COORDINATOR: "ReliefOrderCreatedCoordinator",
+  RELIEF_ITEM_CREATED: "ReliefItemCreated",
+  RELIEF_ITEM_UPDATED: "ReliefItemUpdated",
   ORDER_PREPARED: "OrderPrepared",
   DELIVERY_STARTED: "DeliveryStarted",
   MISSION_COMPLETED: "MissionCompleted",
