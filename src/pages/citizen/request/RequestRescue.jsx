@@ -777,6 +777,17 @@ const RequestRescue = () => {
                         e.target.value = ""; // reset để chọn lại cùng file nếu cần
                       }}
                     />
+
+                    {/* Add button */}
+                    <button
+                      type="button"
+                      className="add-image-btn"
+                      onClick={() =>
+                        document.getElementById("imageUploadInput").click()
+                      }
+                    >
+                      ➕ Add image
+                    </button>
                     <div className="suggestion-guideline-box">
                       <div className="suggestion-guideline-title">
                         🎒 Suggested relief supplies
@@ -812,17 +823,6 @@ const RequestRescue = () => {
                         })}
                       </div>
                     </div>
-
-                    {/* Add button */}
-                    <button
-                      type="button"
-                      className="add-image-btn"
-                      onClick={() =>
-                        document.getElementById("imageUploadInput").click()
-                      }
-                    >
-                      ➕ Add image
-                    </button>
 
                     {/* Preview list */}
                     {imagePreviews.length > 0 && (
