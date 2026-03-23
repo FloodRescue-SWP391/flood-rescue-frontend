@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header";
-import "./login.css";
+import "./Login.css";
 import { login } from "../../services/authService";
 import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
 import Footer from "../../components/common/Footer";
