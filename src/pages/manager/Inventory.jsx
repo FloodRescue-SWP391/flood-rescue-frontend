@@ -15,10 +15,12 @@ import {
   receiveInventory,
   adjustInventory
 } from "../../services/inventoryService";
+import { getWarehouses } from "../../services/warehouseService";
 
 export default function Inventory() {
 
-  const [warehouseId, setWarehouseId] = useState(1);
+  const [warehouseId, setWarehouseId] = useState("");
+  const [warehouses, setWarehouses] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +48,7 @@ export default function Inventory() {
   =============================== */
 
   const loadInventory = async () => {
+    if (!warehouseId) return;
     try {
 
       setLoading(true);
@@ -56,7 +59,20 @@ export default function Inventory() {
 
       console.log("Inventory API:", data);
 
-      setInventory(data.content || []);
+      let invList = [];
+      if (Array.isArray(data)) invList = data;
+      else if (Array.isArray(data?.data)) invList = data.data;
+      else if (Array.isArray(data?.content)) invList = data.content;
+      else if (Array.isArray(data?.items)) invList = data.items;
+      else if (Array.isArray(data?.data?.content)) invList = data.data.content;
+      else if (Array.isArray(data?.data?.items)) invList = data.data.items;
+      else if (typeof data === 'object' && data !== null) {
+        const potentialArray = Object.values(data).find(Array.isArray);
+        if (potentialArray) invList = potentialArray;
+        else invList = Object.values(data).filter(item => typeof item === 'object' && item !== null && (item.reliefItemID || item.id));
+      }
+
+      setInventory(invList);
 
     } catch (err) {
 
@@ -75,6 +91,38 @@ export default function Inventory() {
     loadInventory();
 
   }, [warehouseId]);
+
+  /* ===============================
+     LOAD WAREHOUSES
+  =============================== */
+
+  const loadWarehouses = async () => {
+    try {
+      const res = await getWarehouses();
+      const data = res?.json ? await res.json() : res;
+      let list = [];
+      if (Array.isArray(data)) list = data;
+      else if (Array.isArray(data?.data)) list = data.data;
+      else if (Array.isArray(data?.content)) list = data.content;
+      else if (Array.isArray(data?.items)) list = data.items;
+      else if (Array.isArray(data?.data?.content)) list = data.data.content;
+      else if (typeof data === 'object' && data !== null) {
+        const potentialArray = Object.values(data).find(Array.isArray);
+        if (potentialArray) list = potentialArray;
+      }
+      setWarehouses(list);
+      
+      if (list.length > 0 && !warehouseId) {
+        setWarehouseId(list[0].warehouseId || list[0].id || list[0].warehouseID);
+      }
+    } catch (err) {
+      console.error("Load warehouses error:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadWarehouses();
+  }, []);
 
   /* ===============================
      SEARCH
@@ -167,7 +215,8 @@ export default function Inventory() {
 
   const getWarehouseName = () => {
 
-    if (warehouseId === 1) return "BaBao";
+    const wh = warehouses.find(w => String(w.warehouseId || w.id || w.warehouseID) === String(warehouseId));
+    if (wh) return wh.name || wh.warehouseName || `Warehouse ${warehouseId}`;
 
     return `Warehouse ${warehouseId}`;
 
@@ -199,13 +248,13 @@ export default function Inventory() {
 
         <select
           value={warehouseId}
-          onChange={(e) => setWarehouseId(Number(e.target.value))}
+          onChange={(e) => setWarehouseId(e.target.value)}
         >
-
-          <option value={1}>
-            BaBao Warehouse
-          </option>
-
+          {warehouses.map((w) => (
+            <option key={w.warehouseId || w.id || w.warehouseID} value={w.warehouseId || w.id || w.warehouseID}>
+              {w.name || w.warehouseName || `Warehouse ${w.warehouseId || w.id || w.warehouseID}`}
+            </option>
+          ))}
         </select>
 
         <div className="viewing">

@@ -10,7 +10,7 @@
 .manager-content{
   flex:1;
   padding:30px;
-  background:#f4f6f9;
+  background: linear-gradient(180deg, #e1f4f8 0%, #fffafa 100%);
 }
 
 .mp-wrap{
