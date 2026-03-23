@@ -2,17 +2,27 @@ import { fetchWithAuth } from "./apiClient";
 
 const BASE = "/RescueMission";
 
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  const json = text ? JSON.parse(text) : {};
+  if (!res.ok || json?.success === false) {
+    throw new Error(json?.message || `Request failed (${res.status})`);
+  }
+  return json;
+}
+
 export const completeMission = async (rescueMissionID) => {
   if (!rescueMissionID) {
     throw new Error("rescueMissionID is required");
   }
 
-  const res = await fetchWithAuth(`${BASE}/complete`, {
+  // Try endpoint format: /RescueMission/{id}/complete
+  const res = await fetchWithAuth(`${BASE}/${rescueMissionID}/complete`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ rescueMissionID }),
+    body: JSON.stringify({}),
   });
 
   const json = await res.json();
@@ -67,7 +77,6 @@ export const rescueMissionService = {
       }),
     });
 
-    // return await res.json();
     return await parseJsonResponse(res);
   },
 
@@ -92,10 +101,10 @@ export const rescueMissionService = {
 
   filter: async ({ rescueTeamID, statuses, pageNumber = 1, pageSize = 20 }) => {
     const params = new URLSearchParams();
-    if (rescueTeamID) params.append("RescueTeamID", rescueTeamID);
-    if (statuses) statuses.forEach((s) => params.append("Statuses", s));
-    params.append("PageNumber", pageNumber);
-    params.append("PageSize", pageSize);
+    if (rescueTeamID) params.append("rescueTeamId", rescueTeamID);
+    if (statuses) statuses.forEach((s) => params.append("statuses", s));
+    params.append("pageNumber", pageNumber);
+    params.append("pageSize", pageSize);
 
     const res = await fetchWithAuth(`${BASE}/filter?${params.toString()}`, {
       method: "GET",
