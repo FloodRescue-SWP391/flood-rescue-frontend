@@ -6,8 +6,6 @@ export const completeMission = async (rescueMissionID) => {
   if (!rescueMissionID) {
     throw new Error("rescueMissionID is required");
   }
-  return json;
-}
 
   const res = await fetchWithAuth(`${BASE}/complete`, {
     method: "PUT",
