@@ -20,6 +20,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import RequestDetailModal from "./RequestDetailModal";
 import IncidentReportForm from "./IncidentReportForm";
+import { incidentReportService } from "../../services/incidentReportService";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -28,6 +29,54 @@ L.Icon.Default.mergeOptions({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
+
+const formatVNTime = (dateString) => {
+  if (!dateString) return "Không có thời gian";
+  try {
+    return new Date(dateString).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+  } catch(e) {
+    return "Thời gian không hợp lệ";
+  }
+};
+
+const addressCache = new Map();
+const AddressDisplay = ({ lat, lng }) => {
+  const [address, setAddress] = useState("Đang tải vị trí...");
+
+  useEffect(() => {
+    if (!lat || !lng) {
+      setAddress("Vị trí không hợp lệ");
+      return;
+    }
+    
+    const key = `${lat},${lng}`;
+    if (addressCache.has(key)) {
+      setAddress(addressCache.get(key));
+      return;
+    }
+
+    const fetchAddress = async () => {
+      try {
+        await new Promise(r => setTimeout(r, Math.random() * 1000 + 500));
+        if (addressCache.has(key)) {
+          setAddress(addressCache.get(key));
+          return;
+        }
+
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        const displayAddress = data.display_name || "Không tìm thấy địa chỉ";
+        addressCache.set(key, displayAddress);
+        setAddress(displayAddress);
+      } catch (err) {
+        setAddress(`Tọa độ: ${lat}, ${lng}`);
+      }
+    };
+    fetchAddress();
+  }, [lat, lng]);
+
+  return <span>{address}</span>;
+};
 
 export default function RescueTeamLeader({ teamId }) {
   const [assigned, setAssigned] = useState([]);
@@ -266,10 +315,14 @@ export default function RescueTeamLeader({ teamId }) {
   };
 
   const handleIncidentSubmit = async (formData) => {
-    // Mock API call - replace with real endpoint when available
-    console.log("Incident Report Submitted:", formData);
-    // After submission, refresh missions
-    await loadMissions();
+    try {
+      await incidentReportService.reportIncident(formData);
+      console.log("Incident Report Submitted:", formData);
+      await loadMissions();
+    } catch (err) {
+      console.error("Failed to submit incident:", err);
+      window.alert("Lỗi khi báo cáo sự cố.");
+    }
   };
 
   const handleAccept = async (mission) => {
@@ -458,8 +511,11 @@ export default function RescueTeamLeader({ teamId }) {
                   <p>{getDescription(mission)}</p>
 
                   <p>
-                    <FaMapMarkerAlt /> {String(getLatitude(mission) ?? "N/A")},{" "}
-                    {String(getLongitude(mission) ?? "N/A")}
+                    <small>🕒 {formatVNTime(mission.createdAt || mission.createdDate || mission.assignedDate || mission.timestamp)}</small>
+                  </p>
+
+                  <p>
+                    <FaMapMarkerAlt /> <AddressDisplay lat={getLatitude(mission)} lng={getLongitude(mission)} />
                   </p>
 
                   <div className="btn-group">
@@ -507,8 +563,11 @@ export default function RescueTeamLeader({ teamId }) {
                   <p>{getDescription(mission)}</p>
 
                   <p>
-                    <FaMapMarkerAlt /> {String(getLatitude(mission) ?? "N/A")},{" "}
-                    {String(getLongitude(mission) ?? "N/A")}
+                    <small>🕒 {formatVNTime(mission.createdAt || mission.createdDate || mission.assignedDate || mission.timestamp)}</small>
+                  </p>
+
+                  <p>
+                    <FaMapMarkerAlt /> <AddressDisplay lat={getLatitude(mission)} lng={getLongitude(mission)} />
                   </p>
 
                   {(mission.reliefOrderID || mission.reliefOrderId) && (
@@ -569,6 +628,37 @@ export default function RescueTeamLeader({ teamId }) {
                 </Marker>
               ))}
             </MapContainer>
+          </div>
+
+          <div style={{ marginTop: 30 }}>
+            <div className="panel-title" style={{ marginBottom: "15px", fontSize: "1.2rem", fontWeight: "bold" }}>Lịch sử cứu hộ</div>
+            <div className="panels" style={{ display: "flex", flexDirection: "column" }}>
+              <div className="panel" style={{ width: "100%" }}>
+                {completed.length === 0 && <p>Không có nhiệm vụ nào đã hoàn thành</p>}
+                {completed.map((mission) => (
+                  <div className="request-card" key={getMissionId(mission)}>
+                    <p>
+                      <b>{getCitizenName(mission)}</b>
+                    </p>
+                    <p>{getDescription(mission)}</p>
+                    <p>
+                      <small>🕒 {formatVNTime(mission.createdAt || mission.createdDate || mission.assignedDate || mission.timestamp)}</small>
+                    </p>
+                    <p>
+                      <FaMapMarkerAlt /> <AddressDisplay lat={getLatitude(mission)} lng={getLongitude(mission)} />
+                    </p>
+                    <div className="btn-group">
+                      <button
+                        className="btn-info"
+                        onClick={() => handleShowDetail(mission)}
+                      >
+                        Xem chi tiết
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Modals */}
