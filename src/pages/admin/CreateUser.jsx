@@ -5,10 +5,10 @@ import { register } from "../../services/authService";
 import { getAllRescueTeams } from "../../services/rescueTeamService"; // nhớ đúng path
 
 const ROLE_ID_MAP = {
-  "Admin": "AD",
+  Admin: "AD",
   "Rescue Coordinator": "RC",
-  "Rescue Team": "RT",       // hoặc R6 / gì đó backend yêu cầu
-  "Manager": "IM",           // hoặc A0 nếu Manager = Admin
+  "Rescue Team": "RT", // hoặc R6 / gì đó backend yêu cầu
+  Manager: "IM", // hoặc A0 nếu Manager = Admin
 };
 const CreateUser = () => {
   const { handleLogout } = useOutletContext();
@@ -23,7 +23,6 @@ const CreateUser = () => {
     rescueTeamId: "",
     isLeader: false,
   });
-
 
   const [teams, setTeams] = useState([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
@@ -46,14 +45,13 @@ const CreateUser = () => {
 
     (async () => {
       try {
-        setLoadingTeams(true)
+        setLoadingTeams(true);
 
         const json = await getAllRescueTeams();
         console.log("getAllRescueTeams json:", json);
 
         const list = json?.content?.data || [];
         setTeams(Array.isArray(list) ? list : []);
-
       } catch (e) {
         setTeams([]);
       } finally {
@@ -76,34 +74,37 @@ const CreateUser = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
-    if (!formData.username.trim()) newErrors.username = "Username is required";
-    if (!formData.phone.trim()) newErrors.phone = "Phone is required";
-    if (!formData.password) newErrors.password = "Password is required";
-    if (!formData.confirmPassword) newErrors.confirmPassword = "Confirm password is required";
+    if (!formData.fullName.trim())
+      newErrors.fullName = "Vui lòng nhập họ và tên";
+    if (!formData.username.trim())
+      newErrors.username = "Vui lòng nhập tên đăng nhập";
+    if (!formData.phone.trim()) newErrors.phone = "Vui lòng nhập số điện thoại";
+    if (!formData.password) newErrors.password = "Vui lòng nhập mật khẩu";
+    if (!formData.confirmPassword)
+      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
 
     if (formData.password && formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
+      newErrors.password = "Mật khẩu phải có ít nhất 8 ký tự";
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
     }
 
     // Phone validation (basic)
     const phoneRegex = /^[0-9]{10,15}$/;
     if (formData.phone && !phoneRegex.test(formData.phone)) {
-      newErrors.phone = "Please enter a valid phone number";
+      newErrors.phone = "Vui lòng nhập số điện thoại.";
     }
 
     // SỬA: role mapping check (nên có)
     if (!ROLE_ID_MAP[formData.role]) {
-      newErrors.role = "Role mapping missing";
+      newErrors.role = "Chưa gán vai trò";
     }
 
     // SỬA: chỉ Rescue Team mới required rescueTeamId
     if (isRescueTeamRole && !formData.rescueTeamId) {
-      newErrors.rescueTeamId = "Please select a rescue team";
+      newErrors.rescueTeamId = "Vui lòng chọn đội cứu hộ";
     }
 
     setErrors(newErrors);
@@ -115,7 +116,7 @@ const CreateUser = () => {
     setToast("");
 
     if (!validateForm()) {
-      setToast("❌ Please fix the errors in the form");
+      setToast("❌ Vui lòng kiểm tra và sửa lỗi trong biểu mẫu");
       return;
     }
 
@@ -127,19 +128,17 @@ const CreateUser = () => {
       roleId: ROLE_ID_MAP[formData.role],
       ...(isRescueTeamRole
         ? {
-          rescueTeamId: formData.rescueTeamId,
-          isLeader: formData.isLeader,
-        }
+            rescueTeamId: formData.rescueTeamId,
+            isLeader: formData.isLeader,
+          }
         : {}),
     };
 
-
     try {
-
       setIsSubmitting(true);
       console.log("REGISTER PAYLOAD:", payload);
       await register(payload);
-      setToast("✅ Account created successfully!");
+      setToast("✅ Tài khoản đã được tạo thành công!");
 
       // Reset form after delay
       setFormData({
@@ -176,11 +175,13 @@ const CreateUser = () => {
       )}
 
       <div className="create-user-container">
-        <h2 className="create-user-title">Create New Account</h2>
+        <h2 className="create-user-title">Tạo tài khoản mới</h2>
 
         <form onSubmit={handleSubmit} className="create-form">
           <div className="form-group">
-            <label htmlFor="role" className="role-label">Role <span>*</span></label>
+            <label htmlFor="role" className="role-label">
+              Vai trò <span>*</span>
+            </label>
             <select
               id="role"
               name="role"
@@ -188,15 +189,19 @@ const CreateUser = () => {
               onChange={handleChange}
               className={errors.role ? "error" : ""}
             >
-              <option value="Rescue Coordinator">Rescue Coordinator</option>
-              <option value="Rescue Team">Rescue Team</option>
-              <option value="Manager">Manager</option>
-              <option value="Admin">Admin</option>
+              <option value="Rescue Coordinator">Điều phối cứu hộ</option>
+              <option value="Rescue Team">Đội cứu hộ</option>
+              <option value="Manager">Quản lý</option>
+              <option value="Admin">Quản trị viên</option>
             </select>
-            {errors.role && <span className="error-message">{errors.role}</span>}
+            {errors.role && (
+              <span className="error-message">{errors.role}</span>
+            )}
           </div>
           <div className="form-group">
-            <label htmlFor="fullName" className="role-label">Full Name <span>*</span></label>
+            <label htmlFor="fullName" className="role-label">
+              Họ và tên <span>*</span>
+            </label>
             <input
               id="fullName"
               name="fullName"
@@ -206,11 +211,15 @@ const CreateUser = () => {
               className={errors.fullName ? "error" : ""}
               required
             />
-            {errors.fullName && <span className="error-message">{errors.fullName}</span>}
+            {errors.fullName && (
+              <span className="error-message">{errors.fullName}</span>
+            )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="username" className="role-label">Username <span>*</span></label>
+            <label htmlFor="username" className="role-label">
+              Tên đăng nhập <span>*</span>
+            </label>
             <input
               id="username"
               name="username"
@@ -220,11 +229,15 @@ const CreateUser = () => {
               className={errors.username ? "error" : ""}
               required
             />
-            {errors.username && <span className="error-message">{errors.username}</span>}
+            {errors.username && (
+              <span className="error-message">{errors.username}</span>
+            )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="phone" className="role-label">Phone <span>*</span></label>
+            <label htmlFor="phone" className="role-label">
+              Số điện thoại <span>*</span>
+            </label>
             <input
               id="phone"
               name="phone"
@@ -234,11 +247,15 @@ const CreateUser = () => {
               className={errors.phone ? "error" : ""}
               required
             />
-            {errors.phone && <span className="error-message">{errors.phone}</span>}
+            {errors.phone && (
+              <span className="error-message">{errors.phone}</span>
+            )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="password" className="role-label">Password <span>*</span></label>
+            <label htmlFor="password" className="role-label">
+              Mật khẩu <span>*</span>
+            </label>
             <input
               id="password"
               type="password"
@@ -249,11 +266,15 @@ const CreateUser = () => {
               className={errors.password ? "error" : ""}
               required
             />
-            {errors.password && <span className="error-message">{errors.password}</span>}
+            {errors.password && (
+              <span className="error-message">{errors.password}</span>
+            )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword" className="role-label">Confirm Password <span>*</span></label>
+            <label htmlFor="confirmPassword" className="role-label">
+              Xác nhận mật khẩu <span>*</span>
+            </label>
             <input
               id="confirmPassword"
               type="password"
@@ -264,12 +285,16 @@ const CreateUser = () => {
               className={errors.confirmPassword ? "error" : ""}
               required
             />
-            {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+            {errors.confirmPassword && (
+              <span className="error-message">{errors.confirmPassword}</span>
+            )}
           </div>
           {isRescueTeamRole && (
             <>
               <div className="form-group">
-                <label htmlFor="rescueTeamId" className="role-label">Rescue Team <span>*</span></label>
+                <label htmlFor="rescueTeamId" className="role-label">
+                  Đội cứu hộ <span>*</span>
+                </label>
                 <select
                   id="rescueTeamId"
                   name="rescueTeamId"
@@ -296,7 +321,6 @@ const CreateUser = () => {
 
               <div className="form-group">
                 <div className="inline-check">
-
                   <input
                     id="isLeader"
                     type="checkbox"
@@ -305,7 +329,13 @@ const CreateUser = () => {
                     onChange={handleChange}
                   />
 
-                  <label htmlFor="isLeader" className="role-label" style={{ color: "brown" }}>Is Leader</label>
+                  <label
+                    htmlFor="isLeader"
+                    className="role-label"
+                    style={{ color: "brown" }}
+                  >
+                    Là trưởng nhóm ?
+                  </label>
                 </div>
               </div>
             </>

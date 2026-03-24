@@ -34,25 +34,26 @@ const CreateRescueTeam = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.teamName.trim()) newErrors.teamName = "Team name is required";
-    if (!formData.city.trim()) newErrors.city = "City is required";
+    if (!formData.teamName.trim()) newErrors.teamName = "Tên đội là bắt buộc";
+    if (!formData.city.trim()) newErrors.city = "Thành phố là bắt buộc";
     if (!formData.currentStatus.trim())
-      newErrors.currentStatus = "Status is required";
+      newErrors.currentStatus = "Trạng thái là bắt buộc";
 
     // optional: lat/long validation if provided
     const lat = formData.currentLatitude;
     const lng = formData.currentLongitude;
 
     if (lat !== "" && Number.isNaN(Number(lat))) {
-      newErrors.currentLatitude = "Latitude must be a number";
+      newErrors.currentLatitude = "Vĩ độ phải là một số";
     } else if (lat !== "" && (Number(lat) < -90 || Number(lat) > 90)) {
-      newErrors.currentLatitude = "Latitude must be between -90 and 90";
+      newErrors.currentLatitude = "Vĩ độ phải nằm trong khoảng từ -90 đến 90";
     }
 
     if (lng !== "" && Number.isNaN(Number(lng))) {
-      newErrors.currentLongitude = "Longitude must be a number";
+      newErrors.currentLongitude = "Kinh độ phải là một số";
     } else if (lng !== "" && (Number(lng) < -180 || Number(lng) > 180)) {
-      newErrors.currentLongitude = "Longitude must be between -180 and 180";
+      newErrors.currentLongitude =
+        "Kinh độ phải nằm trong khoảng từ -180 đến 180";
     }
 
     setErrors(newErrors);
@@ -75,7 +76,7 @@ const CreateRescueTeam = () => {
     console.log("SUBMIT CLICKED"); // thêm dòng này
 
     if (!validateForm()) {
-      showToast("❌ Please fix the errors in the form");
+      showToast("❌ Vui lòng nhập đầy đủ và đúng thông tin.");
       return;
     }
 
@@ -99,14 +100,14 @@ const CreateRescueTeam = () => {
       const res = await createRescueTeam(payload);
 
       if (res?.success === false) {
-        showToast(`❌ ${res?.message || "Create rescue team failed"}`);
+        showToast(`❌ ${res?.message || "Tạo đội cứu hộ không thành công"}`);
         return;
       }
 
-      showToast("✅ Rescue Team created successfully!");
+      showToast("✅ Tạo đội cứu hộ thành công!");
       resetForm();
     } catch (err) {
-      showToast(`❌ ${err?.message || "Create rescue team failed"}`);
+      showToast(`❌ ${err?.message || "Tạo đội cứu hộ không thành công"}`);
     } finally {
       setLoading(false);
     }
@@ -121,11 +122,11 @@ const CreateRescueTeam = () => {
       )}
 
       <div className="create-rescue-team-container">
-        <h2>Create Rescue Team</h2>
+        <h2>Tạo Đội cứu hộ</h2>
 
         <form onSubmit={handleSubmit} className="create-form">
           <div className="form-group">
-            <label htmlFor="teamName">Team Name</label>
+            <label htmlFor="teamName">Tên đội</label>
             <input
               id="teamName"
               name="teamName"
@@ -141,7 +142,7 @@ const CreateRescueTeam = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="city">City</label>
+            <label htmlFor="city">Thành phố</label>
             <input
               id="city"
               name="city"
@@ -157,7 +158,7 @@ const CreateRescueTeam = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="currentStatus">Status</label>
+            <label htmlFor="currentStatus">Trạng thái</label>
             <select
               id="currentStatus"
               name="currentStatus"
@@ -166,9 +167,9 @@ const CreateRescueTeam = () => {
               className={errors.currentStatus ? "error" : ""}
               required
             >
-              <option value="Available">Available</option>
-              <option value="Busy">Busy</option>
-              <option value="Inactive">Inactive</option>
+              <option value="Available">Sẵn sàng</option>
+              <option value="Busy">Đang bận</option>
+              <option value="Inactive">Không hoạt động</option>
             </select>
             {errors.currentStatus && (
               <span className="error-message">{errors.currentStatus}</span>
@@ -177,7 +178,7 @@ const CreateRescueTeam = () => {
 
           <div className="grid-2">
             <div className="form-group">
-              <label htmlFor="currentLatitude">Latitude</label>
+              <label htmlFor="currentLatitude">Vĩ độ</label>
               <input
                 id="currentLatitude"
                 name="currentLatitude"
@@ -192,7 +193,7 @@ const CreateRescueTeam = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="currentLongitude">Longitude</label>
+              <label htmlFor="currentLongitude">Kinh độ</label>
               <input
                 id="currentLongitude"
                 name="currentLongitude"
@@ -208,7 +209,7 @@ const CreateRescueTeam = () => {
           </div>
 
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? "Creating..." : "Create Rescue Team"}
+            {loading ? "Đang tạo..." : "Tạo đội cứu hộ"}
           </button>
         </form>
       </div>

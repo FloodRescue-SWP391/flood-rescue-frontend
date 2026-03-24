@@ -39,8 +39,8 @@ export default function AdminReport() {
 
         setRequests(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Load report failed:", error);
-        setErr("Failed to load report data.");
+        console.error("Tải báo cáo không thành công:", error);
+        setErr("Không tải được dữ liệu báo cáo.");
       } finally {
         setLoading(false);
       }
@@ -265,30 +265,30 @@ export default function AdminReport() {
                 <BarChart3 size={18} />
               </div>
               <div>
-                <div className="panel-title">Admin Report Dashboard</div>
+                <div className="panel-title">Trang tổng quan báo cáo</div>
                 <div className="panel-sub">
-                  Analyze rescue statistics and performance
+                  Phân tích số liệu thống kê và hiệu suất cứu hộ
                 </div>
               </div>
             </div>
 
             <div className="report-actions">
               <button className="export-btn secondary" onClick={handleExportSummary}>
-                Export Summary
+                Xuất bản tóm tắt
               </button>
               <button className="export-btn" onClick={handleExportCSV}>
-                Export CSV
+                Xuất file CSV
               </button>
             </div>
           </div>
 
-          {loading && <div className="report-message">Loading report data...</div>}
+          {loading && <div className="report-message">Đang tải dữ liệu báo cáo...</div>}
           {err && <div className="report-error">{err}</div>}
 
           <div className="kpi-grid">
             <div className="kpi">
               <div>
-                <div className="kpi-label">Total Requests</div>
+                <div className="kpi-label">Tổng số yêu cầu</div>
                 <div className="kpi-value">{totalRequests}</div>
               </div>
               <Activity size={20} />
@@ -296,7 +296,7 @@ export default function AdminReport() {
 
             <div className="kpi">
               <div>
-                <div className="kpi-label">Completed</div>
+                <div className="kpi-label">Đã hoàn thành</div>
                 <div className="kpi-value">{totalCompleted}</div>
               </div>
               <TrendingUp size={20} />
@@ -304,7 +304,7 @@ export default function AdminReport() {
 
             <div className="kpi">
               <div>
-                <div className="kpi-label">Success Rate</div>
+                <div className="kpi-label">Tỷ lệ thành công</div>
                 <div className="kpi-value">{successRate}%</div>
               </div>
               <PieChartIcon size={20} />
@@ -312,7 +312,7 @@ export default function AdminReport() {
 
             <div className="kpi">
               <div>
-                <div className="kpi-label">Avg Response</div>
+                <div className="kpi-label">Phản hồi trung bình</div>
                 <div className="kpi-value">{avgResponse}</div>
               </div>
               <Activity size={20} />
@@ -322,22 +322,22 @@ export default function AdminReport() {
 
         <div className="summary-row">
           <div className="summary-box pending">
-            <span>Pending</span>
+            <span>Chờ xử lý</span>
             <strong>{totalPending}</strong>
           </div>
           <div className="summary-box processing">
-            <span>Processing</span>
+            <span>Đang xử lý</span>
             <strong>{totalProcessing}</strong>
           </div>
           <div className="summary-box completed">
-            <span>Completed</span>
+            <span>Đã hoàn thành</span>
             <strong>{totalCompleted}</strong>
           </div>
         </div>
 
         <div className="mp-grid">
           <div className="panel-card">
-            <div className="panel-card-title">Rescue Requests Trend</div>
+            <div className="panel-card-title">Xu hướng cúu hộ theo tháng</div>
             <div className="chart-box">
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={monthlyRescues}>
@@ -370,7 +370,7 @@ export default function AdminReport() {
           </div>
 
           <div className="panel-card">
-            <div className="panel-card-title">Emergency Types Distribution</div>
+            <div className="panel-card-title">Phân phối loại khẩn cấp</div>
             <div className="chart-box">
               <ResponsiveContainer width="100%" height={260}>
                 <RePieChart>
@@ -402,7 +402,7 @@ export default function AdminReport() {
           </div>
 
           <div className="panel-card full-width">
-            <div className="panel-card-title">Response Time Analysis</div>
+            <div className="panel-card-title">Phân phối thời gian phản hồi</div>
             <div className="chart-box">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={responseTimeData}>
