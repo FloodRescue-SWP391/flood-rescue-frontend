@@ -23,7 +23,7 @@ const Contact = () => {
             <div className="top-bar">
               <Button
                 variant="light"
-                className="back-button"
+                className="back-button1"
                 onClick={() => navigate("/")}
               >
                 ← Quay lại

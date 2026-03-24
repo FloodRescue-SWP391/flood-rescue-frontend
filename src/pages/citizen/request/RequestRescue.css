@@ -1,5 +1,5 @@
 .request-rescue-container {
-  padding: 12px 24px;
+  
   margin: 0 auto;
   min-height: calc(100vh - 64px);
   background: linear-gradient(180deg, #e1f4f8 0%, #fffafa 100%);
@@ -150,17 +150,19 @@
 }
 
 .page-header h1 {
-  font-size: 50px;
-  color: rgba(255, 0, 0, 0.8);
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 74px;
+  color: rgb(136, 11, 11);
 }
 .page-subtitle {
-  color: rgb(98, 74, 74, 0.5);
+  color: rgba(107, 99, 99, 0.5);
   text-align: center;
 }
 
 /* Request Form Container */
 .request-form {
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
   background: #ffffff;
   border-radius: 24px;
@@ -168,6 +170,7 @@
   padding: 20px;
   font-family: "Segoe UI", Roboto, sans-serif;
   margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 /* Step Title */
@@ -196,7 +199,7 @@
 
 .form-input1 {
   width: 100%;
-  height: 80px;
+  height: 109px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -209,8 +212,9 @@
 
 .form-group .form-label {
   color: #1a1a1a;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
+  margin-left: 2px;
 }
 
 .form-group .label-required {
@@ -234,7 +238,7 @@
   transition: all 0.3s;
   white-space: nowrap;
   box-shadow: 0 4px 10px rgba(255, 130, 5, 0.3);
-  margin-left: 148px;
+  margin-left: 300px;
 }
 
 .location-btn:hover {
@@ -316,7 +320,7 @@
 }
 
 .counter-btn {
-  width: 40px;
+  width: 65px;
   height: 40px;
   border: 2px solid #ff8205;
   background: white;
@@ -339,6 +343,7 @@
 .counter-input {
   appearance: textfield;
   -moz-appearance: textfield;
+  text-align: center;
 }
 .counter-input::-webkit-outer-spin-button,
 .counter-input::-webkit-inner-spin-button {
@@ -734,14 +739,7 @@
   }
 }
 
-.suggestion-guideline-box {
-  margin-top: 16px;
-  padding: 16px;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid #e9e9e9;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
+
 
 .suggestion-guideline-title {
   font-size: 16px;
@@ -750,11 +748,7 @@
   color: #222;
 }
 
-.suggestion-guideline-text {
-  font-size: 14px;
-  margin-bottom: 14px;
-  color: #666;
-}
+
 
 .suggestion-category-list {
   display: flex;
@@ -790,4 +784,67 @@
   font-size: 13px;
   font-weight: 500;
   color: #444;
+}
+
+/* Wrapper tổng */
+.people-suggestion-wrapper {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  margin-top: 20px;
+}
+
+/* Có suggestion → 2 cột */
+.people-suggestion-wrapper.has-suggestion {
+  flex-direction: row;
+}
+
+/* Không có → 1 cột */
+.people-suggestion-wrapper:not(.has-suggestion) {
+  flex-direction: column;
+}
+
+/* Box gợi ý (bên trái) */
+.suggestion-box {
+  flex: 2;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+/* Box số người (bên phải) */
+.people-count-box {
+  flex: 1;
+}
+
+.people-suggestion-wrapper {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  margin-top: 20px;
+}
+
+/* Có suggestion → 2 cột */
+.people-suggestion-wrapper.has-suggestion {
+  flex-direction: row;
+}
+
+/* Không có → 1 cột */
+.people-suggestion-wrapper:not(.has-suggestion) {
+  flex-direction: column;
+}
+
+/* Box gợi ý (bên trái) */
+.suggestion-box {
+  flex: 2;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+/* Box số người (bên phải) */
+.people-count-box {
+  flex: 1;
 }

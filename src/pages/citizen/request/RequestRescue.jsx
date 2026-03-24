@@ -457,6 +457,11 @@ const RequestRescue = () => {
     }
   };
 
+  // Chỉ khi click vào ô Cần lương thục phẩm/ nước uống || Cần thuốc men
+  const shouldShowSupplySuggestion =
+    formData.emergencyType === "Cần thực phẩm / nước uống" ||
+    formData.emergencyType === "Cần thuốc men";
+
   return (
     <>
       <Header />
@@ -684,50 +689,99 @@ const RequestRescue = () => {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    Số người <span className="label-required">Bắt buộc</span>
-                  </label>
+                <div
+                  className={`people-suggestion-wrapper ${
+                    shouldShowSupplySuggestion ? "has-suggestion" : ""
+                  }`}
+                >
+                  {shouldShowSupplySuggestion && (
+                    <div className="suggestion-box">
+                      <div className="suggestion-guideline-title">
+                        🎒 Gợi ý nhu yếu phẩm
+                      </div>
 
-                  <div className="people-counter">
-                    <button
-                      type="button"
-                      className="counter-btn"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          peopleCount: Math.max(1, formData.peopleCount - 1),
-                        })
-                      }
-                    >
-                      −
-                    </button>
+                      <div className="suggestion-category-list">
+                        {categories.map((category) => {
+                          const itemsByCategory = reliefItems.filter(
+                            (item) => item.categoryID === category.categoryID,
+                          );
 
-                    <input
-                      type="number"
-                      name="peopleCount"
-                      value={formData.peopleCount}
-                      onChange={handleChange}
-                      min="1"
-                      max="100"
-                      className="counter-input"
-                    />
+                          if (itemsByCategory.length === 0) return null;
 
-                    <button
-                      type="button"
-                      className="counter-btn"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          peopleCount: Math.min(100, formData.peopleCount + 1),
-                        })
-                      }
-                    >
-                      +
-                    </button>
+                          return (
+                            <div
+                              key={category.categoryID}
+                              className="suggestion-category-card"
+                            >
+                              <h4 className="suggestion-category-name">
+                                {category.categoryName}
+                              </h4>
+
+                              <div className="suggestion-items">
+                                {itemsByCategory.map((item) => (
+                                  <span
+                                    key={item.reliefItemID}
+                                    className="suggestion-tag"
+                                  >
+                                    {item.reliefItemName}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-group people-count-box">
+                    <label className="form-label">
+                      Số người <span className="label-required">Bắt buộc</span>
+                    </label>
+
+                    <div className="people-counter">
+                      <button
+                        type="button"
+                        className="counter-btn"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            peopleCount: Math.max(1, formData.peopleCount - 1),
+                          })
+                        }
+                      >
+                        −
+                      </button>
+
+                      <input
+                        type="number"
+                        name="peopleCount"
+                        value={formData.peopleCount}
+                        onChange={handleChange}
+                        min="1"
+                        max="100"
+                        className="counter-input"
+                      />
+
+                      <button
+                        type="button"
+                        className="counter-btn"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            peopleCount: Math.min(
+                              100,
+                              formData.peopleCount + 1,
+                            ),
+                          })
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <p className="helper-text">Bao gồm cả bạn</p>
                   </div>
-
-                  <p className="helper-text">Bao gồm cả bạn</p>
                 </div>
 
                 <div className="form-group full-width">
@@ -797,42 +851,6 @@ const RequestRescue = () => {
                     >
                       ➕ Thêm ảnh
                     </button>
-
-                    <div className="suggestion-guideline-box">
-                      <div className="suggestion-guideline-title">
-                        🎒 Gợi ý nhu yếu phẩm
-                      </div>
-
-                      <div className="suggestion-category-list">
-                        {categories.map((category) => {
-                          const itemsByCategory = reliefItems.filter(
-                            (item) => item.categoryID === category.categoryID,
-                          );
-
-                          return (
-                            <div
-                              key={category.categoryID}
-                              className="suggestion-category-card"
-                            >
-                              <h4 className="suggestion-category-name">
-                                {category.categoryName}
-                              </h4>
-
-                              <div className="suggestion-items">
-                                {itemsByCategory.map((item) => (
-                                  <span
-                                    key={item.reliefItemID}
-                                    className="suggestion-tag"
-                                  >
-                                    {item.reliefItemName}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
 
                     {imagePreviews.length > 0 && (
                       <div className="image-preview-grid">
@@ -1043,7 +1061,9 @@ const RequestRescue = () => {
             <p className="emergency-note">
               ⚠️{" "}
               <strong>Đối với các tình huống nguy hiểm đến tính mạng:</strong>{" "}
-              Hãy gọi dịch vụ khẩn cấp tại địa phương trước: <span className="emergency-number"> 115</span> <p>(hoặc số khẩn cấp tại quốc gia của bạn)</p>
+              Hãy gọi dịch vụ khẩn cấp tại địa phương trước:{" "}
+              <span className="emergency-number"> 115</span>{" "}
+              <p>(hoặc số khẩn cấp tại quốc gia của bạn)</p>
             </p>
           </div>
         </form>

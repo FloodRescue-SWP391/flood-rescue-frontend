@@ -12,35 +12,39 @@ const HomePage = () => {
     <div className="role-page min-vh-100 d-flex flex-column">
       <Header />
 
-      <Container className="py-4 py-lg-5 flex-grow-1">
-        <div className="top-bar-role mb-4">
+      <Container className="role-page py-4 py-lg-5 flex-grow-1">
+        <div className="top-bar-role">
           <Button
             variant="light"
-            className="back-button"
+            className="back-button1"
             onClick={() => navigate("/")}
           >
-            ← Quay lại
+            Quay lại
           </Button>
         </div>
 
-        <div className="text-center hero-section mb-5">
+        <div className="hero-section text-center">
+          <div className="hero-badge">Hệ thống cứu hộ thông minh</div>
+
           <h1 className="hero-title">
             Khi khẩn cấp xảy ra, sự trợ giúp sẽ đến.
           </h1>
+
           <p className="hero-subtitle mx-auto">
             Hệ thống thông minh kết nối người dân, đội cứu hộ và điều phối viên
             trong các tình huống khẩn cấp
           </p>
         </div>
 
-        <section className="mb-5">
-          <h2 className="section-title text-center mb-4">
-            Truy cập hệ thống theo vai trò
-          </h2>
+        <section className="role-section">
+          <h2 className="section-title text-center"></h2>
+          <p className="section-subtitle text-center">
+            Chọn vai trò phù hợp để đăng nhập và sử dụng hệ thống
+          </p>
 
           <Row className="g-4">
             <Col md={6} lg={3}>
-              <Card className="h-100 shadow-sm border-0 text-center role-card">
+              <Card className="h-100 border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">🎯</div>
                   <Card.Title className="role-card-title">
@@ -50,14 +54,14 @@ const HomePage = () => {
                     Phân công đội cứu hộ và quản lý các tình huống khẩn cấp
                   </Card.Text>
                   <Link to="/login?role=Coordinator" className="role-login-btn">
-                    Đăng nhập →
+                    Đăng nhập <span>→</span>
                   </Link>
                 </Card.Body>
               </Card>
             </Col>
 
             <Col md={6} lg={3}>
-              <Card className="h-100 shadow-sm border-0 text-center role-card">
+              <Card className="h-100 border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">🚑</div>
                   <Card.Title className="role-card-title">
@@ -67,14 +71,14 @@ const HomePage = () => {
                     Nhận nhiệm vụ, cập nhật tiến độ cứu hộ
                   </Card.Text>
                   <Link to="/login?role=RescueTeam" className="role-login-btn">
-                    Đăng nhập →
+                    Đăng nhập <span>→</span>
                   </Link>
                 </Card.Body>
               </Card>
             </Col>
 
             <Col md={6} lg={3}>
-              <Card className="h-100 shadow-sm border-0 text-center role-card">
+              <Card className="h-100 border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">📦</div>
                   <Card.Title className="role-card-title">Quản lý</Card.Title>
@@ -82,14 +86,14 @@ const HomePage = () => {
                     Quản lý trang thiết bị và hàng cứu trợ
                   </Card.Text>
                   <Link to="/login?role=Manager" className="role-login-btn">
-                    Đăng nhập →
+                    Đăng nhập <span>→</span>
                   </Link>
                 </Card.Body>
               </Card>
             </Col>
 
             <Col md={6} lg={3}>
-              <Card className="h-100 shadow-sm border-0 text-center role-card">
+              <Card className="h-100 border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">⚙️</div>
                   <Card.Title className="role-card-title">
@@ -102,7 +106,7 @@ const HomePage = () => {
                     to="/login?role=Administrator"
                     className="role-login-btn"
                   >
-                    Đăng nhập →
+                    Đăng nhập <span>→</span>
                   </Link>
                 </Card.Body>
               </Card>
@@ -110,12 +114,15 @@ const HomePage = () => {
           </Row>
         </section>
 
-        <section className="mb-5">
-          <h2 className="section-title text-center mb-4">Tính năng nổi bật</h2>
+        <section className="feature-section">
+          <h2 className="section-title text-center"></h2>
+          <p className="section-subtitle text-center">
+            Tính năng nổi bật
+          </p>
 
           <Row className="g-4">
             <Col md={6} lg={3}>
-              <Card className="h-100 border-0 shadow-sm text-center feature-card">
+              <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">📍</div>
                   <Card.Title className="feature-card-title">
@@ -129,7 +136,7 @@ const HomePage = () => {
             </Col>
 
             <Col md={6} lg={3}>
-              <Card className="h-100 border-0 shadow-sm text-center feature-card">
+              <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">⚡</div>
                   <Card.Title className="feature-card-title">
@@ -143,7 +150,7 @@ const HomePage = () => {
             </Col>
 
             <Col md={6} lg={3}>
-              <Card className="h-100 border-0 shadow-sm text-center feature-card">
+              <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">📱</div>
                   <Card.Title className="feature-card-title">
@@ -157,7 +164,7 @@ const HomePage = () => {
             </Col>
 
             <Col md={6} lg={3}>
-              <Card className="h-100 border-0 shadow-sm text-center feature-card">
+              <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">🔄</div>
                   <Card.Title className="feature-card-title">

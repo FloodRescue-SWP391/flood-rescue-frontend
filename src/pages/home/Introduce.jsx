@@ -26,13 +26,13 @@ const Introduce = () => {
       name: "Trương Trần Anh Minh",
       role: "Frontend - API integration Lead",
     },
-    { img: gialuan, name: "Lương Gia Luân", role: "Backend - Xách nước" },
+    { img: gialuan, name: "Lương Gia Luân", role: "Backend - API Developer" },
     {
       img: quochuy,
       name: "Chung Quốc Huy",
       role: "Backend - DevOps Lead",
     },
-    { img: hoanghuy, name: "Lê Hoàng Huy", role: "Backend - Bổ cam" },
+    { img: hoanghuy, name: "Lê Hoàng Huy", role: "Backend - API Developer" },
   ];
 
   return (
@@ -44,10 +44,10 @@ const Introduce = () => {
             <div className="top-bar">
               <Button
                 variant="light"
-                className="back-button"
+                className="back-button1"
                 onClick={() => navigate("/")}
               >
-                ← Quay lại
+                Quay lại
               </Button>
             </div>
 

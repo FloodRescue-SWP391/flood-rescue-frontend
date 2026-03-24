@@ -1,7 +1,8 @@
 .intro-bg {
   min-height: calc(100vh - 100px);
   background: linear-gradient(180deg, #e1f4f8 0%, #fffafa 100%);
-  padding: 20px 0;
+  padding: 0;
+  margin: 0;
 }
 
 .intro-card {
@@ -18,21 +19,6 @@
   padding: 24px 32px;
   border-bottom: 1px solid #dddddd;
   background: #f8f8f8;
-}
-
-.back-button {
-  background: #ffffff !important;
-  border: 1px solid #d6d6d6 !important;
-  color: #333 !important;
-  border-radius: 12px !important;
-  padding: 10px 22px !important;
-  font-size: 20px !important;
-  font-weight: 500 !important;
-  box-shadow: none !important;
-}
-
-.back-button:hover {
-  background: #f1f1f1 !important;
 }
 
 .intro-content {
@@ -126,7 +112,7 @@
 
 hr {
   border: none;
-  border-top: 1px solid #d7d7d7;
+  border-top: 1px solid #ad6a6a;
   margin: 28px 0;
 }
 
