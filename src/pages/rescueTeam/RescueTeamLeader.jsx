@@ -7,6 +7,7 @@ import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService";
+import { getRescueTeamById } from "../../services/rescueTeamService";
 import {
   FaShieldAlt,
   FaClipboardList,
@@ -83,6 +84,7 @@ const AddressDisplay = ({ lat, lng }) => {
 };
 
 export default function RescueTeamLeader({ teamId }) {
+  const [teamName, setTeamName] = useState("");
   const [assigned, setAssigned] = useState([]);
   const [inProgress, setInProgress] = useState([]);
   const [completed, setCompleted] = useState([]);
@@ -252,6 +254,18 @@ export default function RescueTeamLeader({ teamId }) {
   useEffect(() => {
     if (teamId) {
       loadMissions();
+      const fetchTeamName = async () => {
+        try {
+          const res = await getRescueTeamById(teamId);
+          const json = await res.json();
+          if (json?.success) {
+            setTeamName(json?.content?.teamName || json?.content?.name || "");
+          }
+        } catch (err) {
+          console.error("Load team name error:", err);
+        }
+      };
+      fetchTeamName();
     }
   }, [teamId]);
   useEffect(() => {
@@ -484,7 +498,7 @@ export default function RescueTeamLeader({ teamId }) {
             <div>
               <h1 className="dashboard-title">Dashboard trưởng đội cứu hộ</h1>
               <p className="dashboard-sub">
-                Đội: {teamId?.substring(0, 8) || "Không xác định"}
+                Đội: {teamName || teamId?.substring(0, 8) || "Không xác định"}
               </p>
             </div>
           </div>
