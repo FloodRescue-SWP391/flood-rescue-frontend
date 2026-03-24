@@ -30,7 +30,7 @@ const ReliefItems = () => {
       else if (Array.isArray(res?.content)) list = res.content;
       else if (Array.isArray(res?.items)) list = res.items;
       else if (Array.isArray(res?.data?.content)) list = res.data.content;
-      else if (typeof res === 'object' && res !== null) {
+      else if (typeof res === "object" && res !== null) {
         const potentialArray = Object.values(res).find(Array.isArray);
         if (potentialArray) list = potentialArray;
       }
@@ -146,10 +146,10 @@ const ReliefItems = () => {
       {/* HEADER */}
 
       <div className="warehouse-header">
-        <h2>Relief Items Management</h2>
+        <h2>Quản lý vật phẩm cứu trợ</h2>
 
         <button className="btn-add" onClick={openCreate}>
-          + Add Item
+          + Thêm vật phẩm
         </button>
       </div>
 
@@ -160,7 +160,7 @@ const ReliefItems = () => {
           <Search size={16} />
 
           <input
-            placeholder="Search relief item..."
+            placeholder="Tìm kiếm vật phẩm cứu trợ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -177,10 +177,10 @@ const ReliefItems = () => {
         <table className="warehouse-table">
           <thead>
             <tr>
-              <th>Item Name</th>
-              <th>Category</th>
-              <th>Unit</th>
-              <th>Actions</th>
+              <th>Tên vật phẩm</th>
+              <th>Danh mục</th>
+              <th>Đơn vị</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
 
@@ -220,10 +220,10 @@ const ReliefItems = () => {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-box">
-            <h3>{editing ? "Edit Item" : "Create Item"}</h3>
+            <h3>{editing ? "Chỉnh sửa vật phẩm" : "Tạo vật phẩm"}</h3>
 
             <input
-              placeholder="Item name"
+              placeholder="Tên vật phẩm"
               value={form.reliefItemName}
               onChange={(e) =>
                 setForm({ ...form, reliefItemName: e.target.value })
@@ -231,23 +231,21 @@ const ReliefItems = () => {
             />
 
             <input
-              placeholder="Category ID"
+              placeholder="Mã danh mục"
               value={form.categoryID}
               onChange={(e) => setForm({ ...form, categoryID: e.target.value })}
             />
 
             <input
-              placeholder="Unit ID"
+              placeholder="Mã đơn vị"
               value={form.unitID}
               onChange={(e) => setForm({ ...form, unitID: e.target.value })}
             />
 
             <div className="modal-actions">
-              <button onClick={editing ? handleEdit : handleCreate}>
-                Save
-              </button>
+              <button onClick={editing ? handleEdit : handleCreate}>Lưu</button>
 
-              <button onClick={() => setShowModal(false)}>Cancel</button>
+              <button onClick={() => setShowModal(false)}>Hủy</button>
             </div>
           </div>
         </div>

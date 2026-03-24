@@ -177,16 +177,19 @@ export default function ManagerDashboard() {
               <div className="panel-head">
                 <div>
                   <div className="dashboardManager-title">
-                    Manager Dashboard
+                    Bảng điều khiển quản lý
                   </div>
 
                   <div className="panel-sub">
-                    Manage warehouses, inventory and relief items
+                    Quản lý kho, tồn kho và vật phẩm cứu trợ
                   </div>
                 </div>
                 <div>
-                  <button className="btn btn-primary" onClick={exportReliefItemsAndInventory}>
-                    Export Relief Items + Inventory
+                  <button
+                    className="btn btn-primary"
+                    onClick={exportReliefItemsAndInventory}
+                  >
+                    Xuất dữ liệu vật phẩm + tồn kho
                   </button>
                 </div>
               </div>
@@ -198,21 +201,21 @@ export default function ManagerDashboard() {
               <div className="kpi-grid">
                 <div className="kpi">
                   <div>
-                    <div className="kpi-label">Relief Items</div>
+                    <div className="kpi-label">Vật phẩm cứu trợ</div>
                     <div className="kpi-value">{totalProducts}</div>
                   </div>
                 </div>
 
                 <div className="kpi">
                   <div>
-                    <div className="kpi-label">Inventory Records</div>
+                    <div className="kpi-label">Bản ghi tồn kho</div>
                     <div className="kpi-value">{totalInventory}</div>
                   </div>
                 </div>
 
                 <div className="kpi">
                   <div>
-                    <div className="kpi-label">Total Quantity</div>
+                    <div className="kpi-label">Tổng số lượng</div>
                     <div className="kpi-value">{totalQuantity}</div>
                   </div>
                 </div>
@@ -226,7 +229,7 @@ export default function ManagerDashboard() {
 
               <div className="panel-card">
                 <div className="panel-row">
-                  <div className="panel-card-title">Inventory Trend</div>
+                  <div className="panel-card-title">Xu hướng tồn kho</div>
                 </div>
 
                 <div className="chart-box">
@@ -252,7 +255,7 @@ export default function ManagerDashboard() {
 
               <div className="panel-card">
                 <div className="panel-row">
-                  <div className="panel-card-title">Inventory Distribution</div>
+                  <div className="panel-card-title">Phân bố tồn kho</div>
                 </div>
 
                 <div className="chart-box">

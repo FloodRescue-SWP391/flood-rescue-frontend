@@ -42,11 +42,11 @@ const Header = () => {
           <Navbar.Collapse id="main-navbar-nav">
             <Nav className={`${showLogin ? "mx-auto" : "ms-auto"} menu-center`}>
               <Nav.Link as={Link} to="/introduce" className="nav-link-custom">
-                Introduce
+                Giới thiệu
               </Nav.Link>
 
               <Nav.Link as={Link} to="/contact" className="nav-link-custom">
-                Contact
+                Liên hệ
               </Nav.Link>
             </Nav>
 
@@ -57,7 +57,7 @@ const Header = () => {
                   className="login-btn"
                   onClick={() => navigate("/home")}
                 >
-                  LOGIN
+                  Đăng nhập
                 </Button>
               </div>
             )}

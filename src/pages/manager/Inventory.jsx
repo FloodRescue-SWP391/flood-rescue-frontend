@@ -7,18 +7,17 @@ import {
   RefreshCw,
   Settings,
   Plus,
-  Package
+  Package,
 } from "lucide-react";
 
 import {
   getInventoryByWarehouse,
   receiveInventory,
-  adjustInventory
+  adjustInventory,
 } from "../../services/inventoryService";
 import { getWarehouses } from "../../services/warehouseService";
 
 export default function Inventory() {
-
   const [warehouseId, setWarehouseId] = useState("");
   const [warehouses, setWarehouses] = useState([]);
   const [inventory, setInventory] = useState([]);
@@ -50,7 +49,6 @@ export default function Inventory() {
   const loadInventory = async () => {
     if (!warehouseId) return;
     try {
-
       setLoading(true);
 
       const res = await getInventoryByWarehouse(warehouseId);
@@ -66,30 +64,28 @@ export default function Inventory() {
       else if (Array.isArray(data?.items)) invList = data.items;
       else if (Array.isArray(data?.data?.content)) invList = data.data.content;
       else if (Array.isArray(data?.data?.items)) invList = data.data.items;
-      else if (typeof data === 'object' && data !== null) {
+      else if (typeof data === "object" && data !== null) {
         const potentialArray = Object.values(data).find(Array.isArray);
         if (potentialArray) invList = potentialArray;
-        else invList = Object.values(data).filter(item => typeof item === 'object' && item !== null && (item.reliefItemID || item.id));
+        else
+          invList = Object.values(data).filter(
+            (item) =>
+              typeof item === "object" &&
+              item !== null &&
+              (item.reliefItemID || item.id),
+          );
       }
 
       setInventory(invList);
-
     } catch (err) {
-
       console.error("Load inventory error:", err);
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
-
   useEffect(() => {
-
     loadInventory();
-
   }, [warehouseId]);
 
   /* ===============================
@@ -106,14 +102,16 @@ export default function Inventory() {
       else if (Array.isArray(data?.content)) list = data.content;
       else if (Array.isArray(data?.items)) list = data.items;
       else if (Array.isArray(data?.data?.content)) list = data.data.content;
-      else if (typeof data === 'object' && data !== null) {
+      else if (typeof data === "object" && data !== null) {
         const potentialArray = Object.values(data).find(Array.isArray);
         if (potentialArray) list = potentialArray;
       }
       setWarehouses(list);
-      
+
       if (list.length > 0 && !warehouseId) {
-        setWarehouseId(list[0].warehouseId || list[0].id || list[0].warehouseID);
+        setWarehouseId(
+          list[0].warehouseId || list[0].id || list[0].warehouseID,
+        );
       }
     } catch (err) {
       console.error("Load warehouses error:", err);
@@ -129,7 +127,7 @@ export default function Inventory() {
   =============================== */
 
   const filtered = inventory.filter((item) =>
-    item?.reliefItemName?.toLowerCase().includes(search.toLowerCase())
+    item?.reliefItemName?.toLowerCase().includes(search.toLowerCase()),
   );
 
   /* ===============================
@@ -137,13 +135,11 @@ export default function Inventory() {
   =============================== */
 
   const getColor = (qty) => {
-
     if (qty >= 1000) return "badge-green";
 
     if (qty >= 300) return "badge-yellow";
 
     return "badge-red";
-
   };
 
   /* ===============================
@@ -151,17 +147,15 @@ export default function Inventory() {
   =============================== */
 
   const handleReceive = async () => {
-
     try {
-
       await receiveInventory({
         warehouseID: warehouseId,
         items: [
           {
             reliefItemID: Number(receiveItemId),
-            quantity: Number(receiveQty)
-          }
-        ]
+            quantity: Number(receiveQty),
+          },
+        ],
       });
 
       setShowReceive(false);
@@ -169,13 +163,9 @@ export default function Inventory() {
       setReceiveQty("");
 
       await loadInventory();
-
     } catch (err) {
-
       alert(err.message);
-
     }
-
   };
 
   /* ===============================
@@ -183,30 +173,24 @@ export default function Inventory() {
   =============================== */
 
   const handleAdjust = async () => {
-
     try {
-
       await adjustInventory({
         warehouseID: warehouseId,
         items: [
           {
             reliefItemID: selectedItem.reliefItemID,
-            adjustmentQuantity: Number(adjustQty)
-          }
-        ]
+            adjustmentQuantity: Number(adjustQty),
+          },
+        ],
       });
 
       setShowAdjust(false);
       setAdjustQty("");
 
       await loadInventory();
-
     } catch (err) {
-
       alert(err.message);
-
     }
-
   };
 
   /* ===============================
@@ -214,12 +198,13 @@ export default function Inventory() {
   =============================== */
 
   const getWarehouseName = () => {
-
-    const wh = warehouses.find(w => String(w.warehouseId || w.id || w.warehouseID) === String(warehouseId));
+    const wh = warehouses.find(
+      (w) =>
+        String(w.warehouseId || w.id || w.warehouseID) === String(warehouseId),
+    );
     if (wh) return wh.name || wh.warehouseName || `Warehouse ${warehouseId}`;
 
     return `Warehouse ${warehouseId}`;
-
   };
 
   /* ===============================
@@ -228,157 +213,127 @@ export default function Inventory() {
 
   return (
     <div className="inventory-page">
-
       {/* HEADER */}
 
       <div className="inventory-header">
-
         <div>
-          <h2>Inventory Management</h2>
-          <p>Disaster Relief Supply System</p>
+          <h2>Quản lý kho</h2>
+          <p>Hệ thống quản lý hàng cứu trợ thiên tai</p>
         </div>
-
       </div>
 
       {/* WAREHOUSE SELECTOR */}
 
       <div className="card">
-
-        <label>Select Warehouse</label>
+        <label>Chọn kho</label>
 
         <select
           value={warehouseId}
           onChange={(e) => setWarehouseId(e.target.value)}
         >
           {warehouses.map((w) => (
-            <option key={w.warehouseId || w.id || w.warehouseID} value={w.warehouseId || w.id || w.warehouseID}>
-              {w.name || w.warehouseName || `Warehouse ${w.warehouseId || w.id || w.warehouseID}`}
+            <option
+              key={w.warehouseId || w.id || w.warehouseID}
+              value={w.warehouseId || w.id || w.warehouseID}
+            >
+              {w.name ||
+                w.warehouseName ||
+                `Kho ${w.warehouseId || w.id || w.warehouseID}`}
             </option>
           ))}
         </select>
 
         <div className="viewing">
-          Currently viewing: <b>{getWarehouseName()}</b>
+          Đang xem: <b>{getWarehouseName()}</b>
         </div>
-
       </div>
 
       {/* TOOLBAR */}
 
       <div className="toolbar">
-
         <div className="search-box">
-
           <Search size={18} />
 
           <input
-            placeholder="Search items..."
+            placeholder="Tìm kiếm vật phẩm..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-
         </div>
 
         <div className="toolbar-buttons">
-
           <button className="btn">
-            <Sliders size={16} /> Sort
+            <Sliders size={16} /> Sắp xếp
           </button>
 
-          <button
-            className="btn"
-            onClick={loadInventory}
-          >
-            <RefreshCw size={16} /> Refresh
+          <button className="btn" onClick={loadInventory}>
+            <RefreshCw size={16} /> Làm mới
           </button>
-          <button className="btn"
-            onClick={exportInventoryToExcel}
-          >
-            <Settings size={16} /> Export
+
+          <button className="btn" onClick={exportInventoryToExcel}>
+            <Settings size={16} /> Xuất file
           </button>
+
           <button className="btn primary">
-            <Settings size={16} /> Adjust
+            <Settings size={16} /> Điều chỉnh
           </button>
 
-          <button
-            className="btn success"
-            onClick={() => setShowReceive(true)}
-          >
-            <Plus size={16} /> Receive
+          <button className="btn success" onClick={() => setShowReceive(true)}>
+            <Plus size={16} /> Nhập kho
           </button>
-
         </div>
-
       </div>
 
       {/* TABLE */}
 
       <div className="inventory-table">
-
         <table>
-
           <thead>
-
             <tr>
-              <th>Item Name</th>
-              <th>Unit</th>
-              <th>Quantity</th>
-              <th>Last Updated</th>
-              <th>Actions</th>
+              <th>Tên vật phẩm</th>
+              <th>Đơn vị</th>
+              <th>Số lượng</th>
+              <th>Cập nhật lần cuối</th>
+              <th>Thao tác</th>
             </tr>
-
           </thead>
 
           <tbody>
-
             {loading && (
-
               <tr>
                 <td colSpan="5" className="loading">
-                  Loading inventory...
+                  Đang tải dữ liệu kho...
                 </td>
               </tr>
-
             )}
 
             {!loading && filtered.length === 0 && (
-
               <tr>
                 <td colSpan="5" className="loading">
-                  No inventory items found
+                  Không tìm thấy vật phẩm nào
                 </td>
               </tr>
-
             )}
 
             {filtered.map((item) => (
-
               <tr key={item.reliefItemID}>
-
                 <td className="item-name">
-
                   <Package size={18} />
 
                   {item.reliefItemName}
-
                 </td>
 
                 <td>{item.unit}</td>
 
                 <td>
-
                   <span className={`badge ${getColor(item.quantity)}`}>
                     {item.quantity.toLocaleString()}
                   </span>
-
                 </td>
 
-                <td>
-                  {new Date(item.lastUpdated).toLocaleString()}
-                </td>
+                <td>{new Date(item.lastUpdated).toLocaleString()}</td>
 
                 <td>
-
                   <button
                     className="adjust-btn"
                     onClick={() => {
@@ -386,105 +341,72 @@ export default function Inventory() {
                       setShowAdjust(true);
                     }}
                   >
-                    Adjust
+                    Điều chỉnh
                   </button>
-
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
-
         </table>
-
       </div>
 
       {/* RECEIVE MODAL */}
 
       {showReceive && (
-
         <div className="modal-overlay">
-
           <div className="modal-box">
-
-            <h3>Receive Inventory</h3>
+            <h3>Nhập kho</h3>
 
             <input
-              placeholder="Relief Item ID"
+              placeholder="ID vật phẩm cứu trợ"
               value={receiveItemId}
               onChange={(e) => setReceiveItemId(e.target.value)}
             />
 
             <input
-              placeholder="Quantity"
+              placeholder="Số lượng"
               value={receiveQty}
               onChange={(e) => setReceiveQty(e.target.value)}
             />
 
             <div className="modal-buttons">
+              <button onClick={() => setShowReceive(false)}>Hủy</button>
 
-              <button onClick={() => setShowReceive(false)}>
-                Cancel
+              <button className="success" onClick={handleReceive}>
+                Nhập
               </button>
-
-              <button
-                className="success"
-                onClick={handleReceive}
-              >
-                Receive
-              </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
 
       {/* ADJUST MODAL */}
 
       {showAdjust && selectedItem && (
-
         <div className="modal-overlay">
-
           <div className="modal-box">
-
-            <h3>Adjust Inventory</h3>
+            <h3>Điều chỉnh tồn kho</h3>
 
             <p>
-              Item: <b>{selectedItem.reliefItemName}</b>
+              Vật phẩm: <b>{selectedItem.reliefItemName}</b>
             </p>
 
             <input
-              placeholder="Adjustment Quantity (+/-)"
+              placeholder="Số lượng điều chỉnh (+/-)"
               value={adjustQty}
               onChange={(e) => setAdjustQty(e.target.value)}
             />
 
             <div className="modal-buttons">
+              <button onClick={() => setShowAdjust(false)}>Hủy</button>
 
-              <button onClick={() => setShowAdjust(false)}>
-                Cancel
+              <button className="primary" onClick={handleAdjust}>
+                Điều chỉnh
               </button>
-
-              <button
-                className="primary"
-                onClick={handleAdjust}
-              >
-                Adjust
-              </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }
