@@ -696,8 +696,13 @@ const RequestRescue = () => {
                 >
                   {shouldShowSupplySuggestion && (
                     <div className="suggestion-box">
-                      <div className="suggestion-guideline-title">
-                        🎒 Gợi ý nhu yếu phẩm
+                      <div className="suggestion-box-header">
+                        <div className="suggestion-guideline-title">
+                          🎒 Gợi ý nhu yếu phẩm
+                        </div>
+                        <p className="suggestion-guideline-sub">
+                          Danh sách đề xuất theo từng nhóm để bạn chọn nhanh hơn
+                        </p>
                       </div>
 
                       <div className="suggestion-category-list">
@@ -735,8 +740,9 @@ const RequestRescue = () => {
                   )}
 
                   <div className="form-group people-count-box">
-                    <label className="form-label">
-                      Số người <span className="label-required">Bắt buộc</span>
+                    <label className="form-label people-label">
+                      <span>Số người</span>
+                      <span className="label-required">Bắt buộc</span>
                     </label>
 
                     <div className="people-counter">
@@ -1023,7 +1029,7 @@ const RequestRescue = () => {
                   className="nav-btn secondary"
                   onClick={prevStep}
                 >
-                  ← Bước trước
+                  ← Quay lại
                 </button>
               )}
 
@@ -1062,8 +1068,10 @@ const RequestRescue = () => {
               ⚠️{" "}
               <strong>Đối với các tình huống nguy hiểm đến tính mạng:</strong>{" "}
               Hãy gọi dịch vụ khẩn cấp tại địa phương trước:{" "}
-              <span className="emergency-number"> 115</span>{" "}
-              <p>(hoặc số khẩn cấp tại quốc gia của bạn)</p>
+              <span className="emergency-number">115</span>
+              <span className="emergency-sub">
+                ( hoặc số khẩn cấp tại quốc gia của bạn )
+              </span>
             </p>
           </div>
         </form>
