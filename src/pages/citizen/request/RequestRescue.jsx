@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./RequestRescue.css";
 import Header from "../../../components/common/Header";
+import Footer from "../../../components/common/Footer.jsx";
 
 import {
   MapContainer,
@@ -215,7 +216,7 @@ const RequestRescue = () => {
 
         // Show success message
         setTimeout(() => {
-          alert(`📍 Location detected successfully!\nAddress: ${address}`);
+          alert(`📍 "Đã xác định vị trí thành công!\nĐịa chỉ": ${address}`);
         }, 500);
       },
       (error) => {
@@ -223,20 +224,22 @@ const RequestRescue = () => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
             setLocationError(
-              "Location access was denied. Please enable location services in your browser settings.",
+              "Truy cập vị trí đã bị từ chối. Vui lòng bật dịch vụ vị trí trong cài đặt trình duyệt.",
             );
             break;
           case error.POSITION_UNAVAILABLE:
             setLocationError(
-              "Location information is unavailable. Please try again or enter your address manually.",
+              "Không thể lấy thông tin vị trí. Vui lòng thử lại hoặc nhập địa chỉ thủ công.",
             );
             break;
           case error.TIMEOUT:
-            setLocationError("Location request timed out. Please try again.");
+            setLocationError(
+              "Yêu cầu vị trí đã hết thời gian chờ. Vui lòng thử lại.",
+            );
             break;
           default:
             setLocationError(
-              "An unknown error occurred while getting your location.",
+              "Đã xảy ra lỗi không xác định khi lấy vị trí của bạn.",
             );
         }
       },
@@ -288,49 +291,49 @@ const RequestRescue = () => {
 
   const emergencyTypes = [
     {
-      value: "People trapped in floodwater",
+      value: "Người bị mắc kẹt trong nước lũ",
       icon: "🌊",
-      description: "People trapped due to rising floodwater",
+      description: "Người bị mắc kẹt do nước lũ dâng cao",
     },
     {
-      value: "House flooded",
+      value: "Nhà bị ngập",
       icon: "🏠",
-      description: "House flooded and needs evacuation",
+      description: "Nhà bị ngập và cần sơ tán",
     },
     {
-      value: "Need food / drinking water",
+      value: "Cần thực phẩm / nước uống",
       icon: "📦",
-      description: "Require food supplies and clean water",
+      description: "Cần thực phẩm và nước sạch",
     },
     {
-      value: "Need medical supplies",
+      value: "Cần thuốc men",
       icon: "💊",
-      description: "Require medicine and medical equipment",
+      description: "Cần thuốc và thiết bị y tế",
     },
     {
-      value: "Need life jackets / boats",
+      value: "Cần áo phao / thuyền",
       icon: "🛟",
-      description: "Require rescue equipment or safety devices",
+      description: "Cần thiết bị cứu hộ hoặc thiết bị an toàn",
     },
     {
-      value: "Urgent evacuation needed",
+      value: "Cần sơ tán khẩn cấp",
       icon: "🚨",
-      description: "Need to be evacuated to a safe location immediately",
+      description: "Cần được sơ tán đến nơi an toàn ngay lập tức",
     },
     {
-      value: "Landslide",
+      value: "Sạt lở đất",
       icon: "⛰️",
-      description: "Landslide threatening houses or people",
+      description: "Sạt lở đất đe dọa nhà cửa hoặc con người",
     },
     {
-      value: "Fallen trees / damaged roads",
+      value: "Cây đổ / đường hư hỏng",
       icon: "🛣️",
-      description: "Fallen trees or damaged roads due to flooding",
+      description: "Cây đổ hoặc đường bị hư hỏng do lũ lụt",
     },
     {
-      value: "Power outage / communication loss",
+      value: "Mất điện / mất liên lạc",
       icon: "📡",
-      description: "Power outage or loss of communication",
+      description: "Mất điện hoặc mất liên lạc",
     },
   ];
 
@@ -350,19 +353,21 @@ const RequestRescue = () => {
     );
 
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(", ")}`);
+      alert(
+        `Vui lòng nhập đầy đủ các trường bắt buộc: ${missingFields.join(", ")}`,
+      );
       setIsLoading(false);
       return;
     }
 
     if (formData.peopleCount < 1) {
-      alert("Please enter a valid number of people");
+      alert("Vui lòng nhập số lượng người hợp lệ");
       setIsLoading(false);
       return;
     }
 
     if (!formData.agreeTerms) {
-      alert("Please confirm the emergency agreement before submitting.");
+      alert("Vui lòng xác nhận điều khoản khẩn cấp trước khi gửi.");
       setIsLoading(false);
       return;
     }
@@ -430,7 +435,7 @@ const RequestRescue = () => {
     } catch (error) {
       console.error(error);
       alert(
-        error?.message || "Failed to submit rescue request. Please try again!",
+        error?.message || "Không thể gửi yêu cầu cứu hộ. Vui lòng thử lại!",
       );
     } finally {
       setIsLoading(false);
@@ -462,8 +467,8 @@ const RequestRescue = () => {
           <div className="toast-content">
             <span className="toast-icon">✅</span>
             <div className="toast-text">
-              <h4>Emergency Request Submitted Successfully!</h4>
-              <p>Rescue team has been notified. Help is on the way.</p>
+              <h4>Gửi yêu cầu cứu hộ thành công!</h4>
+              <p>Đội cứu hộ đã được thông báo. Sự hỗ trợ đang đến.</p>
             </div>
           </div>
         </div>
@@ -475,15 +480,15 @@ const RequestRescue = () => {
           <div className="progress-steps">
             <div className={`step ${currentStep >= 1 ? "active" : ""}`}>
               <div className="step-number">1</div>
-              <div className="step-label">Basic Info</div>
+              <div className="step-label">Thông tin cơ bản</div>
             </div>
             <div className={`step ${currentStep >= 2 ? "active" : ""}`}>
               <div className="step-number">2</div>
-              <div className="step-label">Emergency Details</div>
+              <div className="step-label">Chi tiết khẩn cấp</div>
             </div>
             <div className={`step ${currentStep >= 3 ? "active" : ""}`}>
               <div className="step-number">3</div>
-              <div className="step-label">Review & Submit</div>
+              <div className="step-label">Xem lại & gửi</div>
             </div>
           </div>
           <div className="progress-line">
@@ -495,10 +500,10 @@ const RequestRescue = () => {
         </div>
 
         <div className="page-header">
-          <h1>Request Emergency Rescue</h1>
+          <h1>Yêu cầu cứu hộ khẩn cấp</h1>
           <p className="page-subtitle">
-            Fill out the form below to request emergency assistance. Our team
-            will respond immediately.
+            Điền thông tin bên dưới để gửi yêu cầu cứu hộ. Đội ngũ của chúng tôi
+            sẽ phản hồi ngay lập tức.
           </p>
         </div>
 
@@ -508,7 +513,7 @@ const RequestRescue = () => {
             <div className="form-step">
               <h2 className="step-title">
                 <span className="step-icon">👤</span>
-                Personal Information
+                Thông tin cá nhân
               </h2>
 
               {/* Wrapper 2 cột */}
@@ -518,15 +523,15 @@ const RequestRescue = () => {
                   <div className="form-grid">
                     <div className="form-group">
                       <label className="form-label">
-                        Full Name{" "}
-                        <span className="label-required">Required</span>
+                        Họ và tên{" "}
+                        <span className="label-required">Bắt buộc</span>
                       </label>
                       <input
                         type="text"
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleChange}
-                        placeholder="Enter your full name"
+                        placeholder="Nhập họ và tên"
                         className="form-input"
                         required
                       />
@@ -534,15 +539,15 @@ const RequestRescue = () => {
 
                     <div className="form-group">
                       <label className="form-label">
-                        Phone Number{" "}
-                        <span className="label-required">Required</span>
+                        Số điện thoại{" "}
+                        <span className="label-required">Bắt buộc</span>
                       </label>
                       <input
                         type="tel"
                         name="phoneNumber"
                         value={formData.phoneNumber}
                         onChange={handleChange}
-                        placeholder="Enter your phone number"
+                        placeholder="Nhập số điện thoại"
                         className="form-input"
                         required
                       />
@@ -550,14 +555,14 @@ const RequestRescue = () => {
 
                     <div className="form-group">
                       <label className="form-label">
-                        Email <span className="label-required">Required</span>
+                        Email <span className="label-required">Bắt buộc</span>
                       </label>
                       <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="Enter your email"
+                        placeholder="Nhập email"
                         className="form-input"
                         required
                       />
@@ -565,8 +570,8 @@ const RequestRescue = () => {
 
                     <div className="form-group full-width">
                       <label className="form-label">
-                        Address / Location{" "}
-                        <span className="label-required">Required</span>
+                        Địa chỉ / Vị trí{" "}
+                        <span className="label-required">Bắt buộc</span>
                         <button
                           type="button"
                           className="location-btn"
@@ -574,8 +579,8 @@ const RequestRescue = () => {
                           disabled={gettingLocation}
                         >
                           {gettingLocation
-                            ? "📡 Locating..."
-                            : "📍 Use current location"}
+                            ? "📡 Đang xác định vị trí ...."
+                            : "📍 Dùng vị trí hiện tại"}
                         </button>
                       </label>
 
@@ -585,7 +590,7 @@ const RequestRescue = () => {
                           value={formData.address}
                           onChange={handleChange}
                           onBlur={handleAddressBlur}
-                          placeholder="Enter exact address or landmark"
+                          placeholder="Nhập địa chỉ hoặc mốc gần nhất"
                           className="form-input1"
                           required
                         />
@@ -626,9 +631,9 @@ const RequestRescue = () => {
 
                         <Marker position={mapCenter} icon={emergencyIcon}>
                           <Popup>
-                            <strong>Emergency Location</strong>
+                            <strong>Vị trí khẩn cấp</strong>
                             <br />
-                            Click anywhere on the map to update this position
+                            Nhấn vào bản đồ để cập nhật vị trí
                           </Popup>
                         </Marker>
                       </MapContainer>
@@ -644,15 +649,16 @@ const RequestRescue = () => {
             <div className="form-step">
               <h2 className="step-title">
                 <span className="step-icon">🚨</span>
-                Emergency Details
+                Chi tiết tình huống khẩn cấp
               </h2>
 
               <div className="form-grid">
                 <div className="form-group full-width">
                   <label className="form-label">
-                    Emergency Type{" "}
-                    <span className="label-required">Required</span>
+                    Loại khẩn cấp{" "}
+                    <span className="label-required">Bắt buộc</span>
                   </label>
+
                   <div className="emergency-type-grid">
                     {emergencyTypes.map((type) => (
                       <button
@@ -680,9 +686,9 @@ const RequestRescue = () => {
 
                 <div className="form-group">
                   <label className="form-label">
-                    Number of People{" "}
-                    <span className="label-required">Required</span>
+                    Số người <span className="label-required">Bắt buộc</span>
                   </label>
+
                   <div className="people-counter">
                     <button
                       type="button"
@@ -696,6 +702,7 @@ const RequestRescue = () => {
                     >
                       −
                     </button>
+
                     <input
                       type="number"
                       name="peopleCount"
@@ -705,6 +712,7 @@ const RequestRescue = () => {
                       max="100"
                       className="counter-input"
                     />
+
                     <button
                       type="button"
                       className="counter-btn"
@@ -718,25 +726,28 @@ const RequestRescue = () => {
                       +
                     </button>
                   </div>
-                  <p className="helper-text">Including yourself</p>
+
+                  <p className="helper-text">Bao gồm cả bạn</p>
                 </div>
 
                 <div className="form-group full-width">
                   <label className="form-label">
-                    Detailed Description{" "}
-                    <span className="label-required">Required</span>
+                    Mô tả chi tiết{" "}
+                    <span className="label-required">Bắt buộc</span>
                   </label>
+
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="  
-  Provide a detailed description of the necessary supplies for the rescue team.."
+                    placeholder="Mô tả chi tiết tình huống hoặc nhu cầu cần hỗ trợ..."
                     className="form-textarea1"
                     rows="5"
                   />
+
                   <p className="helper-text">
-                    Max 500 characters. Provide as much detail as possible.
+                    Tối đa 500 ký tự. Hãy cung cấp thông tin càng chi tiết càng
+                    tốt.
                     <span className="char-count">
                       {formData.description.length}/500
                     </span>
@@ -744,11 +755,10 @@ const RequestRescue = () => {
 
                   <div className="form-group1 full-width">
                     <label className="form-label">
-                      Emergency Images{" "}
-                      <span className="label-optional">(max 5)</span>
+                      Hình ảnh hiện trường{" "}
+                      <span className="label-optional">(tối đa 5)</span>
                     </label>
 
-                    {/* hidden input */}
                     <input
                       type="file"
                       accept="image/*"
@@ -759,12 +769,12 @@ const RequestRescue = () => {
                         if (!file) return;
 
                         if (rescueImages.length >= 5) {
-                          alert("Maximum 5 images allowed");
+                          alert("Chỉ được tải lên tối đa 5 ảnh");
                           return;
                         }
 
                         if (file.size > 2 * 1024 * 1024) {
-                          alert("Image size must be less than 2MB");
+                          alert("Dung lượng ảnh phải nhỏ hơn 2MB");
                           return;
                         }
 
@@ -774,11 +784,10 @@ const RequestRescue = () => {
                           URL.createObjectURL(file),
                         ]);
 
-                        e.target.value = ""; // reset để chọn lại cùng file nếu cần
+                        e.target.value = "";
                       }}
                     />
 
-                    {/* Add button */}
                     <button
                       type="button"
                       className="add-image-btn"
@@ -786,11 +795,12 @@ const RequestRescue = () => {
                         document.getElementById("imageUploadInput").click()
                       }
                     >
-                      ➕ Add image
+                      ➕ Thêm ảnh
                     </button>
+
                     <div className="suggestion-guideline-box">
                       <div className="suggestion-guideline-title">
-                        🎒 Suggested relief supplies
+                        🎒 Gợi ý nhu yếu phẩm
                       </div>
 
                       <div className="suggestion-category-list">
@@ -824,7 +834,6 @@ const RequestRescue = () => {
                       </div>
                     </div>
 
-                    {/* Preview list */}
                     {imagePreviews.length > 0 && (
                       <div className="image-preview-grid">
                         {imagePreviews.map((src, index) => (
@@ -860,19 +869,21 @@ const RequestRescue = () => {
             <div className="form-step">
               <h2 className="step-title">
                 <span className="step-icon">📋</span>
-                Review & Submit
+                Xem lại & gửi
               </h2>
 
               <div className="review-summary">
                 <div className="summary-section">
-                  <h3 className="summary-title">Personal Information</h3>
+                  <h3 className="summary-title">Thông tin cá nhân</h3>
+
                   <div className="summary-grid">
                     <div className="summary-item">
-                      <span className="summary-label">Full Name:</span>
+                      <span className="summary-label">Họ và tên:</span>
                       <span className="summary-value">{formData.fullName}</span>
                     </div>
+
                     <div className="summary-item">
-                      <span className="summary-label">Phone Number:</span>
+                      <span className="summary-label">Số điện thoại:</span>
                       <span className="summary-value">
                         {formData.phoneNumber}
                       </span>
@@ -884,17 +895,18 @@ const RequestRescue = () => {
                     </div>
 
                     <div className="summary-item">
-                      <span className="summary-label">Address:</span>
+                      <span className="summary-label">Địa chỉ:</span>
                       <span className="summary-value">{formData.address}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="summary-section">
-                  <h3 className="summary-title">Emergency Details</h3>
+                  <h3 className="summary-title">Thông tin khẩn cấp</h3>
+
                   <div className="summary-grid">
                     <div className="summary-item">
-                      <span className="summary-label">Emergency Type:</span>
+                      <span className="summary-label">Loại khẩn cấp:</span>
                       <span className="summary-value">
                         <span className="type-badge">
                           {
@@ -906,12 +918,14 @@ const RequestRescue = () => {
                         </span>
                       </span>
                     </div>
+
                     <div className="summary-item">
-                      <span className="summary-label">People Affected:</span>
+                      <span className="summary-label">
+                        Số người bị ảnh hưởng:
+                      </span>
                       <span className="summary-value">
                         <span className="people-badge">
-                          👥 {formData.peopleCount} person
-                          {formData.peopleCount !== 1 ? "s" : ""}
+                          👥 {formData.peopleCount} người
                         </span>
                       </span>
                     </div>
@@ -920,7 +934,8 @@ const RequestRescue = () => {
 
                 {formData.description && (
                   <div className="summary-section">
-                    <h3 className="summary-title">Emergency Description</h3>
+                    <h3 className="summary-title">Mô tả tình huống</h3>
+
                     <div className="description-box">
                       <p>{formData.description}</p>
                     </div>
@@ -929,7 +944,7 @@ const RequestRescue = () => {
 
                 {imagePreviews.length > 0 && (
                   <div className="summary-section">
-                    <h3 className="summary-title">Emergency Images</h3>
+                    <h3 className="summary-title">Hình ảnh hiện trường</h3>
 
                     <div
                       style={{
@@ -942,7 +957,7 @@ const RequestRescue = () => {
                         <img
                           key={index}
                           src={src}
-                          alt={`Emergency ${index + 1}`}
+                          alt={`Hình ${index + 1}`}
                           style={{
                             width: "120px",
                             height: "120px",
@@ -971,10 +986,10 @@ const RequestRescue = () => {
                     }
                   />
                   <span className="checkbox-custom"></span>
+
                   <span className="checkbox-text">
-                    I confirm that this is a genuine emergency and the
-                    information provided is accurate to the best of my
-                    knowledge.
+                    Tôi xác nhận đây là tình huống khẩn cấp thực sự và thông tin
+                    cung cấp là chính xác theo hiểu biết của tôi.
                   </span>
                 </label>
               </div>
@@ -990,7 +1005,7 @@ const RequestRescue = () => {
                   className="nav-btn secondary"
                   onClick={prevStep}
                 >
-                  ← Previous Step
+                  ← Bước trước
                 </button>
               )}
 
@@ -1002,7 +1017,7 @@ const RequestRescue = () => {
                   className="nav-btn primary"
                   onClick={nextStep}
                 >
-                  Next Step →
+                  Bước tiếp theo →
                 </button>
               ) : (
                 <button
@@ -1015,24 +1030,24 @@ const RequestRescue = () => {
                     <>
                       <span className="spinner"></span>
                       {uploadingImage
-                        ? "Uploading image..."
-                        : "Submitting request..."}
+                        ? "Đang tải ảnh lên..."
+                        : "Đang gửi yêu cầu..."}
                     </>
                   ) : (
-                    <>🚨 Submit Emergency Request</>
+                    <>🚨 Gửi yêu cầu cứu hộ</>
                   )}
                 </button>
               )}
             </div>
 
             <p className="emergency-note">
-              ⚠️ <strong>For immediate life-threatening emergencies:</strong>{" "}
-              Call local emergency services first:
-              <span className="emergency-number"> 911 </span>
-              (or your country's emergency number)
+              ⚠️{" "}
+              <strong>Đối với các tình huống nguy hiểm đến tính mạng:</strong>{" "}
+              Hãy gọi dịch vụ khẩn cấp tại địa phương trước: <span className="emergency-number"> 115 </span> (hoặc số khẩn cấp tại quốc gia của bạn)
             </p>
           </div>
         </form>
+        <Footer />
       </div>
     </>
   );
