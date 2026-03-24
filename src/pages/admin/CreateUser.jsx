@@ -207,7 +207,7 @@ const CreateUser = () => {
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="Enter full name"
+              placeholder="Nhập họ và tên"
               className={errors.fullName ? "error" : ""}
               required
             />
@@ -225,7 +225,7 @@ const CreateUser = () => {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              placeholder="Enter username"
+              placeholder="Nhập tên đăng nhập"
               className={errors.username ? "error" : ""}
               required
             />
@@ -243,7 +243,7 @@ const CreateUser = () => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="Enter phone number"
+              placeholder="Nhập số điện thoại"
               className={errors.phone ? "error" : ""}
               required
             />
@@ -262,7 +262,7 @@ const CreateUser = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Enter password"
+              placeholder="Nhập mật khẩu"
               className={errors.password ? "error" : ""}
               required
             />
@@ -281,7 +281,7 @@ const CreateUser = () => {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              placeholder="Confirm password"
+              placeholder="Nhập lại mật khẩu"
               className={errors.confirmPassword ? "error" : ""}
               required
             />
@@ -304,7 +304,7 @@ const CreateUser = () => {
                   disabled={loadingTeams}
                 >
                   <option value="">
-                    {loadingTeams ? "Loading teams..." : "Select a team"}
+                    {loadingTeams ? "Loading teams..." : "Chon đội cúu hộ"}
                   </option>
 
                   {teams.map((t) => (
@@ -341,7 +341,7 @@ const CreateUser = () => {
             </>
           )}
           <button type="submit" className="submit">
-            Create Account
+            Tạo tài khoản
           </button>
         </form>
       </div>

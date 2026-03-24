@@ -132,7 +132,7 @@ const CreateRescueTeam = () => {
               name="teamName"
               value={formData.teamName}
               onChange={handleChange}
-              placeholder="Enter team name"
+              placeholder="Nhâp tên đội"
               className={errors.teamName ? "error" : ""}
               required
             />
@@ -148,7 +148,7 @@ const CreateRescueTeam = () => {
               name="city"
               value={formData.city}
               onChange={handleChange}
-              placeholder="Enter city"
+              placeholder="Nhập thành phố"
               className={errors.city ? "error" : ""}
               required
             />
