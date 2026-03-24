@@ -1,10 +1,13 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useOutletContext, useLocation } from "react-router-dom";
 import "./ListUser.css";
-import { getUsers, deactivateUser, updateUser } from "../../services/userService";
+import {
+  getUsers,
+  deactivateUser,
+  updateUser,
+} from "../../services/userService";
 
 const ListUser = () => {
-
   const [editingUserId, setEditingUserId] = useState(null);
   const location = useLocation();
   const [users, setUsers] = useState([]);
@@ -25,7 +28,10 @@ const ListUser = () => {
 
   // Lấy danh sách role duy nhất
   const uniqueRoles = useMemo(() => {
-    return ["All", ...new Set(users.map(user => user.roleName).filter(Boolean))];
+    return [
+      "All",
+      ...new Set(users.map((user) => user.roleName).filter(Boolean)),
+    ];
   }, [users]);
 
   const showToast = (message) => {
@@ -56,16 +62,16 @@ const ListUser = () => {
         const apiUsers = res?.content?.data || [];
         setUsers(apiUsers);
       } else {
-        showToast("❌ Failed to load users");
+        showToast("❌ Không thể tải danh sách người dùng");
       }
     } catch (error) {
-      console.error("Load users error:", error);
+      console.error("Không thể tải danh sách người dùng:", error);
 
       if (error.message?.includes("401")) {
         handleLogout?.();
       }
 
-      showToast("❌ Failed to load users");
+      showToast("❌ Không thể tải danh sách người dùng");
     } finally {
       setLoading(false);
     }
@@ -82,23 +88,22 @@ const ListUser = () => {
     return () => clearTimeout(delay);
   }, [search, roleFilter]);
 
-
   const handleDelete = async (userId, username) => {
-    const confirmed = window.confirm(`Deactivate account "${username}"?`);
+    const confirmed = window.confirm(`Vô hiệu hóa tài khoản "${username}"?`);
     if (!confirmed) return;
 
     try {
       const res = await deactivateUser(userId);
 
       if (res?.success) {
-        showToast(`✅ Account "${username}" has been deactivated`);
+        showToast(`✅ Tài khoản "${username}" đã được vô hiệu hóa`);
         loadUsers();
       } else {
-        showToast(`❌ Failed to deactivate "${username}"`);
+        showToast(`❌ Không thể vô hiệu hóa tài khoản "${username}"`);
       }
     } catch (error) {
-      console.error("Deactivate user error:", error);
-      showToast(`❌ Failed to deactivate "${username}"`);
+      console.error("Lỗi vô hiệu hóa người dùng:", error);
+      showToast(`❌ Không thể vô hiệu hóa tài khoản "${username}"`);
     }
   };
   // ===== ADD: hàm chuyển sang trang sửa user =====
@@ -139,15 +144,15 @@ const ListUser = () => {
       const res = await updateUser(userId, payload);
 
       if (res?.success) {
-        showToast("✅ User updated successfully");
+        showToast("✅ Cập nhật người dùng thành công");
         setEditingUserId(null);
         loadUsers();
       } else {
-        showToast("❌ Failed to update user");
+        showToast("❌ Không thể cập nhật người dùng");
       }
     } catch (error) {
-      console.error("Update user error:", error);
-      showToast("❌ Failed to update user");
+      console.error("Lỗi cập nhật người dùng:", error);
+      showToast("❌ Không thể cập nhật người dùng");
     }
   };
   const filteredUsers = users.filter((user) => {
@@ -156,20 +161,22 @@ const ListUser = () => {
     const keyword = search.toLowerCase();
 
     const matchesSearch =
-      fullName.includes(keyword) ||
-      username.includes(keyword);
+      fullName.includes(keyword) || username.includes(keyword);
 
     const matchesRole =
       roleFilter === "All" ||
-      String(user.roleName || "").trim().toLowerCase() ===
-      String(roleFilter || "").trim().toLowerCase();
+      String(user.roleName || "")
+        .trim()
+        .toLowerCase() ===
+        String(roleFilter || "")
+          .trim()
+          .toLowerCase();
 
     return matchesSearch && matchesRole;
   });
 
   // Kiểm tra xem có đang search hoặc filter không
-  const isSearchingOrFiltering =
-    search.trim() !== "" || roleFilter !== "All";
+  const isSearchingOrFiltering = search.trim() !== "" || roleFilter !== "All";
 
   return (
     <>
@@ -179,16 +186,15 @@ const ListUser = () => {
         </div>
       )}
 
-
       <div className="list-user-container">
-        <h2>Account List</h2>
+        <h2>Danh sách tài khoản</h2>
 
         {/* Controls */}
         <div className="controls-container">
           <div className="search-container">
             <input
               className="search"
-              placeholder="Search name or username..."
+              placeholder="Tìm kiếm theo tên hoặc tên đăng nhập..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -201,35 +207,40 @@ const ListUser = () => {
               onChange={(e) => setRoleFilter(e.target.value)}
             >
               {uniqueRoles.map((role, index) => (
-                <option key={index} value={role}>{role}</option>
+                <option key={index} value={role}>
+                  {role}
+                </option>
               ))}
             </select>
           </div>
 
           {/* View Mode Indicator */}
           <div className="view-indicator">
-            <span className={`indicator ${isSearchingOrFiltering ? 'card-mode' : 'table-mode'}`}>
-              {isSearchingOrFiltering ? '🔍 Filter/Card View' : '📋 Full Table View'}
+            <span
+              className={`indicator ${isSearchingOrFiltering ? "card-mode" : "table-mode"}`}
+            >
+              {isSearchingOrFiltering
+                ? "🔍 Chế độ lọc/thẻ"
+                : "📋 Chế độ bảng đầy đủ"}
             </span>
           </div>
         </div>
 
         <div className="search-info">
-          Found {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
-          {roleFilter !== "All" && ` in role "${roleFilter}"`}
-          {search.trim() !== "" && ` matching "${search}"`}
+          Tìm thấy {filteredUsers.length} người dùng
+          {roleFilter !== "All" && ` với vai trò "${roleFilter}"`}
+          {search.trim() !== "" && ` khớp với "${search}"`}
         </div>
 
-        {/* Card View (Khi search/filter) */}
+        {/* Card View */}
         {isSearchingOrFiltering && (
           <div className="user-list">
             {filteredUsers.length === 0 ? (
               <div className="no-results">
-                <p>No users found</p>
+                <p>Không tìm thấy người dùng</p>
               </div>
             ) : (
               filteredUsers.map((user, index) => (
-                //
                 <div key={user.userID || index} className="user-card">
                   <div className="user-header">
                     <span className="user-role">{user.roleName}</span>
@@ -237,15 +248,15 @@ const ListUser = () => {
 
                   <div className="user-info">
                     <div className="info-row">
-                      <span className="label">Full Name:</span>
+                      <span className="label">Họ và tên:</span>
                       <span className="value">{user.fullName}</span>
                     </div>
                     <div className="info-row">
-                      <span className="label">Username:</span>
+                      <span className="label">Tên đăng nhập:</span>
                       <span className="value">{user.username}</span>
                     </div>
                     <div className="info-row">
-                      <span className="label">Phone:</span>
+                      <span className="label">Số điện thoại:</span>
                       <span className="value">{user.phone}</span>
                     </div>
                   </div>
@@ -255,13 +266,13 @@ const ListUser = () => {
                       className="edit-btn"
                       onClick={() => handleEdit(user)}
                     >
-                      Edit
+                      Sửa
                     </button>
                     <button
                       className="delete-btn"
                       onClick={() => handleDelete(user.userID, user.username)}
                     >
-                      🗑️ Delete
+                      🗑️ Xóa
                     </button>
                   </div>
                 </div>
@@ -270,30 +281,29 @@ const ListUser = () => {
           </div>
         )}
 
-        {/* Table View (Khi không search/filter) */}
+        {/* Table View */}
         {!isSearchingOrFiltering && (
           <div className="table-container">
             <table className="user-table">
               <thead>
                 <tr>
-                  <th>Full Name</th>
-                  <th>Username</th>
-                  <th>Phone</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>Họ và tên</th>
+                  <th>Tên đăng nhập</th>
+                  <th>Số điện thoại</th>
+                  <th>Vai trò</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="no-data">
-                      No users found
+                      Không tìm thấy người dùng
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((user, index) => {
-                    // ===== ADD: kiểm tra dòng hiện tại có đang edit không =====
                     const isEditing = editingUserId === user.userID;
 
                     return (
@@ -304,7 +314,9 @@ const ListUser = () => {
                               type="text"
                               className="edit-input"
                               value={editForm.fullName}
-                              onChange={(e) => handleEditChange("fullName", e.target.value)}
+                              onChange={(e) =>
+                                handleEditChange("fullName", e.target.value)
+                              }
                             />
                           ) : (
                             user.fullName
@@ -319,7 +331,9 @@ const ListUser = () => {
                               type="text"
                               className="edit-input"
                               value={editForm.phone}
-                              onChange={(e) => handleEditChange("phone", e.target.value)}
+                              onChange={(e) =>
+                                handleEditChange("phone", e.target.value)
+                              }
                             />
                           ) : (
                             user.phone
@@ -331,14 +345,15 @@ const ListUser = () => {
                             <select
                               className="edit-input"
                               value={editForm.roleID}
-                              onChange={(e) => handleEditChange("roleID", e.target.value)}
+                              onChange={(e) =>
+                                handleEditChange("roleID", e.target.value)
+                              }
                             >
-                              {/* ===== CHANGE: sửa lại roleID đúng backend nếu khác ===== */}
-                              <option value="AD">Admin</option>
-                              <option value="MN">Manager</option>
-                              <option value="IM">Inventory Manager</option>
-                              <option value="CT">Coordinator</option>
-                              <option value="RT">Rescue Team</option>
+                              <option value="AD">Quản trị viên</option>
+                              <option value="MN">Quản lý</option>
+                              <option value="IM">Quản lý kho</option>
+                              <option value="CT">Điều phối viên</option>
+                              <option value="RT">Đội cứu hộ</option>
                             </select>
                           ) : (
                             <span className="table-role">{user.roleName}</span>
@@ -346,8 +361,14 @@ const ListUser = () => {
                         </td>
 
                         <td>
-                          <span className={user.isActive ? "status-active" : "status-inactive"}>
-                            {user.isActive ? "Active" : "Inactive"}
+                          <span
+                            className={
+                              user.isActive
+                                ? "status-active"
+                                : "status-inactive"
+                            }
+                          >
+                            {user.isActive ? "Hoạt động" : "Không hoạt động"}
                           </span>
                         </td>
 
@@ -359,13 +380,13 @@ const ListUser = () => {
                                   className="save-btn"
                                   onClick={() => handleSaveEdit(user.userID)}
                                 >
-                                  Save
+                                  Lưu
                                 </button>
                                 <button
                                   className="cancel-btn"
                                   onClick={handleCancelEdit}
                                 >
-                                  Cancel
+                                  Hủy
                                 </button>
                               </>
                             ) : (
@@ -374,15 +395,16 @@ const ListUser = () => {
                                   className="edit-btn"
                                   onClick={() => handleEdit(user)}
                                 >
-                                  Edit
+                                  Sửa
                                 </button>
                                 <div className="action-buttons1">
-                                  {/* ===== NOTE: edit chỉ hỗ trợ ở table view ===== */}
                                   <button
                                     className="delete-btn1"
-                                    onClick={() => handleDelete(user.userID, user.username)}
+                                    onClick={() =>
+                                      handleDelete(user.userID, user.username)
+                                    }
                                   >
-                                    Delete
+                                    Xóa
                                   </button>
                                 </div>
                               </>

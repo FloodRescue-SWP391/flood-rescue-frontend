@@ -40,9 +40,8 @@ const ListRescueTeams = () => {
 
       const list = json?.content?.data || [];
       setTeams(list);
-     
     } catch (err) {
-      showToast(`${err?.message || "Failed to load rescue teams"}`);
+      showToast(`${err?.message || "Không thể tải danh sách đội cứu hộ"}`);
     } finally {
       setLoading(false);
     }
@@ -92,30 +91,34 @@ const ListRescueTeams = () => {
         city: String(formData.city).trim(),
         currentStatus: String(formData.currentStatus).trim(),
         currentLatitude:
-          formData.currentLatitude === "" ? 0 : Number(formData.currentLatitude),
+          formData.currentLatitude === ""
+            ? 0
+            : Number(formData.currentLatitude),
         currentLongitude:
-          formData.currentLongitude === "" ? 0 : Number(formData.currentLongitude),
+          formData.currentLongitude === ""
+            ? 0
+            : Number(formData.currentLongitude),
       };
 
       const res = await updateRescueTeam(editingId, payload);
 
       if (res?.success === false) {
-        showToast(`❌ ${res?.message || "Update failed"}`);
+        showToast(`❌ ${res?.message || "Cập nhật thất bại"}`);
         return;
       }
 
-      showToast("✅ Updated successfully!");
+      showToast("✅ Cập nhật thành công!");
       closeEdit();
       loadTeams();
     } catch (err) {
-      showToast(`❌ ${err?.message || "Update failed"}`);
+      showToast(`❌ ${err?.message || "Cập nhật thất bại"}`);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    const ok = window.confirm("Delete this rescue team?");
+    const ok = window.confirm("Bạn có chắc muốn xóa đội cứu hộ này?");
     if (!ok) return;
 
     try {
@@ -123,14 +126,14 @@ const ListRescueTeams = () => {
       const res = await deleteRescueTeam(id);
 
       if (res?.success === false) {
-        showToast(`❌ ${res?.message || "Delete failed"}`);
+        showToast(`❌ ${res?.message || "Không thể xóa"}`);
         return;
       }
 
-      showToast("✅ Deleted successfully!");
+      showToast("✅ Đã xóa thành công!");
       setTeams((prev) => prev.filter((t) => getId(t) !== id));
     } catch (err) {
-      showToast(`❌ ${err?.message || "Delete failed"}`);
+      showToast(`❌ ${err?.message || "Không thể xóa"}`);
     } finally {
       setSaving(false);
     }
@@ -145,24 +148,24 @@ const ListRescueTeams = () => {
       )}
 
       <div className="list-rescue-team-container">
-        <h2>Rescue Teams</h2>
+        <h2>Đội cứu hộ</h2>
 
         <div className="panel">
           {loading ? (
-            <div className="empty">Loading...</div>
+            <div className="empty">Đang tải...</div>
           ) : teams.length === 0 ? (
-            <div className="empty">No rescue teams found.</div>
+            <div className="empty">Không tìm thấy đội cứu hộ nào.</div>
           ) : (
             <div className="table-wrap">
               <table className="team-table">
                 <thead>
                   <tr>
-                    <th>Team Name</th>
-                    <th>City</th>
-                    <th>Status</th>
-                    <th>Latitude</th>
-                    <th>Longitude</th>
-                    <th style={{ width: 170 }}>Action</th>
+                    <th>Tên đội</th>
+                    <th>Thành phố</th>
+                    <th>Trạng thái</th>
+                    <th>Vĩ độ</th>
+                    <th>Kinh độ</th>
+                    <th style={{ width: 170 }}>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,14 +185,14 @@ const ListRescueTeams = () => {
                               onClick={() => openEdit(t)}
                               disabled={saving}
                             >
-                              Edit
+                              Sửa
                             </button>
                             <button
                               className="btn small danger"
                               onClick={() => handleDelete(id)}
                               disabled={saving}
                             >
-                              Delete
+                              Xóa
                             </button>
                           </div>
                         </td>
@@ -202,14 +205,14 @@ const ListRescueTeams = () => {
           )}
         </div>
 
-        {/* EDIT PANEL (giống style form cũ) */}
+        {/* EDIT PANEL */}
         {editingId && (
           <div className="edit-panel">
-            <h3>Edit Rescue Team</h3>
+            <h3>Chỉnh sửa đội cứu hộ</h3>
 
             <form onSubmit={handleUpdate} className="edit-form">
               <div className="form-group">
-                <label>Team Name</label>
+                <label>Tên đội</label>
                 <input
                   name="teamName"
                   value={formData.teamName}
@@ -219,7 +222,7 @@ const ListRescueTeams = () => {
               </div>
 
               <div className="form-group">
-                <label>City</label>
+                <label>Thành phố</label>
                 <input
                   name="city"
                   value={formData.city}
@@ -229,21 +232,21 @@ const ListRescueTeams = () => {
               </div>
 
               <div className="form-group">
-                <label>Status</label>
+                <label>Trạng thái</label>
                 <select
                   name="currentStatus"
                   value={formData.currentStatus}
                   onChange={handleChange}
                 >
-                  <option value="Available">Available</option>
-                  <option value="Busy">Busy</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Available">Sẵn sàng</option>
+                  <option value="Busy">Đang bận</option>
+                  <option value="Inactive">Không hoạt động</option>
                 </select>
               </div>
 
               <div className="grid-2">
                 <div className="form-group">
-                  <label>Latitude</label>
+                  <label>Vĩ độ</label>
                   <input
                     name="currentLatitude"
                     value={formData.currentLatitude}
@@ -253,7 +256,7 @@ const ListRescueTeams = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Longitude</label>
+                  <label>Kinh độ</label>
                   <input
                     name="currentLongitude"
                     value={formData.currentLongitude}
@@ -264,11 +267,16 @@ const ListRescueTeams = () => {
               </div>
 
               <div className="edit-actions">
-                <button type="button" className="btn" onClick={closeEdit} disabled={saving}>
-                  Cancel
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={closeEdit}
+                  disabled={saving}
+                >
+                  Hủy
                 </button>
                 <button type="submit" className="btn primary" disabled={saving}>
-                  {saving ? "Saving..." : "Update"}
+                  {saving ? "Đang lưu..." : "Cập nhật"}
                 </button>
               </div>
             </form>

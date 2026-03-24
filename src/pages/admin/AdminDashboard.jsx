@@ -20,45 +20,45 @@ const AdminDashboard = () => {
       <div className="admin-body">
         {/* SIDEBAR */}
         <aside className="admin-sidebar">
-          <h3>👤 Member</h3>
+          <h3>👤 Thành viên</h3>
           <button
             onClick={() => navigate("/admin/create-user")}
             className={location.pathname === "/admin/create-user" ? "active" : ""}
           >
-            ➕ Add Member
+            ➕ Thêm thành viên
           </button>
           <button
             onClick={() => navigate("/admin/list-user")}
             className={location.pathname === "/admin/list-user" ? "active" : ""}
           >
-            📋 List Account
+            📋 Danh sách tài khoản
           </button>
-          <h3>🛟 Rescue Team</h3>
+          <h3>🛟 Đội cứu hộ</h3>
           <button
             onClick={() => navigate("/admin/create-rescue-team")}
             className={
               location.pathname === "/admin/create-rescue-team" ? "active" : ""
             }
           >
-            ➕ Add Rescue Team
+            ➕ Thêm đội cứu hộ
           </button>
           <button
             onClick={() => navigate("/admin/list-rescue-team")}
             className={location.pathname === "/admin/list-rescue-team" ? "active" : ""}
           >
-            📋 List Rescue Team
+            📋 Danh sách đội cứu hộ
           </button>
-          <h3>📊 Report</h3>
+          <h3>📊 Báo cáo</h3>
           <button
             onClick={() => navigate("/admin/report")}
             className={location.pathname === "/admin/report" ? "active" : ""}
           >
-            📈 Admin Report
+            📈 Báo cáo của quản trị viên
           </button>
 
-          <h3>⚙️ Setting</h3>
+          <h3>⚙️ Cài đặt</h3>
           <button className="logout" onClick={handleLogout}>
-            🚪 Logout
+            🚪 Đăng xuất
           </button>
         </aside>
 
