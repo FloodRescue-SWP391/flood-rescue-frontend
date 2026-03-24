@@ -25,7 +25,7 @@ const Header = () => {
       </div>
 
       <Navbar expand="lg" className="main-navbar">
-        <Container fluid className="px-4 px-lg-5">
+        <Container fluid className="px-3 px-lg-5">
           <Navbar.Brand
             as={Link}
             to="/"
@@ -40,7 +40,7 @@ const Header = () => {
           <Navbar.Toggle aria-controls="main-navbar-nav" />
 
           <Navbar.Collapse id="main-navbar-nav">
-            <Nav className={`${showLogin ? "mx-auto" : "ms-auto"} menu-center`}>
+            <Nav className="ms-auto d-flex align-items-center gap-4">
               <Nav.Link as={Link} to="/introduce" className="nav-link-custom">
                 Giới thiệu
               </Nav.Link>
@@ -48,10 +48,8 @@ const Header = () => {
               <Nav.Link as={Link} to="/contact" className="nav-link-custom">
                 Liên hệ
               </Nav.Link>
-            </Nav>
 
-            {showLogin && (
-              <div className="login-wrapper">
+              {showLogin && (
                 <Button
                   variant="none"
                   className="login-btn"
@@ -59,8 +57,8 @@ const Header = () => {
                 >
                   Đăng nhập
                 </Button>
-              </div>
-            )}
+              )}
+            </Nav>
           </Navbar.Collapse>
         </Container>
       </Navbar>

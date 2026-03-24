@@ -1,6 +1,6 @@
 .hero {
-  min-height: 90vh; /* giảm xuống */
-  padding-bottom: 20px; /* hoặc 0 */
+  padding-top: 0;
+  padding-bottom: 0; /* hoặc 0 */
 }
 
 .hero-container {
