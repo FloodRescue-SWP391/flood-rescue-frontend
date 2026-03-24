@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import "./CreateUser.css";
 import { register } from "../../services/authService";
 import { getAllRescueTeams } from "../../services/rescueTeamService"; // nhớ đúng path
@@ -12,6 +12,7 @@ const ROLE_ID_MAP = {
 };
 const CreateUser = () => {
   const { handleLogout } = useOutletContext();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -138,7 +139,12 @@ const CreateUser = () => {
       setIsSubmitting(true);
       console.log("REGISTER PAYLOAD:", payload);
       await register(payload);
-      setToast("✅ Tài khoản đã được tạo thành công!");
+      setToast("✅ Tài khoản đã được tạo thành công! Đang chuyển hướng...");
+
+      // Tự động chuyển qua trang danh sách để xem cập nhật
+      setTimeout(() => {
+        navigate("/admin/list-user");
+      }, 1500);
 
       // Reset form after delay
       setFormData({

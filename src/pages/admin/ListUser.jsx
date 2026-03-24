@@ -50,6 +50,7 @@ const ListUser = () => {
       const roleId = "";
       const isActive = "";
 
+      console.log("Loading users with params:", { searchKeyword: search, roleId, isActive, pageNumber, pageSize });
       const res = await getUsers({
         searchKeyword: search,
         roleId,
@@ -57,6 +58,7 @@ const ListUser = () => {
         pageNumber,
         pageSize,
       });
+      console.log("GetUsers API Response:", res);
 
       if (res?.success) {
         const apiUsers = res?.content?.data || [];
@@ -94,6 +96,7 @@ const ListUser = () => {
 
     try {
       const res = await deactivateUser(userId);
+      console.log("DeactivateUser API Response:", res);
 
       if (res?.success) {
         showToast(`✅ Tài khoản "${username}" đã được vô hiệu hóa`);
@@ -142,6 +145,7 @@ const ListUser = () => {
       };
 
       const res = await updateUser(userId, payload);
+      console.log("UpdateUser API Response:", res);
 
       if (res?.success) {
         showToast("✅ Cập nhật người dùng thành công");
