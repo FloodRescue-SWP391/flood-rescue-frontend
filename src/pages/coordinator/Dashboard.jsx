@@ -462,7 +462,7 @@ const Dashboard = () => {
   const handleResolveIncident = async (incidentReportID) => {
     if (!incidentReportID) return;
     if (!resolveNote.trim()) {
-      alert("Please enter coordinator note.");
+      alert("Vui lòng nhập ghi chú của điều phối viên.");
       return;
     }
 
@@ -475,7 +475,7 @@ const Dashboard = () => {
         coordinatorNote: resolveNote.trim(),
       });
 
-      alert(res?.message || "Incident resolved successfully.");
+      alert(res?.message || "Xử lý sự cố thành công.");
 
       setResolveNote("");
       setSelectedIncident(null);
@@ -484,8 +484,8 @@ const Dashboard = () => {
       await loadIncidentHistory();
     } catch (e) {
       console.error(e);
-      setIncidentError("Resolve incident failed.");
-      alert(e?.message || "Resolve incident failed.");
+      setIncidentError("Không thể xử lý sự cố.");
+      alert(e?.message || "Không thể xử lý sự cố.");
     } finally {
       setResolvingIncident(false);
     }
@@ -596,12 +596,12 @@ const Dashboard = () => {
           setDispatchSuccess("");
         } else {
           setTeams([]);
-          setTeamsError(res?.message || "Failed to load rescue teams");
+          setTeamsError(res?.message || "Không thể tải danh sách đội cứu hộ");
         }
       } catch (err) {
         console.error("Load teams error:", err);
         setTeams([]);
-        setTeamsError("Failed to load rescue teams");
+        setTeamsError("Không thể tải danh sách đội cứu hộ");
       } finally {
         setTeamsLoading(false);
       }
@@ -676,17 +676,19 @@ const Dashboard = () => {
     setDispatchSuccess("");
 
     if (!selectedRequest?.id) {
-      setDispatchError("Please select a rescue request first.");
+      setDispatchError("Vui lòng chọn yêu cầu cứu hộ trước.");
       return;
     }
 
     if (selectedRequest.status !== "pending") {
-      setDispatchError("Only PENDING requests can be dispatched.");
+      setDispatchError(
+        "Chỉ các yêu cầu đang chờ xử lý mới có thể được phân công.",
+      );
       return;
     }
 
     if (!selectedTeamId) {
-      setDispatchError("Please select a rescue team.");
+      setDispatchError("Vui lòng chọn đội cứu hộ.");
       return;
     }
 
@@ -702,7 +704,7 @@ const Dashboard = () => {
 
       // ✅ check success đúng
       if (res?.success === false) {
-        setDispatchError(res?.message || "Dispatch mission failed.");
+        setDispatchError(res?.message || "Không thể phân công nhiệm vụ.");
         return;
       }
 
@@ -819,7 +821,8 @@ const Dashboard = () => {
         {/* Dashboard Header */}
         <div className="dashboard-header">
           <div className="noti">
-            <h1>🌊 Flood Relief Coordination Board</h1>
+            <h1>🌊 Bảng điều phối cứu trợ lũ lụt</h1>
+
             <div className="button">
               <button
                 className={`notification-bell ${unreadCount > 0 ? "active" : ""}`}
@@ -833,7 +836,7 @@ const Dashboard = () => {
 
               <button className="logout-btn" onClick={handleLogout}>
                 <span className="logout-icon">↩</span>
-                <span>Logout</span>
+                <span>Đăng xuất</span>
               </button>
             </div>
           </div>
@@ -861,20 +864,25 @@ const Dashboard = () => {
                       return (
                         <div
                           key={notification.id}
-                          className={`notification-item ${notification.read ? "read" : "unread"}`}
+                          className={`notification-item ${
+                            notification.read ? "read" : "unread"
+                          }`}
                           style={{
                             backgroundColor: color.bg,
                             borderLeft: `4px solid ${color.border}`,
                           }}
                         >
                           <div className="notification-icon">{color.icon}</div>
+
                           <div className="notification-content">
                             <h4>{notification.title}</h4>
                             <p>{notification.message}</p>
+
                             <div className="notification-footer">
                               <span className="notification-time">
                                 {notification.timestamp}
                               </span>
+
                               <button
                                 className="notification-action"
                                 onClick={() =>
@@ -887,6 +895,7 @@ const Dashboard = () => {
                               </button>
                             </div>
                           </div>
+
                           <button
                             className="notification-close"
                             onClick={() => removeNotification(notification.id)}
@@ -908,16 +917,16 @@ const Dashboard = () => {
           <div className="stat-card">
             <div className="stat-icon total">🌊</div>
             <div className="stat-info">
-              <h3>The request is active.</h3>
+              <h3>Yêu cầu đang hoạt động</h3>
               <div className="stat-number">{stats.totalActive}</div>
-              <div className="stat-sub">({stats.newRequests} NEW )</div>
+              <div className="stat-sub">({stats.newRequests} MỚI)</div>
             </div>
           </div>
 
           <div className="stat-card">
             <div className="stat-icon people">👥</div>
             <div className="stat-info">
-              <h3>People in need of rescue</h3>
+              <h3>Số người cần được cứu hộ</h3>
               <div className="stat-number">{stats.peopleAffected}</div>
             </div>
           </div>
@@ -925,7 +934,7 @@ const Dashboard = () => {
           <div className="stat-card">
             <div className="stat-icon critical">🚨</div>
             <div className="stat-info">
-              <h3>Critical situation</h3>
+              <h3>Tình huống khẩn cấp</h3>
               <div className="stat-number">{stats.critical}</div>
             </div>
           </div>
@@ -942,18 +951,19 @@ const Dashboard = () => {
             <div className="alert-content">
               <span className="alert-icon">🚨</span>
               <div>
-                <h3>WARNING: Critical life-threatening situation!</h3>
+                <h3>CẢNH BÁO: Tình huống nguy hiểm đến tính mạng!</h3>
                 <p>
-                  There are{" "}
+                  Có{" "}
                   {
                     allRequests.filter(
                       (req) => req.isNew && req.priorityLevel === "Critical",
                     ).length
                   }{" "}
-                  critical rescue requests that need immediate handling
+                  yêu cầu cứu hộ mức độ nghiêm trọng cần được xử lý ngay
                 </p>
               </div>
             </div>
+
             <button
               className="alert-action"
               onClick={() => {
@@ -963,71 +973,77 @@ const Dashboard = () => {
                 if (criticalRequest) handleRequestClick(criticalRequest);
               }}
             >
-              Handle immediately →
+              Xử lý ngay →
             </button>
           </div>
         )}
 
         {/* Filter Controls */}
         <div className="filter-section">
-          <h3>🔎 Filter rescue requests</h3>
+          <h3>🔎 Lọc yêu cầu cứu hộ</h3>
 
           <div className="filter-controls">
             <div className="filter-group">
-              <span className="filter-label">Rescue request status</span>
+              <span className="filter-label">Trạng thái yêu cầu</span>
+
               <div className="status-tabs">
                 <button
                   className={`status-tab ${statusFilter === "active" ? "active" : ""}`}
                   onClick={() => setStatusFilter("active")}
                 >
-                  ACTIVE
+                  ĐANG HOẠT ĐỘNG
                 </button>
 
                 <button
                   className={`status-tab ${statusFilter === "pending" ? "active" : ""}`}
                   onClick={() => setStatusFilter("pending")}
                 >
-                  PENDING
+                  CHỜ XỬ LÝ
                 </button>
 
                 <button
                   className={`status-tab ${statusFilter === "in_progress" ? "active" : ""}`}
                   onClick={() => setStatusFilter("in_progress")}
                 >
-                  IN_PROGRESS
+                  ĐANG XỬ LÝ
                 </button>
 
                 <button
                   className={`status-tab ${statusFilter === "completed" ? "active" : ""}`}
                   onClick={() => setStatusFilter("completed")}
                 >
-                  COMPLETED
+                  HOÀN THÀNH
                 </button>
               </div>
             </div>
 
             <div className="filter-group">
-              <span className="filter-label">Type of request</span>
+              <span className="filter-label">Loại yêu cầu</span>
+
               <div className="type-tabs">
                 <button
                   className={`type-tab ${typeFilter === "all" ? "active" : ""}`}
                   onClick={() => setTypeFilter("all")}
                 >
-                  All
+                  Tất cả
                 </button>
 
                 <button
-                  className={`type-tab emergency ${typeFilter === "emergency" ? "active" : ""}`}
+                  className={`type-tab emergency ${
+                    typeFilter === "emergency" ? "active" : ""
+                  }`}
                   onClick={() => setTypeFilter("emergency")}
                 >
-                  🚨 Emergency
+                  🚨 Khẩn cấp
                 </button>
 
                 <button
-                  className={`type-tab supply ${typeFilter === "supply" ? "active" : ""}`}
+                  className={`type-tab supply ${
+                    typeFilter === "supply" ? "active" : ""
+                  }`}
                   onClick={() => setTypeFilter("supply")}
                 >
-                  📦 Supply
+                  📦 Nhu yếu phẩm
                 </button>
               </div>
             </div>
@@ -1040,7 +1056,7 @@ const Dashboard = () => {
           <div className="requests-panel">
             <div className="panel-header">
               <div className="list">
-                <h2>📋 List of requirements ({filteredRequests.length})</h2>
+                <h2>📋 Danh sách yêu cầu ({filteredRequests.length})</h2>
                 <span className="last-update">
                   {stats.newRequests > 0 && (
                     <span className="new-indicator">
@@ -1054,12 +1070,12 @@ const Dashboard = () => {
             <div className="requests-list">
               {filteredRequests.length === 0 ? (
                 <div className="no-requests">
-                  <p>No rescue requests found</p>
+                  <p>Không tìm thấy yêu cầu cứu hộ</p>
                   <button
                     className="btn-show-completed"
                     onClick={() => setShowCompleted(true)}
                   >
-                    Show completed requests
+                    Hiển thị yêu cầu đã hoàn thành
                   </button>
                 </div>
               ) : (
@@ -1071,12 +1087,13 @@ const Dashboard = () => {
                   >
                     <div className="request-card-header">
                       <div className="request-id">#{request.requestId}</div>
+
                       <div className={`status-badge ${request.status}`}>
                         {request.status === "pending"
-                          ? "⏳ Waiting for processing"
+                          ? "⏳ Chờ xử lý"
                           : request.status === "in_progress"
-                            ? "🚤 Rescue operation underway."
-                            : "✅ Completed"}
+                            ? "🚤 Đang thực hiện cứu hộ"
+                            : "✅ Hoàn thành"}
                       </div>
                     </div>
 
@@ -1096,31 +1113,52 @@ const Dashboard = () => {
                                   : request.emergencyType === "Landslide"
                                     ? "⛰️"
                                     : "🚨"}
-                        {request.emergencyType}
+
+                        {/* 👉 hiển thị tiếng Việt */}
+                        {request.emergencyType === "People trapped in the water"
+                          ? "Người mắc kẹt trong nước"
+                          : request.emergencyType === "The house was flooded."
+                            ? "Nhà bị ngập"
+                            : request.emergencyType === "Food/water is needed."
+                              ? "Cần thực phẩm / nước uống"
+                              : request.emergencyType === "Medicine is needed."
+                                ? "Cần thuốc men"
+                                : request.emergencyType ===
+                                    "Life jackets/boat needed."
+                                  ? "Cần áo phao / thuyền"
+                                  : request.emergencyType === "Landslide"
+                                    ? "Sạt lở đất"
+                                    : request.emergencyType}
 
                         {request.emergencyCategory === "life_threatening" && (
                           <span className="category-tag critical">
-                            EMERGENCY
+                            KHẨN CẤP
                           </span>
                         )}
+
                         {request.emergencyCategory === "medical" && (
-                          <span className="category-tag medical">MEDICAL</span>
+                          <span className="category-tag medical">Y TẾ</span>
                         )}
+
                         {request.emergencyCategory === "supply" && (
-                          <span className="category-tag supply">SUPPLY</span>
+                          <span className="category-tag supply">
+                            NHU YẾU PHẨM
+                          </span>
                         )}
                       </h4>
 
                       <div className="request-details">
                         <div className="detail-row">
-                          <span className="detail-label">👤 Requester:</span>
+                          <span className="detail-label">
+                            👤 Người yêu cầu:
+                          </span>
                           <span className="detail-value">
                             {request.fullName}
                           </span>
                         </div>
 
                         <div className="detail-row">
-                          <span className="detail-label">📍 Address:</span>
+                          <span className="detail-label">📍 Địa chỉ:</span>
                           <span className="detail-value">
                             {selectedRequest?.id === request.id
                               ? addressMap[request.id] || request.address
@@ -1153,12 +1191,12 @@ const Dashboard = () => {
                         }}
                       >
                         {request.priorityLevel === "Critical"
-                          ? "🚨 SERIOUS"
+                          ? "🚨 NGHIÊM TRỌNG"
                           : request.priorityLevel === "High"
-                            ? "⚠️ HIGH"
+                            ? "⚠️ CAO"
                             : request.priorityLevel === "Medium"
-                              ? "📋 MEDIUM"
-                              : "📄 LOW"}
+                              ? "📋 TRUNG BÌNH"
+                              : "📄 THẤP"}
                       </div>
 
                       <div className="request-time">{request.timestamp}</div>
@@ -1177,7 +1215,7 @@ const Dashboard = () => {
                   }
                   disabled={currentPage === 1}
                 >
-                  ← Previous
+                  ← Trước
                 </button>
 
                 <div className="pagination-pages">
@@ -1202,7 +1240,7 @@ const Dashboard = () => {
                   }
                   disabled={currentPage === totalPages}
                 >
-                  Next →
+                  Tiếp theo →
                 </button>
               </div>
             )}
@@ -1214,17 +1252,17 @@ const Dashboard = () => {
             <div className="map-section">
               <div className="map-wrapper">
                 <div className="panel-header">
-                  <h2>🗺️ Flood Map</h2>
+                  <h2>🗺️ Bản đồ lũ</h2>
 
                   <div className="map-legend">
                     <div className="legend-item">
                       <span className="legend-dot critical"></span>
-                      <span>Emergency</span>
+                      <span>Khẩn cấp</span>
                     </div>
 
                     <div className="legend-item">
                       <span className="legend-dot supply"></span>
-                      <span>Supply</span>
+                      <span>Cứu trợ</span>
                     </div>
                   </div>
                 </div>
@@ -1278,11 +1316,11 @@ const Dashboard = () => {
                             <div className="map-popup">
                               <strong>{request.emergencyType}</strong>
                               <br />
-                              <small>ID: {request.requestId}</small>
+                              <small>Mã: {request.requestId}</small>
                               <br />
-                              <small>People: {request.peopleCount}</small>
+                              <small>Số người: {request.peopleCount}</small>
                               <br />
-                              {request.isNew && <small>🆕 NEW</small>}
+                              {request.isNew && <small>🆕 MỚI</small>}
                             </div>
                           </Popup>
                         </Marker>
@@ -1299,12 +1337,12 @@ const Dashboard = () => {
                       <div className="request-details-card1">
                         <div className="details-header1">
                           <h3>
-                            📋 Request details #{selectedRequest.requestId}
+                            📋 Chi tiết yêu cầu #{selectedRequest.requestId}
                           </h3>
 
                           <div style={{ display: "flex", gap: "10px" }}>
                             {selectedRequest.isNew && (
-                              <span className="new-tag">🆕 NEW</span>
+                              <span className="new-tag">🆕 MỚI</span>
                             )}
 
                             <button
@@ -1318,11 +1356,11 @@ const Dashboard = () => {
 
                         <div className="details-grid1">
                           <div className="detail-group1">
-                            <h4>👤 Information of requester</h4>
+                            <h4>👤 Thông tin người gửi</h4>
 
                             <div className="detail-item1">
                               <span className="detail-label1">
-                                Full name:
+                                Họ tên:
                                 <span className="detail-value1">
                                   {selectedRequest.fullName}
                                 </span>
@@ -1331,7 +1369,7 @@ const Dashboard = () => {
 
                             <div className="detail-item1">
                               <span className="detail-label1">
-                                Phone:
+                                Số điện thoại:
                                 {selectedRequest.phoneNumber ? (
                                   <a
                                     href={`tel:${selectedRequest.phoneNumber}`}
@@ -1340,18 +1378,18 @@ const Dashboard = () => {
                                     {selectedRequest.phoneNumber}
                                   </a>
                                 ) : (
-                                  <span className="detail-value">N/A</span>
+                                  <span className="detail-value">Không có</span>
                                 )}
                               </span>
                             </div>
                           </div>
 
                           <div className="detail-group1">
-                            <h4>🌊 Flood Status</h4>
+                            <h4>🌊 Tình trạng lũ</h4>
 
                             <div className="detail-item1">
                               <span className="detail-label1">
-                                Emergency type:
+                                Loại khẩn cấp:
                                 <span className="detail-value badge">
                                   {selectedRequest.emergencyType}
                                 </span>
@@ -1360,11 +1398,11 @@ const Dashboard = () => {
                           </div>
 
                           <div className="detail-group1 full-width1">
-                            <h4>📍 Location</h4>
+                            <h4>📍 Vị trí</h4>
 
                             <div className="detail-item1">
                               <span className="detail-label1">
-                                Address:
+                                Địa chỉ:
                                 <span className="detail-value">
                                   {addressMap[selectedRequest.id] ||
                                     selectedRequest.address}
@@ -1377,7 +1415,7 @@ const Dashboard = () => {
                         <div className="action-buttons1">
                           <div className="dispatch-box">
                             <div className="dispatch-header">
-                              <h4>🚑 Dispatch rescue team</h4>
+                              <h4>🚑 Điều phối đội cứu hộ</h4>
                             </div>
 
                             <div className="dispatch-form">
@@ -1395,10 +1433,10 @@ const Dashboard = () => {
                               >
                                 <option value="">
                                   {teamsLoading
-                                    ? "Loading teams..."
+                                    ? "Đang tải đội..."
                                     : availableTeams.length === 0
-                                      ? "No available rescue teams"
-                                      : "Select rescue team"}
+                                      ? "Không có đội khả dụng"
+                                      : "Chọn đội cứu hộ"}
                                 </option>
 
                                 {teams.map((team) => (
@@ -1425,19 +1463,19 @@ const Dashboard = () => {
                                 }
                               >
                                 {dispatching
-                                  ? "Dispatching..."
-                                  : "🚀 Dispatch Mission"}
+                                  ? "Đang điều phối..."
+                                  : "🚀 Điều phối nhiệm vụ"}
                               </button>
                             </div>
 
                             {selectedRequest.assignedTeamName && (
                               <div className="dispatch-info">
-                                <strong>Assigned team:</strong>{" "}
+                                <strong>Đội đã phân công:</strong>{" "}
                                 {selectedRequest.assignedTeamName}
                                 {selectedRequest.rescueMissionId && (
                                   <span>
                                     {" "}
-                                    | Mission ID: #
+                                    | Mã nhiệm vụ: #
                                     {selectedRequest.rescueMissionId}
                                   </span>
                                 )}
@@ -1459,17 +1497,17 @@ const Dashboard = () => {
 
                           <div className="status-info1">
                             <span className="status-label1">
-                              Current status:
+                              Trạng thái hiện tại:
                             </span>
 
                             <span
                               className={`status-badge ${selectedRequest.status}`}
                             >
                               {selectedRequest.status === "pending"
-                                ? "⏳ Pending"
+                                ? "⏳ Đang chờ"
                                 : selectedRequest.status === "in_progress"
-                                  ? "🚤 In progress"
-                                  : "✅ Completed"}
+                                  ? "🚤 Đang xử lý"
+                                  : "✅ Hoàn thành"}
                             </span>
                           </div>
 
@@ -1483,7 +1521,7 @@ const Dashboard = () => {
                                 )
                               }
                             >
-                              🗺️ View map
+                              🗺️ Xem bản đồ
                             </button>
 
                             <button
@@ -1494,7 +1532,7 @@ const Dashboard = () => {
                                 )
                               }
                             >
-                              📞 Call
+                              📞 Gọi
                             </button>
                           </div>
                         </div>
@@ -1509,16 +1547,18 @@ const Dashboard = () => {
 
         <div className="incident-section">
           <div className="panel-header">
-            <h2>⚠️ Pending Incident Reports</h2>
+            <h2>⚠️ Báo cáo sự cố đang chờ xử lý</h2>
           </div>
 
           {incidentLoading && (
-            <p className="incident-state">Loading incidents...</p>
+            <p className="incident-state">Đang tải báo cáo sự cố...</p>
           )}
           {incidentError && <p className="incident-error">{incidentError}</p>}
 
           {!incidentLoading && pendingIncidents.length === 0 && (
-            <p className="incident-state">No pending incidents.</p>
+            <p className="incident-state">
+              Không có báo cáo sự cố nào đang chờ xử lý.
+            </p>
           )}
 
           <div className="incident-list">
@@ -1532,7 +1572,7 @@ const Dashboard = () => {
                   <div className="incident-id">
                     #{incident.incidentReportID}
                   </div>
-                  <div className="incident-status pending">Pending</div>
+                  <div className="incident-status pending">Đang chờ</div>
                 </div>
 
                 <div className="incident-card-body">
@@ -1540,28 +1580,28 @@ const Dashboard = () => {
 
                   <div className="incident-details">
                     <div className="incident-row">
-                      <span className="incident-label">Team:</span>
+                      <span className="incident-label">Đội cứu hộ:</span>
                       <span className="incident-value">
                         {incident.teamName}
                       </span>
                     </div>
 
                     <div className="incident-row">
-                      <span className="incident-label">Reporter:</span>
+                      <span className="incident-label">Người báo cáo:</span>
                       <span className="incident-value">
                         {incident.reporterName}
                       </span>
                     </div>
 
                     <div className="incident-row">
-                      <span className="incident-label">Description:</span>
+                      <span className="incident-label">Mô tả:</span>
                       <span className="incident-value">
                         {incident.description}
                       </span>
                     </div>
 
                     <div className="incident-row">
-                      <span className="incident-label">Created:</span>
+                      <span className="incident-label">Thời gian tạo:</span>
                       <span className="incident-value">
                         {incident.createdTime
                           ? new Date(incident.createdTime).toLocaleString()
@@ -1577,46 +1617,46 @@ const Dashboard = () => {
         {selectedIncident && (
           <div className="incident-section">
             <div className="panel-header">
-              <h2>🛠 Resolve Incident</h2>
+              <h2>🛠 Xử lý sự cố</h2>
             </div>
 
             <div className="request-details-card">
               <div className="details-grid">
                 <div className="detail-group full-width">
-                  <h4>Title</h4>
+                  <h4>Tiêu đề</h4>
                   <div className="description-box">
                     {selectedIncident.title}
                   </div>
                 </div>
 
                 <div className="detail-group full-width">
-                  <h4>Description</h4>
+                  <h4>Mô tả</h4>
                   <div className="description-box">
                     {selectedIncident.description}
                   </div>
                 </div>
 
                 <div className="detail-group">
-                  <h4>Team</h4>
+                  <h4>Đội cứu hộ</h4>
                   <div className="special-needs">
                     {selectedIncident.teamName}
                   </div>
                 </div>
 
                 <div className="detail-group">
-                  <h4>Reporter</h4>
+                  <h4>Người báo cáo</h4>
                   <div className="special-needs">
                     {selectedIncident.reporterName}
                   </div>
                 </div>
 
                 <div className="detail-group full-width">
-                  <h4>Coordinator Note</h4>
+                  <h4>Ghi chú của điều phối viên</h4>
                   <textarea
                     value={resolveNote}
                     onChange={(e) => setResolveNote(e.target.value)}
                     rows={4}
-                    placeholder="Enter coordinator note..."
+                    placeholder="Nhập ghi chú của điều phối viên..."
                     style={{
                       width: "100%",
                       padding: "12px",
@@ -1634,7 +1674,7 @@ const Dashboard = () => {
                   }
                   disabled={resolvingIncident || !resolveNote.trim()}
                 >
-                  {resolvingIncident ? "Resolving..." : "✅ Resolve Incident"}
+                  {resolvingIncident ? "Đang xử lý..." : "✅ Xử lý sự cố"}
                 </button>
               </div>
             </div>
@@ -1642,22 +1682,22 @@ const Dashboard = () => {
         )}
         <div className="incident-section">
           <div className="panel-header">
-            <h2>📜 Incident History</h2>
+            <h2>📜 Lịch sử sự cố</h2>
           </div>
 
           {incidentHistory.length === 0 ? (
-            <p>No resolved incidents yet.</p>
+            <p>Chưa có sự cố nào được xử lý.</p>
           ) : (
             <div className="history-tablewrap">
               <table className="history-table">
                 <thead>
                   <tr>
-                    <th>Title</th>
-                    <th>Team</th>
-                    <th>Reporter</th>
-                    <th>Resolver</th>
-                    <th>Created</th>
-                    <th>Resolved</th>
+                    <th>Tiêu đề</th>
+                    <th>Đội cứu hộ</th>
+                    <th>Người báo cáo</th>
+                    <th>Người xử lý</th>
+                    <th>Thời gian tạo</th>
+                    <th>Thời gian xử lý</th>
                   </tr>
                 </thead>
                 <tbody>
