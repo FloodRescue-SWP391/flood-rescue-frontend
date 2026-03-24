@@ -15,37 +15,37 @@ export default function ManagerSidebar() {
     <div className="manager-sidebar">
 
       <h5 className="sidebar-title">
-        Manager
+        Người quản lý
       </h5>
 
       <nav>
 
         <NavLink to="/manager" end>
-          Dashboard
+          Trang tổng quan
         </NavLink>
 
         <NavLink to="/manager/warehouse">
-          Warehouse
+          Kho
         </NavLink>
 
         <NavLink to="/manager/inventory">
-          Inventory
+          Hàng tồn kho
         </NavLink>
 
         <NavLink to="/manager/items">
-          Relief Items
+          Vật phẩm cứu trợ
         </NavLink>
 
         <NavLink to="/manager/orders">
-          Prepare Orders
+          Chuẩn bị đơn đặt hàng
         </NavLink>
 
         <NavLink to="/manager/report">
-          Usage Report
+          Báo cáo sử dụng
         </NavLink>
         {/* Logout Button */}
         <button className="logout-btn" onClick={handleLogout}>
-          Logout
+          Đăng xuất
         </button>
       </nav>
 
