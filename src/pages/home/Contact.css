@@ -2,7 +2,6 @@
 .contact-bg {
   min-height: 100vh;
   background: linear-gradient(180deg, #e1f4f8 0%, #fffafa 100%);
-  padding: 30px 0;
 }
 
 /* ===== FEATURE BOX ===== */
@@ -109,7 +108,7 @@
 /* ===== SPACING ===== */
 hr {
   border: none;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid #95aec7;
   margin: 24px 0;
 }
 
