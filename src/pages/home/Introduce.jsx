@@ -16,7 +16,11 @@ const Introduce = () => {
   const navigate = useNavigate();
 
   const teamMembers = [
-    { img: beai, name: "Đặng Hoàng Trúc Vy", role: "Frontend - UI/UX Lead" },
+    {
+      img: beai,
+      name: "Đặng Hoàng Trúc Vy",
+      role: "Frontend - UI/UX Lead",
+    },
     {
       img: minh,
       name: "Trương Trần Anh Minh",
@@ -26,105 +30,106 @@ const Introduce = () => {
     {
       img: quochuy,
       name: "Chung Quốc Huy",
-      role: "Backend - All",
+      role: "Backend - DevOps Lead",
     },
     { img: hoanghuy, name: "Lê Hoàng Huy", role: "Backend - Bổ cam" },
   ];
 
   return (
     <>
-    <Header />
-    <div className="intro-bg">
-      
-      <Container fluid className="py-4">
-        <Card className="intro-card shadow-sm">
-          <div className="top-bar">
-            <Button
-              variant="light"
-              className="back-button"
-              onClick={() => navigate("/")}
-            >
-              ← Back
-            </Button>
-          </div>
-
-          <div className="intro-content">
-            <div className="text-center intro-header">
-              <h2 className="intro-title">Introducing the RESCUE System</h2>
-              <p className="intro-subtitle">
-                Emergency rescue and support coordination system
-              </p>
+      <Header />
+      <div className="intro-bg">
+        <Container fluid className="py-4">
+          <Card className="intro-card shadow-sm">
+            <div className="top-bar">
+              <Button
+                variant="light"
+                className="back-button"
+                onClick={() => navigate("/")}
+              >
+                ← Quay lại
+              </Button>
             </div>
 
-            <hr />
-
-            <section className="content-section">
-              <h4>Who are we?</h4>
-              <p>
-                <strong style={{ color: "black" }}>RESCUE</strong> is an
-                emergency rescue coordination support system, helping to connect
-                people with rescue teams quickly and effectively.
-              </p>
-            </section>
-
-            <hr />
-
-            <section className="content-section">
-              <h4>Mission</h4>
-              <p>Providing fast, accurate, and effective rescue solutions.</p>
-            </section>
-
-            <hr />
-
-            <section className="content-section">
-              <h4>Main Features</h4>
-              <div className="feature-grid">
-                <div className="feature-item">
-                  <div className="feature-icon">📨</div>
-                  <p>Send a rescue request quickly</p>
-                </div>
-
-                <div className="feature-item">
-                  <div className="feature-icon">📍</div>
-                  <p>Locate the incident</p>
-                </div>
-
-                <div className="feature-item">
-                  <div className="feature-icon">🚑</div>
-                  <p>Coordinate rescue teams</p>
-                </div>
-
-                <div className="feature-item">
-                  <div className="feature-icon">📊</div>
-                  <p>Monitor rescue status</p>
-                </div>
+            <div className="intro-content">
+              <div className="text-center intro-header">
+                <h2 className="intro-title">Giới thiệu hệ thống RESCUE</h2>
+                <p className="intro-subtitle">
+                  Hệ thống điều phối cứu hộ và hỗ trợ khẩn cấp
+                </p>
               </div>
-            </section>
 
-            <hr />
+              <hr />
 
-            <section className="team-section text-center">
-              <h3 className="team-title">Development Team</h3>
+              <section className="content-section">
+                <h4>Chúng tôi là ai?</h4>
+                <p>
+                  <strong style={{ color: "black" }}>RESCUE</strong> là một hệ
+                  thống hỗ trợ điều phối cứu hộ khẩn cấp, giúp kết nối người dân
+                  với các đội cứu hộ một cách nhanh chóng và hiệu quả.
+                </p>
+              </section>
 
-              <div className="team-row">
-                {teamMembers.map((member, index) => (
-                  <div className="team-item" key={index}>
-                    <img
-                      src={member.img}
-                      alt={member.name}
-                      className="team-img"
-                    />
-                    <h5>{member.name}</h5>
-                    <p>{member.role}</p>
+              <hr />
+
+              <section className="content-section">
+                <h4>Sứ mệnh</h4>
+                <p>
+                  Cung cấp giải pháp cứu hộ nhanh chóng, chính xác và hiệu quả.
+                </p>
+              </section>
+
+              <hr />
+
+              <section className="content-section">
+                <h4>Tính năng chính</h4>
+                <div className="feature-grid">
+                  <div className="feature-item">
+                    <div className="feature-icon">📨</div>
+                    <p>Gửi yêu cầu cứu hộ nhanh chóng</p>
                   </div>
-                ))}
-              </div>
-            </section>
-          </div>
-        </Card>
-      </Container>
-      <Footer />
-    </div>
+
+                  <div className="feature-item">
+                    <div className="feature-icon">📍</div>
+                    <p>Định vị vị trí sự cố</p>
+                  </div>
+
+                  <div className="feature-item">
+                    <div className="feature-icon">🚑</div>
+                    <p>Điều phối đội cứu hộ</p>
+                  </div>
+
+                  <div className="feature-item">
+                    <div className="feature-icon">📊</div>
+                    <p>Theo dõi trạng thái cứu hộ</p>
+                  </div>
+                </div>
+              </section>
+
+              <hr />
+
+              <section className="team-section text-center">
+                <h3 className="team-title">Đội ngũ phát triển</h3>
+
+                <div className="team-row">
+                  {teamMembers.map((member, index) => (
+                    <div className="team-item" key={index}>
+                      <img
+                        src={member.img}
+                        alt={member.name}
+                        className="team-img"
+                      />
+                      <h5>{member.name}</h5>
+                      <p>{member.role}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </Card>
+        </Container>
+        <Footer />
+      </div>
     </>
   );
 };

@@ -19,23 +19,23 @@ const HomePage = () => {
             className="back-button"
             onClick={() => navigate("/")}
           >
-            ← Back
+            ← Quay lại
           </Button>
         </div>
 
         <div className="text-center hero-section mb-5">
           <h1 className="hero-title">
-            When emergencies strike, help arrives.
+            Khi khẩn cấp xảy ra, sự trợ giúp sẽ đến.
           </h1>
           <p className="hero-subtitle mx-auto">
-            Smart system connects people, rescue teams and coordinators in
-            emergency situations
+            Hệ thống thông minh kết nối người dân, đội cứu hộ và điều phối viên
+            trong các tình huống khẩn cấp
           </p>
         </div>
 
         <section className="mb-5">
           <h2 className="section-title text-center mb-4">
-            Access the system by role
+            Truy cập hệ thống theo vai trò
           </h2>
 
           <Row className="g-4">
@@ -43,12 +43,14 @@ const HomePage = () => {
               <Card className="h-100 shadow-sm border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">🎯</div>
-                  <Card.Title className="role-card-title">Coordinator</Card.Title>
+                  <Card.Title className="role-card-title">
+                    Điều phối viên
+                  </Card.Title>
                   <Card.Text className="role-card-text flex-grow-1">
-                    Assign rescue teams and manage emergency situations
+                    Phân công đội cứu hộ và quản lý các tình huống khẩn cấp
                   </Card.Text>
                   <Link to="/login?role=Coordinator" className="role-login-btn">
-                    Login →
+                    Đăng nhập →
                   </Link>
                 </Card.Body>
               </Card>
@@ -58,12 +60,14 @@ const HomePage = () => {
               <Card className="h-100 shadow-sm border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">🚑</div>
-                  <Card.Title className="role-card-title">Rescue Team</Card.Title>
+                  <Card.Title className="role-card-title">
+                    Đội cứu hộ
+                  </Card.Title>
                   <Card.Text className="role-card-text flex-grow-1">
-                    Receive tasks, update rescue progress
+                    Nhận nhiệm vụ, cập nhật tiến độ cứu hộ
                   </Card.Text>
                   <Link to="/login?role=RescueTeam" className="role-login-btn">
-                    Login →
+                    Đăng nhập →
                   </Link>
                 </Card.Body>
               </Card>
@@ -73,12 +77,12 @@ const HomePage = () => {
               <Card className="h-100 shadow-sm border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">📦</div>
-                  <Card.Title className="role-card-title">Manager</Card.Title>
+                  <Card.Title className="role-card-title">Quản lý</Card.Title>
                   <Card.Text className="role-card-text flex-grow-1">
-                    Management of rescue equipment and supplies
+                    Quản lý trang thiết bị và hàng cứu trợ
                   </Card.Text>
                   <Link to="/login?role=Manager" className="role-login-btn">
-                    Login →
+                    Đăng nhập →
                   </Link>
                 </Card.Body>
               </Card>
@@ -88,15 +92,17 @@ const HomePage = () => {
               <Card className="h-100 shadow-sm border-0 text-center role-card">
                 <Card.Body className="d-flex flex-column p-4">
                   <div className="role-icon mb-3">⚙️</div>
-                  <Card.Title className="role-card-title">Admin</Card.Title>
+                  <Card.Title className="role-card-title">
+                    Quản trị viên
+                  </Card.Title>
                   <Card.Text className="role-card-text flex-grow-1">
-                    Manage systems, users, and settings
+                    Quản lý hệ thống, người dùng và cấu hình
                   </Card.Text>
                   <Link
                     to="/login?role=Administrator"
                     className="role-login-btn"
                   >
-                    Login →
+                    Đăng nhập →
                   </Link>
                 </Card.Body>
               </Card>
@@ -105,9 +111,7 @@ const HomePage = () => {
         </section>
 
         <section className="mb-5">
-          <h2 className="section-title text-center mb-4">
-            Outstanding features
-          </h2>
+          <h2 className="section-title text-center mb-4">Tính năng nổi bật</h2>
 
           <Row className="g-4">
             <Col md={6} lg={3}>
@@ -115,10 +119,10 @@ const HomePage = () => {
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">📍</div>
                   <Card.Title className="feature-card-title">
-                    Accurate positioning
+                    Định vị chính xác
                   </Card.Title>
                   <Card.Text className="feature-card-text">
-                    Locate the problem with high accuracy
+                    Xác định vị trí sự cố với độ chính xác cao
                   </Card.Text>
                 </Card.Body>
               </Card>
@@ -129,10 +133,10 @@ const HomePage = () => {
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">⚡</div>
                   <Card.Title className="feature-card-title">
-                    Quick response
+                    Phản hồi nhanh
                   </Card.Title>
                   <Card.Text className="feature-card-text">
-                    Receive and process information in 5 minutes
+                    Tiếp nhận và xử lý thông tin trong vòng 5 phút
                   </Card.Text>
                 </Card.Body>
               </Card>
@@ -143,10 +147,10 @@ const HomePage = () => {
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">📱</div>
                   <Card.Title className="feature-card-title">
-                    Cross-platform
+                    Đa nền tảng
                   </Card.Title>
                   <Card.Text className="feature-card-text">
-                    Access on any mobile device and computer
+                    Truy cập trên mọi thiết bị di động và máy tính
                   </Card.Text>
                 </Card.Body>
               </Card>
@@ -157,10 +161,10 @@ const HomePage = () => {
                 <Card.Body className="p-4">
                   <div className="feature-icon mb-3">🔄</div>
                   <Card.Title className="feature-card-title">
-                    Real-time updates
+                    Cập nhật thời gian thực
                   </Card.Title>
                   <Card.Text className="feature-card-text">
-                    Monitor rescue progress in real time
+                    Theo dõi tiến độ cứu hộ theo thời gian thực
                   </Card.Text>
                 </Card.Body>
               </Card>
