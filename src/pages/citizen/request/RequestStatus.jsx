@@ -351,7 +351,7 @@ const RequestStatus = () => {
     <>
       <Header />
 
-      <button className="back-btn1" onClick={() => navigate("/")}>
+      <button className="back-button1" onClick={() => navigate("/")}>
         ⬅ Quay lại
       </button>
 
