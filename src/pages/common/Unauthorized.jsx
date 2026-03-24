@@ -13,7 +13,7 @@ export default function Unauthorized() {
         <div className="unauth-card">
           <div className="unauth-icon">🚫</div>
 
-          <h2>Access Denied</h2>
+          <h2>Truy cập bị từ chối</h2>
           <p>
             Bạn không có quyền truy cập vào trang này.
             Vui lòng đăng nhập đúng tài khoản hoặc liên hệ quản trị viên.
