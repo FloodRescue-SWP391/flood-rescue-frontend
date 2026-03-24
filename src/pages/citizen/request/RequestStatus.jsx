@@ -5,6 +5,7 @@ import "./RequestStatus.css";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import "../../../pages/home/Introduce.css";
 import signalRService from "../../../services/signalrService";
+import Footer from "../../../components/common/Footer";
 
 const RequestStatus = () => {
   const [request, setRequest] = useState(null);
@@ -56,8 +57,7 @@ const RequestStatus = () => {
     const initSignalR = async () => {
       // await signalRService.startConnection();
 
-
-            try {
+      try {
         await signalRService.startConnection();
         // Event mới: mission hoàn thành.
         await signalRService.on("MissionCompleted", handleMissionUpdate);
@@ -71,10 +71,16 @@ const RequestStatus = () => {
         );
 
         // Team accepted
-        signalRService.on("ReceiveTeamAcceptedNotification", handleMissionUpdate);
+        signalRService.on(
+          "ReceiveTeamAcceptedNotification",
+          handleMissionUpdate,
+        );
 
         // Team rejected
-        signalRService.on("ReceiveTeamRejectedNotification", handleMissionUpdate);
+        signalRService.on(
+          "ReceiveTeamRejectedNotification",
+          handleMissionUpdate,
+        );
       } catch (err) {
         console.error("Citizen SignalR init error:", err);
       }
@@ -137,7 +143,7 @@ const RequestStatus = () => {
 
   const loadRequestByShortCode = async (code) => {
     if (!code?.trim()) {
-      setLookupError("Please enter a ShortCode.");
+      setLookupError("Vui lòng nhập mã tra cứu.");
       return;
     }
 
@@ -201,7 +207,7 @@ const RequestStatus = () => {
       console.error("Error loading request:", error);
       setLookupError(
         error?.message ||
-          "Failed to load request. Please check the ShortCode and try again.",
+          "Không thể tải yêu cầu. Vui lòng kiểm tra mã tra cứu và thử lại.",
       );
       setRequest(null);
       setRescueTeam(null);
@@ -239,7 +245,7 @@ const RequestStatus = () => {
 
     const timer = setTimeout(() => {
       const confirmFill = window.confirm(
-        "A ShortCode was generated for your rescue request.\n\nDo you want to auto-fill it in the search box?",
+        "Một mã tra cứu đã được tạo cho yêu cầu cứu hộ của bạn.\n\nBạn có muốn tự động điền mã này vào ô tìm kiếm không?",
       );
 
       if (confirmFill) {
@@ -279,10 +285,6 @@ const RequestStatus = () => {
     );
   };
 
-  const handleUpdateLocation = () => {
-    alert("Location update feature would open here");
-  };
-
   const getStatusColor = (status) => {
     switch ((status || "").toLowerCase()) {
       case "pending":
@@ -304,8 +306,8 @@ const RequestStatus = () => {
         <Header />
         <div className="request-status-container">
           <div className="lookup-card">
-            <h2>Track Your Rescue Request</h2>
-            <p>Please enter your ShortCode to view the request status.</p>
+            <h2>Tra cứu yêu cầu cứu hộ</h2>
+            <p>Vui lòng nhập mã tra cứu để xem trạng thái yêu cầu.</p>
 
             <div className="lookup-form">
               <input
@@ -313,7 +315,7 @@ const RequestStatus = () => {
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                 onKeyDown={handleCodeKeyDown}
-                placeholder="Enter ShortCode (e.g. ABC123)"
+                placeholder="Nhập mã tra cứu (VD: ABC123)"
                 className="lookup-input"
               />
               <button
@@ -322,7 +324,7 @@ const RequestStatus = () => {
                 onClick={handleSearchShortCode}
                 disabled={isSearching}
               >
-                {isSearching ? "Searching..." : "Track Request"}
+                {isSearching ? "Đang tìm..." : "Tra cứu"}
               </button>
             </div>
 
@@ -350,20 +352,20 @@ const RequestStatus = () => {
       <Header />
 
       <button className="back-btn1" onClick={() => navigate("/")}>
-        ⬅ Back
+        ⬅ Quay lại
       </button>
 
       <div className="request-status-container">
         {/* Page Header */}
         <div className="status-header">
           <div className="header-content">
-            <h1>Emergency Request Status</h1>
+            <h1>Trạng thái yêu cầu cứu hộ</h1>
             <p className="request-id">
-              ShortCode: <span>{request.shortCode}</span>
+              Mã tra cứu: <span>{request.shortCode}</span>
             </p>
             <p className="timestamp">
-              Submitted:{" "}
-              {new Date(request.timestamp).toLocaleString("en-US", {
+              Thời gian gửi:{" "}
+              {new Date(request.timestamp).toLocaleString("vi-VN", {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
@@ -373,7 +375,9 @@ const RequestStatus = () => {
 
         {/* Request Status */}
         <div className="status-timeline">
-          <h2 className="section-title status-title-center">Request Status</h2>
+          <h2 className="section-title status-title-center">
+            Trạng thái yêu cầu
+          </h2>
 
           <div className="modern-timeline">
             {statusFlow.map((step, index) => {
@@ -408,7 +412,7 @@ const RequestStatus = () => {
                     </h4>
 
                     {isCurrent && (
-                      <p className="modern-current-text">Current status</p>
+                      <p className="modern-current-text">Trạng thái hiện tại</p>
                     )}
                   </div>
                 </div>
@@ -421,37 +425,37 @@ const RequestStatus = () => {
         {rescueTeam && (
           <div className="rescue-team-card">
             <div className="team-header">
-              <h2 className="section-title">Assigned Rescue Team</h2>
+              <h2 className="section-title">Đội cứu hộ được phân công</h2>
               <button className="contact-btn" onClick={handleContactTeam}>
-                📞 Contact Team
+                📞 Liên hệ đội
               </button>
             </div>
 
             <div className="team-info">
               <div className="team-overview">
                 <div className="team-name-card">
-                  <p className="team-label">Team Name</p>
-                  <h3>{rescueTeam.name || "Not assigned yet"}</h3>
+                  <p className="team-label">Tên đội</p>
+                  <h3>{rescueTeam.name || "Chưa được phân công"}</h3>
 
                   {rescueTeam.leader ? (
                     <div className="team-leader-box">
                       <p>
-                        <strong>Leader:</strong>{" "}
-                        {rescueTeam.leader.fullName || "N/A"}
+                        <strong>Trưởng nhóm:</strong>{" "}
+                        {rescueTeam.leader.fullName || "Không có"}
                       </p>
                       <p>
-                        <strong>Phone:</strong>{" "}
-                        {rescueTeam.leader.phone || "N/A"}
+                        <strong>Số điện thoại:</strong>{" "}
+                        {rescueTeam.leader.phone || "Không có"}
                       </p>
                     </div>
                   ) : (
-                    <p className="empty-text">No leader information yet.</p>
+                    <p className="empty-text">Chưa có thông tin trưởng nhóm.</p>
                   )}
                 </div>
               </div>
 
               <div className="team-members">
-                <h4>Team Members</h4>
+                <h4>Thành viên đội</h4>
 
                 {rescueTeam.members?.length > 0 ? (
                   <div className="members-grid">
@@ -460,19 +464,20 @@ const RequestStatus = () => {
                         <div className="member-badge">
                           {member.isLeader ? "👨‍🚒" : "👤"}
                         </div>
+
                         <div className="member-info">
-                          <h5>{member.fullName || "Unnamed member"}</h5>
+                          <h5>{member.fullName || "Chưa có tên"}</h5>
                           <p>
-                            {member.isLeader ? "Team Leader" : "Team Member"}
+                            {member.isLeader ? "Trưởng nhóm" : "Thành viên"}
                           </p>
-                          <p>{member.phone || "No phone"}</p>
+                          <p>{member.phone || "Chưa có số điện thoại"}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="empty-members">
-                    <p>No team members assigned yet.</p>
+                    <p>Chưa có thành viên nào được phân công.</p>
                   </div>
                 )}
               </div>
@@ -483,59 +488,64 @@ const RequestStatus = () => {
         {/* Request Details */}
 
         <div className="request-details-card">
-          <h2 className="details-title">Request Details</h2>
+          <h2 className="details-title">Chi tiết yêu cầu</h2>
 
           <div className="details-grid">
             <div className="detail-item">
-              <span className="detail-label">Full Name</span>
-              <span className="detail-value">{request.fullName || "N/A"}</span>
-            </div>
-
-            <div className="detail-item">
-              <span className="detail-label">Phone Number</span>
+              <span className="detail-label">Họ và tên</span>
               <span className="detail-value">
-                {request.phoneNumber || "N/A"}
+                {request.fullName || "Không có"}
               </span>
             </div>
 
             <div className="detail-item">
-              <span className="detail-label">People Count</span>
+              <span className="detail-label">Số điện thoại</span>
               <span className="detail-value">
-                {request.peopleCount ?? "N/A"}
+                {request.phoneNumber || "Không có"}
               </span>
             </div>
 
             <div className="detail-item">
-              <span className="detail-label">Short Code</span>
-              <span className="detail-value">{request.shortCode || "N/A"}</span>
+              <span className="detail-label">Số người</span>
+              <span className="detail-value">
+                {request.peopleCount ?? "Không có"}
+              </span>
             </div>
 
             <div className="detail-item">
-              <span className="detail-label">Emergency Type</span>
+              <span className="detail-label">Mã tra cứu</span>
+              <span className="detail-value">
+                {request.shortCode || "Không có"}
+              </span>
+            </div>
+
+            <div className="detail-item">
+              <span className="detail-label">Loại khẩn cấp</span>
               <span className="detail-value">
                 <span className="type-tag">
-                  {request.emergencyType || "N/A"}
+                  {request.emergencyType || "Không có"}
                 </span>
               </span>
             </div>
 
             <div className="detail-item">
-              <span className="detail-label">Status</span>
+              <span className="detail-label">Trạng thái</span>
               <span
                 className="detail-value status-text"
-                style={{ color: getStatusColor(request.status) }} // thêm màu theo status
+                style={{ color: getStatusColor(request.status) }}
               >
-                {request.status || "N/A"}
+                {request.status || "Không có"}
               </span>
             </div>
+
             {/* MISSION STATUS */}
             <div className="detail-item">
-              <span className="detail-label">Mission Status</span>
+              <span className="detail-label">Trạng thái nhiệm vụ</span>
               <span
                 className="detail-value"
-                style={{ color: getStatusColor(request.missionStatus) }} // thêm màu
+                style={{ color: getStatusColor(request.missionStatus) }}
               >
-                {request.missionStatus || "Not assigned yet"}
+                {request.missionStatus || "Chưa được phân công"}
               </span>
             </div>
           </div>
@@ -543,64 +553,48 @@ const RequestStatus = () => {
 
         {/* Safety Tips */}
         <div className="safety-tips">
-          <h3 className="tips-title">⚠️ Safety Tips While Waiting</h3>
+          <h3 className="tips-title">⚠️ Lưu ý an toàn khi chờ cứu hộ</h3>
+
           <div className="tips-grid">
             <div className="tip-card">
               <div className="tip-icon">🏠</div>
-              <h4>Stay in a Safe Location</h4>
+              <h4>Ở nơi an toàn</h4>
               <p>
-                Remain in a secure area away from danger until help arrives.
+                Hãy ở trong khu vực an toàn, tránh xa nguy hiểm cho đến khi được
+                hỗ trợ.
               </p>
             </div>
+
             <div className="tip-card">
               <div className="tip-icon">📱</div>
-              <h4>Keep Phone Accessible</h4>
-              <p>Ensure your phone is charged and within reach for updates.</p>
-            </div>
-            <div className="tip-card">
-              <div className="tip-icon">🔦</div>
-              <h4>Signal Your Location</h4>
+              <h4>Giữ điện thoại bên mình</h4>
               <p>
-                Use lights, sounds, or visible markers to help rescuers find
-                you.
+                Đảm bảo điện thoại luôn đủ pin và ở gần để nhận thông tin cập
+                nhật.
               </p>
             </div>
+
+            <div className="tip-card">
+              <div className="tip-icon">🔦</div>
+              <h4>Phát tín hiệu vị trí</h4>
+              <p>
+                Sử dụng đèn, âm thanh hoặc dấu hiệu dễ thấy để đội cứu hộ xác
+                định vị trí của bạn.
+              </p>
+            </div>
+
             <div className="tip-card">
               <div className="tip-icon">👥</div>
-              <h4>Stay With Others</h4>
+              <h4>Ở cùng mọi người</h4>
               <p>
-                If possible, remain with other people for safety and support.
+                Nếu có thể, hãy ở cùng những người khác để đảm bảo an toàn và hỗ
+                trợ lẫn nhau.
               </p>
             </div>
           </div>
         </div>
 
-        <footer className="homepage-footer">
-          <div className="footer-content">
-            <div className="footer-section">
-              <h3>Emergency Rescue System</h3>
-              <p>
-                Smart rescue connection,
-                <br />
-                fast and effective
-              </p>
-            </div>
-            <div className="footer-section">
-              <h3>Contact</h3>
-              <p>Email: rescue@gmail.com</p>
-              <p>Hotline: 0965 782 358</p>
-            </div>
-            <div className="footer-section">
-              <h3>Support</h3>
-              <Link to="/guide">Instructions for use</Link>
-              <Link to="/faq">Frequently asked questions</Link>
-              <Link to="/contact">Contact support</Link>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            © 2026 Rescue System. All rights reserved.
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );

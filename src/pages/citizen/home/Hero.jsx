@@ -57,23 +57,22 @@ const Hero = () => {
         <div className="hero-container">
           <div className="hero-content">
             <h1 className="hero-headline">
-              <span className="line1">RESCUE</span>
-              <span className="line2">CAN'T</span>
-              <span className="line3">WAIT!</span>
+              <span className="line1">CỨU HỘ</span>
+              <span className="line2">KHÔNG</span>
+              <span className="line3">THỂ CHỜ!</span>
             </h1>
 
             <p className="hero-network">
-              24/7 emergency rescue network. <br></br>
-              Instantly connecting you with the nearest rescue team!
+              Mạng lưới cứu hộ khẩn cấp 24/7. <br></br>
+              Kết nối bạn ngay lập tức với đội cứu hộ gần nhất!
             </p>
 
-            {/* onClick={handleRequestRescue}  để thay dòng onClick={() => navigate("/citizen/request")} */}
             <button
               className="hero-cta-btn"
               onClick={() => navigate("/citizen/request")}
             >
               <span className="btn-icon-1">⚠️</span>
-              <span className="btn-text">REQUEST RESCUE NOW!</span>
+              <span className="btn-text">YÊU CẦU CỨU HỘ NGAY!</span>
             </button>
           </div>
 
@@ -81,21 +80,21 @@ const Hero = () => {
           <div className="hero-stats">
             <div className="stat-item">
               <div className="stat-number1">05'</div>
-              <div className="stat-label">AVERAGE RESPONSE TIME</div>
+              <div className="stat-label">THỜI GIAN PHẢN HỒI TRUNG BÌNH</div>
             </div>
 
             <div className="stat-divider"></div>
 
             <div className="stat-item">
               <div className="stat-number1">1.2K+</div>
-              <div className="stat-label">RESCUE TEAMS READY</div>
+              <div className="stat-label">ĐỘI CỨU HỘ SẴN SÀNG</div>
             </div>
 
             <div className="stat-divider"></div>
 
             <div className="stat-item">
               <div className="stat-number1">99.9%</div>
-              <div className="stat-label">SUCCESSFUL RESCUE RATE</div>
+              <div className="stat-label">TỶ LỆ CỨU HỘ THÀNH CÔNG</div>
             </div>
           </div>
         </div>
