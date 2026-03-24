@@ -38,7 +38,6 @@ export default function RescueTeamMember({ teamId }) {
     if (!teamId) return;
     setLoading(true);
     try {
-
       const json = await rescueMissionService.filter({
         rescueTeamID: teamId,
         pageNumber: 1,
@@ -70,21 +69,18 @@ export default function RescueTeamMember({ teamId }) {
   }, [teamId]);
 
   const getMissionStatus = (mission) =>
-    mission?.currentStatus || mission?.status || mission?.newMissionStatus || "Unknown";
+    mission?.currentStatus ||
+    mission?.status ||
+    mission?.newMissionStatus ||
+    "Unknown";
 
   /* ================= STATUS STATS ================= */
 
-  const pending = missions.filter(
-    (m) => getMissionStatus(m) === "Assigned"
-  );
+  const pending = missions.filter((m) => getMissionStatus(m) === "Assigned");
 
-  const active = missions.filter(
-    (m) => getMissionStatus(m) === "InProgress"
-  );
+  const active = missions.filter((m) => getMissionStatus(m) === "InProgress");
 
-  const completed = missions.filter(
-    (m) => getMissionStatus(m) === "Completed"
-  );
+  const completed = missions.filter((m) => getMissionStatus(m) === "Completed");
 
   /* ================= MAP MISSIONS ================= */
 
@@ -107,10 +103,12 @@ export default function RescueTeamMember({ teamId }) {
           <div className="dashboard-header">
             <FaShieldAlt size={32} color="#3b82f6" />
             <div>
-              <h1 className="dashboard-title">Team Member Dashboard</h1>
+              <h1 className="dashboard-title">
+                Bảng điều khiển thành viên đội
+              </h1>
 
               <p className="dashboard-sub">
-                Monitor rescue missions and track team activities
+                Theo dõi nhiệm vụ cứu hộ và hoạt động của đội
               </p>
             </div>
           </div>
@@ -118,7 +116,7 @@ export default function RescueTeamMember({ teamId }) {
           <div className="stats">
             <div className="stat-card blue">
               <div className="stat-info">
-                <span>Pending</span>
+                <span>Đang chờ</span>
                 <h3>{pending.length}</h3>
               </div>
 
@@ -127,7 +125,7 @@ export default function RescueTeamMember({ teamId }) {
 
             <div className="stat-card green">
               <div className="stat-info">
-                <span>Active</span>
+                <span>Đang hoạt động</span>
                 <h3>{active.length}</h3>
               </div>
 
@@ -136,7 +134,7 @@ export default function RescueTeamMember({ teamId }) {
 
             <div className="stat-card gray">
               <div className="stat-info">
-                <span>Completed</span>
+                <span>Hoàn thành</span>
                 <h3>{completed.length}</h3>
               </div>
 
@@ -155,18 +153,18 @@ export default function RescueTeamMember({ teamId }) {
               marginBottom: "25px",
             }}
           >
-            <b>View-Only Access</b>
+            <b>Chế độ chỉ xem</b>
 
             <p style={{ marginTop: 5 }}>
-              You are viewing missions as a team member. Only team leaders can
-              accept, reject, or modify missions.
+              Bạn đang xem các nhiệm vụ với vai trò thành viên đội. Chỉ trưởng
+              nhóm mới có thể chấp nhận, từ chối hoặc chỉnh sửa nhiệm vụ.
             </p>
           </div>
 
           <div className="panel">
-            <div className="panel-title">All Missions</div>
+            <div className="panel-title">Tất cả nhiệm vụ</div>
 
-            {missions.length === 0 && <p>No missions available</p>}
+            {missions.length === 0 && <p>Không có nhiệm vụ nào</p>}
 
             {missions.map((m) => (
               <div className="request-card" key={m.rescueMissionID}>
@@ -179,7 +177,7 @@ export default function RescueTeamMember({ teamId }) {
                   {m.locationLatitude}, {m.locationLongitude}
                 </p>
 
-                <p>Status: {getMissionStatus(m)}</p>
+                <p>Trạng thái: {getMissionStatus(m)}</p>
 
                 <div
                   style={{

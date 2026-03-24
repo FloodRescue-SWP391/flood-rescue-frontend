@@ -33,8 +33,10 @@ L.Icon.Default.mergeOptions({
 const formatVNTime = (dateString) => {
   if (!dateString) return "Không có thời gian";
   try {
-    return new Date(dateString).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
-  } catch(e) {
+    return new Date(dateString).toLocaleString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+  } catch (e) {
     return "Thời gian không hợp lệ";
   }
 };
@@ -48,7 +50,7 @@ const AddressDisplay = ({ lat, lng }) => {
       setAddress("Vị trí không hợp lệ");
       return;
     }
-    
+
     const key = `${lat},${lng}`;
     if (addressCache.has(key)) {
       setAddress(addressCache.get(key));
@@ -57,13 +59,15 @@ const AddressDisplay = ({ lat, lng }) => {
 
     const fetchAddress = async () => {
       try {
-        await new Promise(r => setTimeout(r, Math.random() * 1000 + 500));
+        await new Promise((r) => setTimeout(r, Math.random() * 1000 + 500));
         if (addressCache.has(key)) {
           setAddress(addressCache.get(key));
           return;
         }
 
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+        );
         const data = await res.json();
         const displayAddress = data.display_name || "Không tìm thấy địa chỉ";
         addressCache.set(key, displayAddress);
@@ -152,10 +156,13 @@ export default function RescueTeamLeader({ teamId }) {
   };
 
   const normalizeStatus = (status) => {
-    const s = String(status || "").trim().toLowerCase();
+    const s = String(status || "")
+      .trim()
+      .toLowerCase();
     if (!s) return "unknown";
     if (s === "assigned" || s === "assigned") return "Assigned";
-    if (s === "inprogress" || s === "in_progress" || s === "in progress") return "InProgress";
+    if (s === "inprogress" || s === "in_progress" || s === "in progress")
+      return "InProgress";
     if (s === "completed" || s === "complete") return "Completed";
     return status;
   };
@@ -197,7 +204,9 @@ export default function RescueTeamLeader({ teamId }) {
         json?.content?.data || json?.content?.items || json?.content || [];
 
       if (!Array.isArray(missions)) {
-        missions = Object.values(missions).filter(m => m?.rescueMissionID || m?.rescueMissionId);
+        missions = Object.values(missions).filter(
+          (m) => m?.rescueMissionID || m?.rescueMissionId,
+        );
       }
 
       // Add fallback data for display
@@ -209,13 +218,13 @@ export default function RescueTeamLeader({ teamId }) {
       }));
 
       const assignedList = enrichedMissions.filter(
-        (m) => getMissionStatus(m) === "Assigned"
+        (m) => getMissionStatus(m) === "Assigned",
       );
       const inProgressList = enrichedMissions.filter(
-        (m) => getMissionStatus(m) === "InProgress"
+        (m) => getMissionStatus(m) === "InProgress",
       );
       const completedList = enrichedMissions.filter(
-        (m) => getMissionStatus(m) === "Completed"
+        (m) => getMissionStatus(m) === "Completed",
       );
 
       setMissions(enrichedMissions);
@@ -429,8 +438,14 @@ export default function RescueTeamLeader({ teamId }) {
 
       const status = getMissionStatus(mission);
       if (status !== "InProgress") {
-        console.warn("Complete blocked: mission status not InProgress", missionId, status);
-        window.alert("Không thể hoàn thành: nhiệm vụ không ở trạng thái Đang thực hiện.");
+        console.warn(
+          "Complete blocked: mission status not InProgress",
+          missionId,
+          status,
+        );
+        window.alert(
+          "Không thể hoàn thành: nhiệm vụ không ở trạng thái Đang thực hiện.",
+        );
         return;
       }
 
@@ -467,15 +482,17 @@ export default function RescueTeamLeader({ teamId }) {
           <div className="dashboard-header">
             <FaShieldAlt size={32} color="red" />
             <div>
-              <h1 className="dashboard-title">Trưởng đội cứu hộ</h1>
-              <p className="dashboard-sub">Đội: {teamId?.substring(0, 8) || "Không xác định"}</p>
+              <h1 className="dashboard-title">Dashboard trưởng đội cứu hộ</h1>
+              <p className="dashboard-sub">
+                Đội: {teamId?.substring(0, 8) || "Không xác định"}
+              </p>
             </div>
           </div>
 
           <div className="stats">
             <div className="stat-card blue">
               <div className="stat-info">
-                <span>Gán cho tôi</span>
+                <span>Nhiệm vụ được giao</span>
                 <h3>{assigned.length}</h3>
               </div>
               <FaClipboardList className="stat-icon" />
@@ -483,7 +500,7 @@ export default function RescueTeamLeader({ teamId }) {
 
             <div className="stat-card green">
               <div className="stat-info">
-                <span>Đang thực hiện</span>
+                <span>Đang xử lý</span>
                 <h3>{inProgress.length}</h3>
               </div>
               <FaCheckCircle className="stat-icon" />
@@ -491,7 +508,7 @@ export default function RescueTeamLeader({ teamId }) {
 
             <div className="stat-card gray">
               <div className="stat-info">
-                <span>Hoàn thành</span>
+                <span>Đã hoàn thành</span>
                 <h3>{completed.length}</h3>
               </div>
               <FaCheckCircle className="stat-icon" />
@@ -500,8 +517,10 @@ export default function RescueTeamLeader({ teamId }) {
 
           <div className="panels">
             <div className="panel">
-              <div className="panel-title">Nhiệm vụ được gán</div>
-              {assigned.length === 0 && <p>Không có nhiệm vụ được gán</p>}
+              <div className="panel-title">Nhiệm vụ được giao</div>
+
+              {assigned.length === 0 && <p>Không có nhiệm vụ nào</p>}
+
               {assigned.map((mission) => (
                 <div className="request-card" key={getMissionId(mission)}>
                   <p>
@@ -511,11 +530,23 @@ export default function RescueTeamLeader({ teamId }) {
                   <p>{getDescription(mission)}</p>
 
                   <p>
-                    <small>🕒 {formatVNTime(mission.createdAt || mission.createdDate || mission.assignedDate || mission.timestamp)}</small>
+                    <small>
+                      🕒{" "}
+                      {formatVNTime(
+                        mission.createdAt ||
+                          mission.createdDate ||
+                          mission.assignedDate ||
+                          mission.timestamp,
+                      )}
+                    </small>
                   </p>
 
                   <p>
-                    <FaMapMarkerAlt /> <AddressDisplay lat={getLatitude(mission)} lng={getLongitude(mission)} />
+                    <FaMapMarkerAlt />{" "}
+                    <AddressDisplay
+                      lat={getLatitude(mission)}
+                      lng={getLongitude(mission)}
+                    />
                   </p>
 
                   <div className="btn-group">
@@ -552,8 +583,12 @@ export default function RescueTeamLeader({ teamId }) {
             </div>
 
             <div className="panel">
-              <div className="panel-title">Đang thực hiện</div>
-              {inProgress.length === 0 && <p>Không có nhiệm vụ nào đang thực hiện</p>}
+              <div className="panel-title">Đang xử lý</div>
+
+              {inProgress.length === 0 && (
+                <p>Không có nhiệm vụ nào đang xử lý</p>
+              )}
+
               {inProgress.map((mission) => (
                 <div className="request-card" key={getMissionId(mission)}>
                   <p>
@@ -563,11 +598,23 @@ export default function RescueTeamLeader({ teamId }) {
                   <p>{getDescription(mission)}</p>
 
                   <p>
-                    <small>🕒 {formatVNTime(mission.createdAt || mission.createdDate || mission.assignedDate || mission.timestamp)}</small>
+                    <small>
+                      🕒{" "}
+                      {formatVNTime(
+                        mission.createdAt ||
+                          mission.createdDate ||
+                          mission.assignedDate ||
+                          mission.timestamp,
+                      )}
+                    </small>
                   </p>
 
                   <p>
-                    <FaMapMarkerAlt /> <AddressDisplay lat={getLatitude(mission)} lng={getLongitude(mission)} />
+                    <FaMapMarkerAlt />{" "}
+                    <AddressDisplay
+                      lat={getLatitude(mission)}
+                      lng={getLongitude(mission)}
+                    />
                   </p>
 
                   {(mission.reliefOrderID || mission.reliefOrderId) && (
@@ -613,6 +660,7 @@ export default function RescueTeamLeader({ teamId }) {
               style={{ height: "400px" }}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
               {mapMissions.map((m) => (
                 <Marker
                   key={getMissionId(m)}
@@ -623,7 +671,7 @@ export default function RescueTeamLeader({ teamId }) {
                     <br />
                     {getDescription(m)}
                     <br />
-                    Status: {getMissionStatus(m)}
+                    Trạng thái: {getMissionStatus(m)}
                   </Popup>
                 </Marker>
               ))}
@@ -631,22 +679,54 @@ export default function RescueTeamLeader({ teamId }) {
           </div>
 
           <div style={{ marginTop: 30 }}>
-            <div className="panel-title" style={{ marginBottom: "15px", fontSize: "1.2rem", fontWeight: "bold" }}>Lịch sử cứu hộ</div>
-            <div className="panels" style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              className="panel-title"
+              style={{
+                marginBottom: "15px",
+                fontSize: "1.2rem",
+                fontWeight: "bold",
+              }}
+            >
+              Lịch sử cứu hộ
+            </div>
+
+            <div
+              className="panels"
+              style={{ display: "flex", flexDirection: "column" }}
+            >
               <div className="panel" style={{ width: "100%" }}>
-                {completed.length === 0 && <p>Không có nhiệm vụ nào đã hoàn thành</p>}
+                {completed.length === 0 && (
+                  <p>Chưa có nhiệm vụ nào hoàn thành</p>
+                )}
+
                 {completed.map((mission) => (
                   <div className="request-card" key={getMissionId(mission)}>
                     <p>
                       <b>{getCitizenName(mission)}</b>
                     </p>
+
                     <p>{getDescription(mission)}</p>
+
                     <p>
-                      <small>🕒 {formatVNTime(mission.createdAt || mission.createdDate || mission.assignedDate || mission.timestamp)}</small>
+                      <small>
+                        🕒{" "}
+                        {formatVNTime(
+                          mission.createdAt ||
+                            mission.createdDate ||
+                            mission.assignedDate ||
+                            mission.timestamp,
+                        )}
+                      </small>
                     </p>
+
                     <p>
-                      <FaMapMarkerAlt /> <AddressDisplay lat={getLatitude(mission)} lng={getLongitude(mission)} />
+                      <FaMapMarkerAlt />{" "}
+                      <AddressDisplay
+                        lat={getLatitude(mission)}
+                        lng={getLongitude(mission)}
+                      />
                     </p>
+
                     <div className="btn-group">
                       <button
                         className="btn-info"
