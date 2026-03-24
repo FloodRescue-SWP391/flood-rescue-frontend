@@ -4,7 +4,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Navbar, Container, Nav, Button } from "react-bootstrap";
 import "./Header.css";
 
-
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,8 +18,8 @@ const Header = () => {
             className="marquee-content"
             style={{ color: "red", fontSize: "25px", fontWeight: "bold" }}
           >
-            🔔 24/7 EMERGENCY SUPPORT | ⏱️ RESPONSE WITHIN 5 MINUTES | 🚑 FLOOD
-            RESCUE SYSTEM | 🛡️ SAFE & FAST RESPONSE
+            🔔 Hỗ trợ khẩn cấp 24/7 | ⏱️ Phản hồi trong vòng 5 phút | 🚑 Hệ
+            thống cứu hộ lũ lụt | 🛡️ Phản hồi an toàn và nhanh chóng
           </div>
         </div>
       </div>
@@ -32,11 +31,7 @@ const Header = () => {
             to="/"
             className="d-flex align-items-center brand-logo"
           >
-            <img
-              src={logo}
-              alt="Rescue Now Logo"
-              className="logo-img me-2"
-            />
+            <img src={logo} alt="Rescue Now Logo" className="logo-img me-2" />
             <span className="brand-text">
               RESCUE<strong style={{ color: "orangered" }}>.</strong>NOW
             </span>
@@ -69,8 +64,6 @@ const Header = () => {
           </Navbar.Collapse>
         </Container>
       </Navbar>
-
-     
     </>
   );
 };
