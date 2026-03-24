@@ -1043,7 +1043,7 @@ const RequestRescue = () => {
             <p className="emergency-note">
               ⚠️{" "}
               <strong>Đối với các tình huống nguy hiểm đến tính mạng:</strong>{" "}
-              Hãy gọi dịch vụ khẩn cấp tại địa phương trước: <span className="emergency-number"> 115 </span> (hoặc số khẩn cấp tại quốc gia của bạn)
+              Hãy gọi dịch vụ khẩn cấp tại địa phương trước: <span className="emergency-number"> 115</span> <p>(hoặc số khẩn cấp tại quốc gia của bạn)</p>
             </p>
           </div>
         </form>
