@@ -132,29 +132,29 @@ const Dashboard = () => {
         <div className="top-bar1">
           <Button
             variant="light"
-            className="back-button"
+            className="back-button2"
             onClick={() => navigate("/")}
           >
-            ← Quay lại
+            Quay lại
           </Button>
         </div>
 
-        <Row className="justify-content-center  align-items-stretch g-4">
+        <Row className="justify-content-center align-items-center g-4 g-lg-5">
           <Col lg={5} md={6} className="d-flex">
-            <Card className="border-0 shadow-lg rounded-4 w-100 h-100">
+            <Card className="login-card border-0 shadow-sm rounded-4 w-100">
               <Card.Body className="p-4 p-md-5">
                 <div className="text-center mb-4">
-                  <h2 className="fw-bold mb-2 display-5">
+                  <h2 className="login-title fw-bold mb-2">
                     Đăng nhập tài khoản
                   </h2>
-                  <p className="text-muted mb-0 display-7">
+                  <p className="login-subtitle mb-0">
                     Đăng nhập để truy cập hệ thống quản lý cứu hộ
                   </p>
                 </div>
 
                 <Form onSubmit={handleSubmit}>
                   <Form.Group className="mb-3">
-                    <Form.Label className="fw-semibold fs-5">
+                    <Form.Label className="form-label-custom">
                       Tên đăng nhập
                     </Form.Label>
                     <Form.Control
@@ -163,12 +163,12 @@ const Dashboard = () => {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Nhập tên đăng nhập"
-                      className="rounded-3"
+                      className="rounded-3 input-custom"
                     />
                   </Form.Group>
 
                   <Form.Group className="mb-4">
-                    <Form.Label className="fw-semibold fs-5">
+                    <Form.Label className="form-label-custom">
                       Mật khẩu
                     </Form.Label>
                     <Form.Control
@@ -177,12 +177,12 @@ const Dashboard = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Nhập mật khẩu"
-                      className="rounded-3"
+                      className="rounded-3 input-custom"
                     />
                   </Form.Group>
 
                   <div className="d-grid">
-                    <button type="submit" className="login-btn1 fw-bold">
+                    <button type="submit" className="login-btn1 fw-semibold">
                       Đăng nhập
                     </button>
                   </div>
@@ -198,60 +198,58 @@ const Dashboard = () => {
           </Col>
 
           <Col lg={6} md={6} className="d-flex">
-            <div className="ps-lg-4 w-100 h-100 d-flex flex-column justify-content-between">
+            <div className="info-panel ps-lg-4 w-100">
               <div className="mb-3">
-                <span className="badge rounded-pill text-bg-danger px-3 py-2">
+                <span className="badge rounded-pill info-badge px-3 py-2">
                   Nền tảng hỗ trợ khẩn cấp
                 </span>
               </div>
 
-              <h1 className="display-5 fw-bold mb-3">Hệ thống cứu hộ lũ lụt</h1>
+              <h1 className="hero-title mb-3">Hệ thống cứu hộ lũ lụt</h1>
 
-              <p className="lead text-muted mb-4">
+              <p className="hero-desc mb-4">
                 Một nền tảng thông minh được thiết kế để điều phối hoạt động cứu
                 hộ và quản lý các yêu cầu khẩn cấp trong thiên tai lũ lụt.
               </p>
 
-              <Card className="border-0 shadow-sm rounded-4 mb-3">
-                <Card.Body className="d-flex align-items-center gap-3">
-                  <div className="fs-3">⚡</div>
-                  <div>
-                    <div className="fw-bold">
+              <div className="feature-list">
+                <div className="feature-item">
+                  <div className="feature-icon">⚡</div>
+                  <div className="text">
+                    <div className="feature-title">
                       Điều phối cứu hộ khẩn cấp nhanh chóng
                     </div>
-                    <div className="text-muted small">
-                      Kết nối nhanh người gặp nạn với điều phối viên cứu hộ
+                    <div className="feature-desc">
+                      Kết nối nhanh người gặp nạn với điều phối viên cứu hộ.
                     </div>
                   </div>
-                </Card.Body>
-              </Card>
+                </div>
 
-              <Card className="border-0 shadow-sm rounded-4 mb-3">
-                <Card.Body className="d-flex align-items-center gap-3">
-                  <div className="fs-3">📍</div>
-                  <div>
-                    <div className="fw-bold">
+                <div className="feature-item">
+                  <div className="feature-icon">📍</div>
+                  <div className="text">
+                    <div className="feature-title">
                       Theo dõi cứu hộ theo thời gian thực
                     </div>
-                    <div className="text-muted small">
-                      Giám sát sự cố và tiến độ cứu hộ một cách hiệu quả
+                    <div className="feature-desc">
+                      Giám sát sự cố và tiến độ cứu hộ một cách hiệu quả.
                     </div>
                   </div>
-                </Card.Body>
-              </Card>
+                </div>
 
-              <Card className="border-0 shadow-sm rounded-4">
-                <Card.Body className="d-flex align-items-center gap-3">
-                  <div className="fs-3">🤝</div>
-                  <div>
-                    <div className="fw-bold">Quản lý đội cứu hộ hiệu quả</div>
-                    <div className="text-muted small">
+                <div className="feature-item">
+                  <div className="feature-icon">🤝</div>
+                  <div className="text">
+                    <div className="feature-title">
+                      Quản lý đội cứu hộ hiệu quả
+                    </div>
+                    <div className="feature-desc">
                       Hỗ trợ quản lý đội nhóm, nhiệm vụ và quy trình phản ứng
-                      khẩn cấp
+                      khẩn cấp.
                     </div>
                   </div>
-                </Card.Body>
-              </Card>
+                </div>
+              </div>
             </div>
           </Col>
         </Row>

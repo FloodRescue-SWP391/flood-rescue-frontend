@@ -155,8 +155,7 @@
 }
 
 .btn-complete {
-  width: 100%;
-  margin-top: 10px;
+  width: 50%;
   background: #2563eb;
   color: white;
   border: none;
@@ -237,4 +236,41 @@
   padding: 25px;
   border-radius: 10px;
   width: 400px;
+}
+
+.dashboard-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap:  780px;
+}
+
+.logout-btn2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 16px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+
+  background: #071846;
+  color: #ffffff;
+
+  font-size: 1rem;
+  font-weight: 600;
+
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.logout-btn2:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.logout-btn2:active {
+  transform: scale(0.98);
 }

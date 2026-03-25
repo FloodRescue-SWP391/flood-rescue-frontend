@@ -1,6 +1,7 @@
 // Màn hình dành cho Rescue Team Leader: nhận mission mới, OrderPrepared và IncidentResolved.
 import "./Dashboard.css";
 import Header from "../../components/common/Header";
+import { fetchWithAuth } from "../../services/apiClient";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -22,6 +23,7 @@ import "leaflet/dist/leaflet.css";
 import RequestDetailModal from "./RequestDetailModal";
 import IncidentReportForm from "./IncidentReportForm";
 import { incidentReportService } from "../../services/incidentReportService";
+import { useNavigate } from "react-router-dom";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -47,7 +49,7 @@ const AddressDisplay = ({ lat, lng }) => {
   const [address, setAddress] = useState("Đang tải vị trí...");
 
   useEffect(() => {
-    if (!lat || !lng) {
+    if (lat == null || lng == null) {
       setAddress("Vị trí không hợp lệ");
       return;
     }
@@ -100,63 +102,41 @@ export default function RescueTeamLeader({ teamId }) {
     mission?.rescueMissionID || mission?.rescueMissionId || mission?.id;
 
   const getCitizenName = (mission) => {
-    const name =
+    return (
       mission?.citizenName ||
-      mission?.fullName ||
-      mission?.userName ||
+      mission?.citizen?.fullName ||
       mission?.rescueRequest?.citizenName ||
-      mission?.rescueRequest?.fullName ||
-      mission?.rescueRequest?.userName ||
-      mission?.rescueRequest?.requesterName ||
-      mission?.incidentReport?.citizenName ||
-      mission?.incidentReport?.fullName ||
-      "Citizen";
-
-    return name || "Citizen";
+      "Chưa có tên người dân"
+    );
   };
 
   const getDescription = (mission) => {
-    const desc =
+    return (
       mission?.description ||
-      mission?.title ||
       mission?.rescueRequest?.description ||
-      mission?.rescueRequest?.title ||
-      mission?.rescueRequest?.content ||
-      mission?.incidentReport?.description ||
-      "No description";
-
-    return desc || "No description";
+      "Chưa có mô tả"
+    );
   };
 
   const getLatitude = (mission) => {
-    const lat =
-      mission?.latitude ??
-      mission?.locationLatitude ??
-      mission?.lat ??
-      mission?.rescueRequest?.latitude ??
-      mission?.rescueRequest?.locationLatitude ??
-      mission?.rescueRequest?.lat ??
-      mission?.incidentReport?.latitude ??
-      mission?.incidentReport?.locationLatitude;
-
-    return lat ? Number(lat) : 10.7769; // Default Saigon coordinates
+    return mission?.locationLatitude ?? mission?.latitude ?? null;
   };
-
   const getLongitude = (mission) => {
-    const lng =
-      mission?.longitude ??
-      mission?.locationLongitude ??
-      mission?.lng ??
-      mission?.lon ??
-      mission?.rescueRequest?.longitude ??
-      mission?.rescueRequest?.locationLongitude ??
-      mission?.rescueRequest?.lng ??
-      mission?.incidentReport?.longitude ??
-      mission?.incidentReport?.locationLongitude;
-
-    return lng ? Number(lng) : 106.6541; // Default Saigon coordinates
+    return mission?.locationLongitude ?? mission?.longitude ?? null;
   };
 
+  const getMissionTime = (mission) => {
+    return (
+      mission?.requestCreatedTime ||
+      mission?.startTime ||
+      mission?.assignedAt ||
+      mission?.createdAt ||
+      mission?.createdDate ||
+      mission?.assignedDate ||
+      mission?.timestamp ||
+      null
+    );
+  };
   const normalizeStatus = (status) => {
     const s = String(status || "")
       .trim()
@@ -171,19 +151,131 @@ export default function RescueTeamLeader({ teamId }) {
 
   const getMissionStatus = (mission) => {
     const rawStatus =
+      mission?.missionStatus ||
       mission?.currentStatus ||
       mission?.status ||
       mission?.newMissionStatus ||
       "Unknown";
+
     return normalizeStatus(rawStatus);
   };
 
   const isValidCoord = (lat, lng) => {
+    if (lat == null || lng == null) return false;
     const latNum = Number(lat);
     const lngNum = Number(lng);
     return !Number.isNaN(latNum) && !Number.isNaN(lngNum);
   };
 
+  const enrichMissionDetail = async (mission) => {
+    const missionId = getMissionId(mission);
+    if (!missionId) return mission;
+
+    try {
+      const res = await fetchWithAuth(`/RescueMission/${missionId}`);
+
+      if (!res.ok) {
+        console.error("Load mission detail failed:", missionId, res.status);
+        return mission;
+      }
+
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : null;
+      const detail = json?.content || json?.data || json;
+      const requestInfo = detail?.requestInfo || {};
+
+      return {
+        ...mission,
+        rescueRequest: {
+          ...(mission?.rescueRequest || {}),
+          ...requestInfo,
+        },
+
+        citizenName:
+          mission?.citizenName ||
+          requestInfo?.citizenName ||
+          requestInfo?.fullName ||
+          null,
+
+        citizenPhone:
+          mission?.citizenPhone ||
+          requestInfo?.citizenPhone ||
+          requestInfo?.phoneNumber ||
+          requestInfo?.phone ||
+          null,
+
+        citizenEmail:
+          mission?.citizenEmail ||
+          requestInfo?.citizenEmail ||
+          requestInfo?.email ||
+          null,
+
+        address:
+          mission?.address ||
+          requestInfo?.address ||
+          requestInfo?.locationAddress ||
+          requestInfo?.formattedAddress ||
+          null,
+
+        description:
+          mission?.description ||
+          requestInfo?.description ||
+          requestInfo?.note ||
+          null,
+
+        requestType:
+          mission?.requestType ||
+          requestInfo?.requestType ||
+          requestInfo?.type ||
+          null,
+
+        peopleCount:
+          mission?.peopleCount ??
+          requestInfo?.peopleCount ??
+          requestInfo?.numberOfPeople ??
+          null,
+
+        priorityLevel:
+          mission?.priorityLevel ||
+          requestInfo?.priorityLevel ||
+          requestInfo?.priority ||
+          null,
+
+        locationLatitude:
+          mission?.locationLatitude ??
+          requestInfo?.locationLatitude ??
+          requestInfo?.latitude ??
+          null,
+
+        locationLongitude:
+          mission?.locationLongitude ??
+          requestInfo?.locationLongitude ??
+          requestInfo?.longitude ??
+          null,
+
+        requestCreatedTime:
+          mission?.requestCreatedTime ||
+          requestInfo?.createdAt ||
+          requestInfo?.createdTime ||
+          detail?.createdAt ||
+          null,
+
+        assignedAt:
+          mission?.assignedAt ||
+          detail?.assignedAt ||
+          detail?.updatedAt ||
+          null,
+
+        missionStatus:
+          mission?.missionStatus || detail?.status || mission?.status || null,
+
+        teamName: mission?.teamName || detail?.teamName || null,
+      };
+    } catch (err) {
+      console.error("Enrich mission detail error:", missionId, err);
+      return mission;
+    }
+  };
   /* ================= LOAD MISSIONS ================= */
 
   const loadMissions = async () => {
@@ -212,12 +304,11 @@ export default function RescueTeamLeader({ teamId }) {
       }
 
       // Add fallback data for display
-      const enrichedMissions = missions.map((mission) => ({
-        ...mission,
-        description: mission.description || "Nhiệm vụ cứu hộ đang diễn ra",
-        longitude: mission.longitude || 106.6541,
-        latitude: mission.latitude || 10.7769,
-      }));
+      const enrichedMissions = await Promise.all(
+        missions.map(enrichMissionDetail),
+      );
+
+      console.log("ENRICHED MISSIONS:", enrichedMissions);
 
       const assignedList = enrichedMissions.filter(
         (m) => getMissionStatus(m) === "Assigned",
@@ -251,23 +342,11 @@ export default function RescueTeamLeader({ teamId }) {
 
   //   return () => clearInterval(interval);
   // }, [teamId]);
-  useEffect(() => {
-    if (teamId) {
-      loadMissions();
-      const fetchTeamName = async () => {
-        try {
-          const res = await getRescueTeamById(teamId);
-          const json = await res.json();
-          if (json?.success) {
-            setTeamName(json?.content?.teamName || json?.content?.name || "");
-          }
-        } catch (err) {
-          console.error("Load team name error:", err);
-        }
-      };
-      fetchTeamName();
-    }
-  }, [teamId]);
+ useEffect(() => {
+  if (teamId) {
+    loadMissions();
+  }
+}, [teamId]);
   useEffect(() => {
     const handleMissionNotification = () => loadMissions();
     const handleOrderPrepared = (data) => {
@@ -443,7 +522,7 @@ export default function RescueTeamLeader({ teamId }) {
 
       console.log("COMPLETE MISSION OBJECT:", mission);
       console.log("COMPLETE MISSION ID:", missionId);
-      console.log("COMPLETE MISSION STATUS:", mission?.currentStatus);
+      console.log("COMPLETE MISSION STATUS:", getMissionStatus(mission));
 
       if (!missionId) {
         console.error("Mission ID is missing");
@@ -486,6 +565,16 @@ export default function RescueTeamLeader({ teamId }) {
         ]
       : [10.8231, 106.6297];
 
+  /* ================= Nút Logout ================= */
+
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    // Xử lý logout
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    navigate("/login");
+  };
+
   /* ================= UI ================= */
 
   return (
@@ -494,11 +583,16 @@ export default function RescueTeamLeader({ teamId }) {
       <div className="dashboard-container">
         <div className="dashboard-content">
           <div className="dashboard-header">
-            <FaShieldAlt size={32} color="red" />
+               <FaShieldAlt size={32} color="red"  />
             <div>
-              <h1 className="dashboard-title">Dashboard trưởng đội cứu hộ</h1>
+              <div className="dashboard-header-top">
+                <h1 className="dashboard-title">Dashboard trưởng đội cứu hộ</h1>
+                <button className="logout-btn2" onClick={handleLogout}>
+                  🚪 Đăng xuất
+                </button>
+              </div>
               <p className="dashboard-sub">
-                Đội: {teamName || teamId?.substring(0, 8) || "Không xác định"}
+                Đội cứu hộ #{teamId?.substring(0, 8) || "Không xác định"}
               </p>
             </div>
           </div>
@@ -546,21 +640,23 @@ export default function RescueTeamLeader({ teamId }) {
                   <p>
                     <small>
                       🕒{" "}
-                      {formatVNTime(
-                        mission.createdAt ||
-                          mission.createdDate ||
-                          mission.assignedDate ||
-                          mission.timestamp,
-                      )}
+                      {getMissionTime(mission)
+                        ? formatVNTime(getMissionTime(mission))
+                        : "Không có thời gian"}
                     </small>
                   </p>
 
                   <p>
                     <FaMapMarkerAlt />{" "}
-                    <AddressDisplay
-                      lat={getLatitude(mission)}
-                      lng={getLongitude(mission)}
-                    />
+                    {getLatitude(mission) != null &&
+                    getLongitude(mission) != null ? (
+                      <AddressDisplay
+                        lat={getLatitude(mission)}
+                        lng={getLongitude(mission)}
+                      />
+                    ) : (
+                      <span>Chưa có vị trí</span>
+                    )}
                   </p>
 
                   <div className="btn-group">
@@ -614,21 +710,23 @@ export default function RescueTeamLeader({ teamId }) {
                   <p>
                     <small>
                       🕒{" "}
-                      {formatVNTime(
-                        mission.createdAt ||
-                          mission.createdDate ||
-                          mission.assignedDate ||
-                          mission.timestamp,
-                      )}
+                      {getMissionTime(mission)
+                        ? formatVNTime(getMissionTime(mission))
+                        : "Không có thời gian"}
                     </small>
                   </p>
 
                   <p>
                     <FaMapMarkerAlt />{" "}
-                    <AddressDisplay
-                      lat={getLatitude(mission)}
-                      lng={getLongitude(mission)}
-                    />
+                    {getLatitude(mission) != null &&
+                    getLongitude(mission) != null ? (
+                      <AddressDisplay
+                        lat={getLatitude(mission)}
+                        lng={getLongitude(mission)}
+                      />
+                    ) : (
+                      <span>Chưa có vị trí</span>
+                    )}
                   </p>
 
                   {(mission.reliefOrderID || mission.reliefOrderId) && (
@@ -724,21 +822,23 @@ export default function RescueTeamLeader({ teamId }) {
                     <p>
                       <small>
                         🕒{" "}
-                        {formatVNTime(
-                          mission.createdAt ||
-                            mission.createdDate ||
-                            mission.assignedDate ||
-                            mission.timestamp,
-                        )}
+                        {getMissionTime(mission)
+                          ? formatVNTime(getMissionTime(mission))
+                          : "Không có thời gian"}
                       </small>
                     </p>
 
                     <p>
                       <FaMapMarkerAlt />{" "}
-                      <AddressDisplay
-                        lat={getLatitude(mission)}
-                        lng={getLongitude(mission)}
-                      />
+                      {getLatitude(mission) != null &&
+                      getLongitude(mission) != null ? (
+                        <AddressDisplay
+                          lat={getLatitude(mission)}
+                          lng={getLongitude(mission)}
+                        />
+                      ) : (
+                        <span>Chưa có vị trí</span>
+                      )}
                     </p>
 
                     <div className="btn-group">
