@@ -47,6 +47,20 @@ const Dashboard = () => {
         content?.roleName ??
         content?.RoleName ??
         "";
+
+      const fullName =
+        content?.fullName ??
+        content?.FullName ??
+        content?.user?.fullName ??
+        content?.user?.FullName ??
+        content?.profile?.fullName ??
+        content?.profile?.FullName ??
+        content?.name ??
+        content?.Name ??
+        content?.username ??
+        content?.Username ??
+        username;
+
       const token = content?.accessToken ?? content?.AccessToken ?? "";
 
       if (!roleRaw) {
@@ -86,6 +100,9 @@ const Dashboard = () => {
       if (token) localStorage.setItem("token", token);
       localStorage.setItem("role", role); // lưu role đã map (FE role)
       localStorage.setItem("isAuth", "true");
+      localStorage.setItem("fullName", fullName);
+
+      console.log("FULL NAME SAVED:", fullName);
 
       showToast("Đăng nhập thành công", "success");
 
