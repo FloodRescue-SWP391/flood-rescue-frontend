@@ -31,20 +31,61 @@ export const getUsers = async ({
 };
 
 // UPDATE USER
+// export const updateUser = async (userId, userData) => {
+//     const response = await fetchWithAuth(`${API_BASE_URL}/Users/${userId}`, {
+//         method: "PUT",
+//         headers: {
+//             "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify(userData),
+//     });
+
+//     if (!response.ok) {
+//         throw new Error("Failed to update user.");
+//     }
+
+//     return await response.json();
+// };
+
 export const updateUser = async (userId, userData) => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/Users/${userId}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-    });
+  const response = await fetchWithAuth(`${API_BASE_URL}/Users/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData),
+  });
 
-    if (!response.ok) {
-        throw new Error("Failed to update user.");
-    }
+  if (!response.ok) {
+    throw new Error("Failed to update user.");
+  }
 
-    return await response.json();
+  // Nếu API trả 204 No Content
+  if (response.status === 204) {
+    return { success: true, status: 204 };
+  }
+
+  // Đọc text trước để tránh lỗi parse json khi body rỗng
+  const text = await response.text();
+
+  if (!text) {
+    return { success: true, status: response.status };
+  }
+
+  try {
+    const json = JSON.parse(text);
+    return {
+      success: true,
+      status: response.status,
+      ...json,
+    };
+  } catch {
+    return {
+      success: true,
+      status: response.status,
+      data: text,
+    };
+  }
 };
 
 // DEACTIVATE USER
