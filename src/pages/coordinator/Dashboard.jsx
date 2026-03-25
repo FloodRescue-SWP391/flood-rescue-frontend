@@ -77,17 +77,90 @@ const Dashboard = () => {
   const [resolveNote, setResolveNote] = useState("");
   const [resolvingIncident, setResolvingIncident] = useState(false);
   // State cho thông báo
-  const [notifications, setNotifications] = useState([]);
+  const NOTI_STORAGE_KEY = "coordinator_notifications";
 
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem(NOTI_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error("Load notifications from localStorage failed:", error);
+      return [];
+    }
+  });
   const [showNotifications, setShowNotifications] = useState(false);
   const [addressMap, setAddressMap] = useState({});
 
   const navigate = useNavigate();
 
+  // Lưu tên user hệ thống
+  const [userFullName, setUserFullName] = useState("");
+
+  useEffect(() => {
+    try {
+      const savedFullName =
+        localStorage.getItem("fullName") ||
+        localStorage.getItem("userFullName") ||
+        "";
+
+      setUserFullName(savedFullName);
+    } catch (error) {
+      console.error("Load fullName failed:", error);
+    }
+  }, []);
+
   // Phân trang cho List of requirements
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(NOTI_STORAGE_KEY, JSON.stringify(notifications));
+    } catch (error) {
+      console.error("Save notifications to localStorage failed:", error);
+    }
+  }, [notifications]);
+
+  // tránh trùng và lọc request chưa xử lý
+  const isUnprocessedStatus = (status) => {
+    if (!status) return true;
+
+    const s = String(status).toLowerCase();
+
+    return ![
+      "completed",
+      "done",
+      "cancelled",
+      "canceled",
+      "rejected",
+      "delivered",
+    ].includes(s);
+  };
+
+  const mergeNotifications = (oldList, newList) => {
+    const map = new Map();
+
+    [...newList, ...oldList].forEach((item) => {
+      const key = String(item.requestId || item.id);
+
+      if (!map.has(key)) {
+        map.set(key, item);
+      } else {
+        const oldItem = map.get(key);
+        map.set(key, {
+          ...oldItem,
+          ...item,
+          read: oldItem.read ?? item.read ?? false,
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort(
+      (a, b) =>
+        new Date(b.createdAt || b.timestamp).getTime() -
+        new Date(a.createdAt || a.timestamp).getTime(),
+    );
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -108,6 +181,7 @@ const Dashboard = () => {
 
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");
+    localStorage.removeItem("userFullName");
     navigate("/login");
   };
   const mapStatusToUI = (status) => {
@@ -349,20 +423,34 @@ const Dashboard = () => {
     const handleNewRescueRequest = async (data) => {
       console.log("🔔 NewRescueRequest event:", data);
 
-      const code = data.ShortCode || data.shortCode || "UNKNOWN";
+      const code =
+        data.ShortCode ||
+        data.shortCode ||
+        data.RequestShortCode ||
+        data.requestShortCode ||
+        "UNKNOWN";
 
-      setNotifications((prev) => [
-        {
-          id: Date.now(),
-          type: "critical",
-          title: "New Rescue Request",
-          message: `New rescue request #${code}`,
-          requestId: code,
-          timestamp: new Date().toLocaleString(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      const requestId =
+        data.RescueRequestID ||
+        data.rescueRequestID ||
+        data.RequestID ||
+        data.requestID ||
+        code;
+
+      const newNotification = {
+        id: `req-${requestId}`,
+        type: "critical",
+        title: "New Rescue Request",
+        message: `New rescue request #${code}`,
+        requestId: String(code),
+        rawRequestId: String(requestId),
+        timestamp: new Date().toLocaleString("vi-VN"),
+        createdAt: new Date().toISOString(),
+        read: false,
+        status: "pending",
+      };
+
+      setNotifications((prev) => mergeNotifications(prev, [newNotification]));
       await loadRealRequests();
     };
 
@@ -610,11 +698,7 @@ const Dashboard = () => {
     loadTeams();
   }, []);
 
-  // Cập nhật unread count
-  useEffect(() => {
-    setUnreadCount(notifications.filter((n) => !n.read).length);
-  }, [notifications]);
-  //load data thực tế
+  //F5 vẫn giữ số lượng chuông
   const loadRealRequests = async () => {
     try {
       const res = await getAllRescueRequests();
@@ -639,6 +723,39 @@ const Dashboard = () => {
       console.log("Requests mapped:", mapped);
 
       setAllRequests(mapped);
+
+      const unresolvedNotifications = mapped
+        .filter((item) => isUnprocessedStatus(item.status))
+        .map((item) => ({
+          id: `req-${item.id}`,
+          type: item.emergencyCategory === "supply" ? "supply" : "critical",
+          title: "New Rescue Request",
+          message: `New rescue request #${item.requestId}`,
+          requestId: String(item.requestId),
+          rawRequestId: String(item.id),
+          timestamp: item.timestamp || new Date().toLocaleString("vi-VN"),
+          createdAt: item.timestamp
+            ? new Date(item.timestamp).toISOString()
+            : new Date().toISOString(),
+          read: false,
+          status: item.status,
+        }));
+
+      setNotifications((prev) => {
+        const merged = mergeNotifications(prev, unresolvedNotifications);
+
+        return merged.filter((noti) => {
+          const matched = mapped.find(
+            (req) =>
+              String(req.requestId) === String(noti.requestId) ||
+              String(req.id) === String(noti.rawRequestId),
+          );
+
+          if (!matched) return true;
+
+          return isUnprocessedStatus(matched.status);
+        });
+      });
     } catch (error) {
       console.warn("Load rescue requests failed:", error);
       setAllRequests([]);
@@ -813,9 +930,31 @@ const Dashboard = () => {
     const team = teams.find((t) => String(getTeamId(t)) === String(id));
     return team ? getTeamLabel(team) : `Team #${id}`;
   };
+
+  const bellCount = notifications.length;
+
   return (
     <div className="dashboard-container">
       <Header />
+
+      <div className="top-user-actions">
+        <div className="user-chip">
+          <div className="user-info">
+            <span className="user-greeting">
+              Xin chào,{" "}
+              <span
+                className="user-name"              
+              >
+                {userFullName || "Người dùng"}
+              </span>
+            </span>
+          </div>
+        </div>
+        <button className="logout-btn3" onClick={handleLogout}>
+          <span className="logout-icon">↩</span>
+          <span>Đăng xuất</span>
+        </button>
+      </div>
 
       <div className="dashboard-content">
         {/* Dashboard Header */}
@@ -825,18 +964,13 @@ const Dashboard = () => {
 
             <div className="button">
               <button
-                className={`notification-bell ${unreadCount > 0 ? "active" : ""}`}
-                onClick={() => setShowNotifications(!showNotifications)}
+                className={`notification-bell ${bellCount > 0 ? "active" : ""}`}
+                onClick={() => setShowNotifications((prev) => !prev)}
               >
-                🔔
-                {unreadCount > 0 && (
-                  <span className="notification-badge">{unreadCount}</span>
+                <span className="bell-icon">🔔</span>
+                {bellCount > 0 && (
+                  <span className="notification-badge">{bellCount}</span>
                 )}
-              </button>
-
-              <button className="logout-btn" onClick={handleLogout}>
-                <span className="logout-icon">↩</span>
-                <span>Đăng xuất</span>
               </button>
             </div>
           </div>
