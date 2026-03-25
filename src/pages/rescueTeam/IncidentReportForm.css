@@ -387,3 +387,7 @@
     box-shadow: none;
   }
 }
+
+.modal-body{
+  background-color: #ffffff;
+}
