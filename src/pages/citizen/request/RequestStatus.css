@@ -1,7 +1,7 @@
 .request-status-container {
-max-width: 1600px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 32px 20px 60px;
+  padding: 30px;
   min-height: calc(100vh - 64px);
 
   
@@ -25,7 +25,7 @@ body {
 .header-content h1 {
   font-size: 2rem;
   font-weight: 800;
-  color: #1e293b;
+  color: #0d2e64;
   margin-bottom: 8px;
 }
 
@@ -665,3 +665,24 @@ body {
   }
 }
 
+
+.back-button1 {
+  border: 1px solid #adaeaf !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #243b53 !important;
+  font-weight: 600;
+  border-radius: 4px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  transition: all 0.25s ease;
+margin-top: 10px;
+margin-left: 20px;
+padding: 10px;
+}
+
+.back-button1:hover {
+  transform: translateY(-2px);
+  background: #ffffff !important;
+  color: #2563eb !important;
+  border-color: #bfdbfe !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.16);
+}

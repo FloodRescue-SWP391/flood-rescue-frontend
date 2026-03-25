@@ -412,14 +412,29 @@ const RequestRescue = () => {
         JSON.stringify(payload, null, 2),
       );
 
+      // Lấy thời gian thực
+      const createdAt = new Date().toISOString();
+      localStorage.setItem("requestCreatedAt", createdAt);
+      
       // Gọi API
       const api = await createRescueRequest(payload);
       console.log("API RESPONSE:", api);
-      // ApiResponse -> shortCode nằm trong api.data
-      const created = api?.content;
-      const shortCode = created?.shortCode;
 
-      if (!shortCode) throw new Error("Server did not return shortCode");
+      // ApiResponse -> shortCode nằm trong api.data
+      // Mới sửa api -> thay doi code nay
+      const shortCode =
+        api?.content?.shortCode ||
+        api?.content?.ShortCode ||
+        api?.data?.shortCode ||
+        api?.data?.ShortCode ||
+        api?.shortCode ||
+        api?.ShortCode;
+
+      console.log("SHORT CODE:", shortCode);
+
+      if (!shortCode) {
+        throw new Error("Server did not return shortCode");
+      }
 
       // Lưu shortCode để trang status dùng
       localStorage.setItem("lastShortCode", shortCode);
