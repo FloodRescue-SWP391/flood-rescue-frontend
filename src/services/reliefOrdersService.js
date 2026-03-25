@@ -39,8 +39,21 @@ export const reliefOrdersService = {
         const res = await fetchWithAuth(`${BASE}/${id}`);
         return await safeJson(res);
     },
+    // Lấy tất cả đơn pending (không lọc type)
     async getPending() {
         const res = await fetchWithAuth(`${BASE}/pending`);
+        return await safeJson(res);
+    },
+
+    // Lấy đơn pending dạng Supply (cho Manager)
+    async getPendingSupply() {
+        const res = await fetchWithAuth(`${BASE}/pending?requestType=Supply`);
+        return await safeJson(res);
+    },
+
+    // Lấy đơn theo loại request
+    async getByRequestType(requestType) {
+        const res = await fetchWithAuth(`${BASE}?requestType=${encodeURIComponent(requestType)}`);
         return await safeJson(res);
     },
 

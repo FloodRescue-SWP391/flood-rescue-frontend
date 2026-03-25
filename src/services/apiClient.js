@@ -112,13 +112,17 @@ export async function fetchWithAuth(url, options = {}) {
 
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 
+  console.log(`DEBUG FETCH: ${options.method || "GET"} ${fullUrl}`);
+  const finalHeaders = {
+    ...(options.headers || {}),
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+  console.log("DEBUG HEADERS:", { ...finalHeaders, Authorization: accessToken ? "Bearer ***" : "NONE" });
+
   let res = await fetch(fullUrl, {
     ...options,
-    headers: {
-      ...(options.headers || {}),
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    },
+    headers: finalHeaders,
   });
 
   if (res.status !== 401) return res;
