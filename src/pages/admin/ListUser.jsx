@@ -250,7 +250,7 @@ const ListUser = () => {
                     <span className="user-role">{user.roleName}</span>
                   </div>
 
-                  <div className="user-info">
+                  <div className="user-info1">
                     <div className="info-row">
                       <span className="label">Họ và tên:</span>
                       <span className="value">{user.fullName}</span>
@@ -371,6 +371,7 @@ const ListUser = () => {
                                 ? "status-active"
                                 : "status-inactive"
                             }
+                            style={{padding: "8px 12px", borderRadius : "6px", fontSize: "14px"}}
                           >
                             {user.isActive ? "Hoạt động" : "Không hoạt động"}
                           </span>

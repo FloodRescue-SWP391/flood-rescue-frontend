@@ -1,5 +1,7 @@
 .admin-page {
-  min-height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+    
 }
 
 .admin-body {
@@ -8,32 +10,41 @@
 }
 
 .admin-sidebar {
-  width: 250px;
-  background: #2c3e50;
+  width: 23.5%;
+  background: #3e496d;
   color: white;
   padding: 20px;
-  min-height: calc(100vh - 64px); /* Chiều cao bằng với admin-body */
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-top:3px solid #8d7571;
+   box-sizing: border-box;
+   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
 }
 
+
 .admin-sidebar h3 {
-  color: #ecf0f1;
+  color: #ffffff;
   margin: 25px 0 15px 0;
-  font-size: 16px;
+  font-size: 18px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .admin-sidebar button {
   width: 100%;
   padding: 12px 15px;
   margin: 5px 0;
-  background: #34495e;
+  background: #8da6c0;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   text-align: left;
-  font-size: 14px;
+  font-size: 18px;
   transition: all 0.3s;
   display: flex;
   align-items: center;
@@ -41,18 +52,18 @@
 }
 
 .admin-sidebar button:hover {
-  background: #3d566e;
+  background: #456685;
   transform: translateX(5px);
 }
 
 .admin-sidebar button.active {
-  background: #3498db;
+  background: #216a9b;
   font-weight: bold;
 }
 
 .admin-sidebar button.logout {
   background: #e74c3c;
-  margin-top: 30px;
+ 
 }
 
 .admin-sidebar button.logout:hover {
@@ -61,10 +72,12 @@
 
 .admin-content {
   flex: 1;
-  padding: 20px;
-  background: #fff;
-  min-height: calc(100vh - 64px); /* Chiều cao bằng với admin-body */
-  overflow-y: auto; /* Cho phép scroll nếu content dài */
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 32px;
+  box-sizing: border-box;
+  background: #f3f4f6;
 }
 
 /* Responsive Design */
@@ -95,14 +108,39 @@
 }
 
 .admin-sidebar::-webkit-scrollbar-track {
-  background: #1a252f;
+  background: #ffffff;
 }
 
 .admin-sidebar::-webkit-scrollbar-thumb {
-  background: #3498db;
+  background: #cccccc;
   border-radius: 3px;
 }
 
 .admin-sidebar::-webkit-scrollbar-thumb:hover {
   background: #2980b9;
+}
+
+.dashboard-sub2{
+  padding: 14px 16px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #161616, #5b5b79);
+  color: rgb(255, 255, 255);
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  border-bottom: 1px solid #5b5b79;
+  border-right: 1px solid #5b5b79;
+  border-top: 1px solid #161616;
+  border-left: 1px solid #161616;
+}
+
+.ngang{
+  border-bottom: 1px solid rgb(245, 245, 245);
+  margin-top: 10px;
 }

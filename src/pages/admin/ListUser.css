@@ -4,10 +4,23 @@
 }
 
 .list-user-container h2 {
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 32px;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.list-user-container h2::after {
+  content: "";
+  width: 320px;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  position: absolute;
+  bottom: -10px;
+  left: 160px;
+  transform: translateX(-50%);
+  border-radius: 4px;
 }
 
 /* Controls */
@@ -210,6 +223,7 @@
   color: #495057;
   border-bottom: 2px solid #dee2e6;
   white-space: nowrap;
+
 }
 
 .user-table td {
@@ -307,9 +321,11 @@
 .table-actions,
 .action-buttons2 {
   display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: -1px;
+  margin-right: 3px;
+
 }
 
 .action-buttons2{
@@ -445,11 +461,6 @@
     margin-left: 0;
   }
 
-  .action-buttons,
-  .table-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
   .edit-btn,
   .delete-btn,

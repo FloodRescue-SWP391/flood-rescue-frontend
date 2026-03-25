@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import "./AdminDashboard.css";
 import Header from "../../components/common/Header";
@@ -6,6 +6,22 @@ import Header from "../../components/common/Header";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [userFullName, setUserFullName] = useState("");
+
+  // Lấy tên của username
+  useEffect(() => {
+    try {
+      const name =
+        localStorage.getItem("fullName") ||
+        localStorage.getItem("userFullName") ||
+        "";
+
+      setUserFullName(name);
+    } catch (err) {
+      console.error("Load fullName failed:", err);
+    }
+  }, []);
 
   const handleLogout = () => {
     // Xử lý logout
@@ -19,11 +35,24 @@ const AdminDashboard = () => {
       <Header />
       <div className="admin-body">
         {/* SIDEBAR */}
+
         <aside className="admin-sidebar">
-          <h3>👤 Thành viên</h3>
+          {userFullName && (
+            <p
+              className="dashboard-sub2"
+              style={{ fontWeight: "700", fontSize: "17px" }}
+            >
+              🧑‍🚒 Quản trị viên: {userFullName}
+            </p>
+          )}
+
+          <p className="ngang"></p>
+          <h3>🛡️ Thành viên</h3>
           <button
             onClick={() => navigate("/admin/create-user")}
-            className={location.pathname === "/admin/create-user" ? "active" : ""}
+            className={
+              location.pathname === "/admin/create-user" ? "active" : ""
+            }
           >
             ➕ Thêm thành viên
           </button>
@@ -44,7 +73,9 @@ const AdminDashboard = () => {
           </button>
           <button
             onClick={() => navigate("/admin/list-rescue-team")}
-            className={location.pathname === "/admin/list-rescue-team" ? "active" : ""}
+            className={
+              location.pathname === "/admin/list-rescue-team" ? "active" : ""
+            }
           >
             📋 Danh sách đội cứu hộ
           </button>
@@ -57,6 +88,7 @@ const AdminDashboard = () => {
           </button>
 
           <h3>⚙️ Cài đặt</h3>
+
           <button className="logout" onClick={handleLogout}>
             🚪 Đăng xuất
           </button>

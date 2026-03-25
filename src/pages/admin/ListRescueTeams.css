@@ -6,11 +6,24 @@
 }
 
 .list-rescue-team-container h2 {
-  margin-bottom: 20px;
-  color: #333;
+  font-size: 32px;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 30px;
+  position: relative;
   text-align: center;
-  font-size: 28px;
-  font-weight: 600;
+}
+
+.list-rescue-team-container h2::after{
+   content: "";
+  width: 250px;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 4px;
 }
 
 .panel {
@@ -84,10 +97,20 @@
 
 .btn.danger {
   border: none;
-  color: #fff;
+  color: #ffffff;
   background: linear-gradient(135deg, #dc3545, #c82333);
 }
+.btn.danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background-color: #ec6472;
+}
 
+.btn.small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background-color: #c2c2c2;
+}
 .btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
