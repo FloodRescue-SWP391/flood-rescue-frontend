@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Header from "../../../components/common/Header";
 import { trackRescueRequest } from "../../../services/rescueRequestService";
 import "./RequestStatus.css";
-import {  useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "../../../pages/home/Introduce.css";
 import signalRService from "../../../services/signalrService";
 import Footer from "../../../components/common/Footer";
@@ -17,7 +17,7 @@ const RequestStatus = () => {
   const [lookupError, setLookupError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
-  const countdownRef = useRef(null);
+  const [forcedStatus, setForcedStatus] = useState("");
 
   const location = useLocation();
 
@@ -40,71 +40,276 @@ const RequestStatus = () => {
   }, [shortCode]);
   // SIGNALR REALTIME FOR CITIZEN
   // Citizen sẽ nhận update realtime khi mission thay đổi
+  // useEffect(() => {
+  //   if (!shortCode) return;
+
+  //   // Khi backend báo request có thay đổi trạng thái, citizen sẽ gọi lại API track theo shortCode.
+  //   // const handleMissionUpdate = (data) => {
+  //   //   console.log("Citizen realtime update:", data);
+
+  //   //   const code =
+  //   //     data?.requestShortCode ??
+  //   //     data?.RequestShortCode ??
+  //   //     data?.shortCode ??
+  //   //     "";
+
+  //   //   if (code.trim().toUpperCase() !== shortCode.trim().toUpperCase()) {
+  //   //     return;
+  //   //   }
+
+  //   //   loadRequestByShortCode(shortCode);
+
+  //   //   // gọi lại thêm 1 nhịp để bắt trường hợp BE sync request.status chậm
+  //   //   setTimeout(() => {
+  //   //     loadRequestByShortCode(shortCode);
+  //   //   }, 1200);
+
+  //   //   setTimeout(() => {
+  //   //     loadRequestByShortCode(shortCode);
+  //   //   }, 2500);
+  //   // };
+
+  //   // vá ui để demo
+  //   const handleMissionUpdate = (eventName) => (data) => {
+  //     console.log("Citizen realtime update:", eventName, data);
+
+  //     const code =
+  //       data?.requestShortCode ??
+  //       data?.RequestShortCode ??
+  //       data?.shortCode ??
+  //       "";
+
+  //     if (code.trim().toUpperCase() !== shortCode.trim().toUpperCase()) {
+  //       return;
+  //     }
+
+  //     // Vá UI ngay lập tức cho demo
+  //     if (
+  //       eventName === "ReceiveTeamAcceptedNotification" ||
+  //       eventName === "ReceiveTeamResponse"
+  //     ) {
+  //       setForcedStatus("processing");
+
+  //       setRequest((prev) =>
+  //         prev
+  //           ? {
+  //               ...prev,
+  //               missionStatus: prev?.missionStatus || "InProgress",
+  //               status:
+  //                 prev?.status?.toLowerCase() === "pending"
+  //                   ? "Processing"
+  //                   : prev?.status,
+  //             }
+  //           : prev,
+  //       );
+  //     }
+
+  //     if (
+  //       eventName === "MissionCompleted" ||
+  //       eventName === "ReceiveMissionCompletedNotification"
+  //     ) {
+  //       setForcedStatus("completed");
+
+  //       setRequest((prev) =>
+  //         prev
+  //           ? {
+  //               ...prev,
+  //               missionStatus: "Completed",
+  //               status: "Completed",
+  //             }
+  //           : prev,
+  //       );
+  //     }
+
+  //     // đồng bộ lại từ API sau
+  //     loadRequestByShortCode(shortCode);
+  //     setTimeout(() => loadRequestByShortCode(shortCode), 1200);
+  //     setTimeout(() => loadRequestByShortCode(shortCode), 2500);
+  //   };
+  //   const initSignalR = async () => {
+  //     // await signalRService.startConnection();
+
+  //     // try {
+  //     //   await signalRService.startConnection();
+  //     //   // Event mới: mission hoàn thành.
+  //     //   signalRService.on("MissionCompleted", handleMissionUpdate);
+  //     //   // Event mới dạng tổng quát cho accept/reject nếu backend đã chuẩn hóa.
+  //     //   signalRService.on("ReceiveTeamResponse", handleMissionUpdate);
+  //     //   // Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
+  //     //   // Mission completed
+  //     //   signalRService.on(
+  //     //     "ReceiveMissionCompletedNotification",
+  //     //     handleMissionUpdate,
+  //     //   );
+
+  //     //   // Team accepted
+  //     //   signalRService.on(
+  //     //     "ReceiveTeamAcceptedNotification",
+  //     //     handleMissionUpdate,
+  //     //   );
+
+  //     //   // Team rejected
+  //     //   signalRService.on(
+  //     //     "ReceiveTeamRejectedNotification",
+  //     //     handleMissionUpdate,
+  //     //   );
+  //     // } catch (err) {
+  //     //   console.error("Citizen SignalR init error:", err);
+  //     // }
+
+  //     const onMissionCompleted = handleMissionUpdate("MissionCompleted");
+  //     const onReceiveTeamResponse = handleMissionUpdate("ReceiveTeamResponse");
+  //     const onMissionCompletedOld = handleMissionUpdate(
+  //       "ReceiveMissionCompletedNotification",
+  //     );
+  //     const onTeamAccepted = handleMissionUpdate(
+  //       "ReceiveTeamAcceptedNotification",
+  //     );
+  //     const onTeamRejected = handleMissionUpdate(
+  //       "ReceiveTeamRejectedNotification",
+  //     );
+
+  //     signalRService.on("MissionCompleted", onMissionCompleted);
+  //     signalRService.on("ReceiveTeamResponse", onReceiveTeamResponse);
+  //     signalRService.on(
+  //       "ReceiveMissionCompletedNotification",
+  //       onMissionCompletedOld,
+  //     );
+  //     signalRService.on("ReceiveTeamAcceptedNotification", onTeamAccepted);
+  //     signalRService.on("ReceiveTeamRejectedNotification", onTeamRejected);
+  //   };
+
+  //   initSignalR();
+
+  //   return () => {
+  //     // signalRService.off("MissionCompleted", handleMissionUpdate);
+  //     // signalRService.off("ReceiveTeamResponse", handleMissionUpdate);
+  //     // // -------- Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
+  //     // signalRService.off(
+  //     //   "ReceiveMissionCompletedNotification",
+  //     //   handleMissionUpdate,
+  //     // );
+  //     // signalRService.off(
+  //     //   "ReceiveTeamAcceptedNotification",
+  //     //   handleMissionUpdate,
+  //     // );
+  //     // signalRService.off(
+  //     //   "ReceiveTeamRejectedNotification",
+  //     //   handleMissionUpdate,
+  //     // );
+
+  //     signalRService.off("MissionCompleted", onMissionCompleted);
+  //     signalRService.off("ReceiveTeamResponse", onReceiveTeamResponse);
+  //     signalRService.off(
+  //       "ReceiveMissionCompletedNotification",
+  //       onMissionCompletedOld,
+  //     );
+  //     signalRService.off("ReceiveTeamAcceptedNotification", onTeamAccepted);
+  //     signalRService.off("ReceiveTeamRejectedNotification", onTeamRejected);
+  //   };
+  // }, [shortCode]);
+
   useEffect(() => {
-    if (!shortCode) return;
+  if (!shortCode) return;
 
-    // Khi backend báo request có thay đổi trạng thái, citizen sẽ gọi lại API track theo shortCode.
-    const handleMissionUpdate = (data) => {
-      console.log("Citizen realtime update:", data);
-      const code =
-        data?.requestShortCode ?? data?.RequestShortCode ?? data?.shortCode;
-      if (!code || code === shortCode) {
-        loadRequestByShortCode(shortCode);
-      }
-    };
+  const handleMissionUpdate = (eventName) => (data) => {
+    console.log("Citizen realtime update:", eventName, data);
 
-    const initSignalR = async () => {
-      // await signalRService.startConnection();
+    const code =
+      data?.requestShortCode ??
+      data?.RequestShortCode ??
+      data?.shortCode ??
+      "";
 
-      try {
-        await signalRService.startConnection();
-        // Event mới: mission hoàn thành.
-        await signalRService.on("MissionCompleted", handleMissionUpdate);
-        // Event mới dạng tổng quát cho accept/reject nếu backend đã chuẩn hóa.
-        await signalRService.on("ReceiveTeamResponse", handleMissionUpdate);
-        // Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
-        // Mission completed
-        signalRService.on(
-          "ReceiveMissionCompletedNotification",
-          handleMissionUpdate,
-        );
+    if (code.trim().toUpperCase() !== shortCode.trim().toUpperCase()) {
+      return;
+    }
 
-        // Team accepted
-        signalRService.on(
-          "ReceiveTeamAcceptedNotification",
-          handleMissionUpdate,
-        );
+    // Vá UI ngay lập tức cho demo
+    if (
+      eventName === "ReceiveTeamAcceptedNotification" ||
+      eventName === "ReceiveTeamResponse"
+    ) {
+      setForcedStatus("processing");
 
-        // Team rejected
-        signalRService.on(
-          "ReceiveTeamRejectedNotification",
-          handleMissionUpdate,
-        );
-      } catch (err) {
-        console.error("Citizen SignalR init error:", err);
-      }
-    };
+      setRequest((prev) =>
+        prev
+          ? {
+              ...prev,
+              missionStatus: prev?.missionStatus || "InProgress",
+              status:
+                prev?.status?.toLowerCase() === "pending"
+                  ? "Processing"
+                  : prev?.status,
+            }
+          : prev,
+      );
+    }
 
-    initSignalR();
+    if (
+      eventName === "MissionCompleted" ||
+      eventName === "ReceiveMissionCompletedNotification"
+    ) {
+      setForcedStatus("completed");
 
-    return () => {
-      signalRService.off("MissionCompleted", handleMissionUpdate);
-      signalRService.off("ReceiveTeamResponse", handleMissionUpdate);
-      // -------- Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
-      signalRService.off(
+      setRequest((prev) =>
+        prev
+          ? {
+              ...prev,
+              missionStatus: "Completed",
+              status: "Completed",
+            }
+          : prev,
+      );
+    }
+
+    loadRequestByShortCode(shortCode);
+    setTimeout(() => loadRequestByShortCode(shortCode), 1200);
+    setTimeout(() => loadRequestByShortCode(shortCode), 2500);
+  };
+
+  const onMissionCompleted = handleMissionUpdate("MissionCompleted");
+  const onReceiveTeamResponse = handleMissionUpdate("ReceiveTeamResponse");
+  const onMissionCompletedOld = handleMissionUpdate(
+    "ReceiveMissionCompletedNotification",
+  );
+  const onTeamAccepted = handleMissionUpdate(
+    "ReceiveTeamAcceptedNotification",
+  );
+  const onTeamRejected = handleMissionUpdate(
+    "ReceiveTeamRejectedNotification",
+  );
+
+  const initSignalR = async () => {
+    try {
+      await signalRService.startConnection();
+
+      signalRService.on("MissionCompleted", onMissionCompleted);
+      signalRService.on("ReceiveTeamResponse", onReceiveTeamResponse);
+      signalRService.on(
         "ReceiveMissionCompletedNotification",
-        handleMissionUpdate,
+        onMissionCompletedOld,
       );
-      signalRService.off(
-        "ReceiveTeamAcceptedNotification",
-        handleMissionUpdate,
-      );
-      signalRService.off(
-        "ReceiveTeamRejectedNotification",
-        handleMissionUpdate,
-      );
-    };
-  }, [shortCode]);
+      signalRService.on("ReceiveTeamAcceptedNotification", onTeamAccepted);
+      signalRService.on("ReceiveTeamRejectedNotification", onTeamRejected);
+    } catch (err) {
+      console.error("Citizen SignalR init error:", err);
+    }
+  };
+
+  initSignalR();
+
+  return () => {
+    signalRService.off("MissionCompleted", onMissionCompleted);
+    signalRService.off("ReceiveTeamResponse", onReceiveTeamResponse);
+    signalRService.off(
+      "ReceiveMissionCompletedNotification",
+      onMissionCompletedOld,
+    );
+    signalRService.off("ReceiveTeamAcceptedNotification", onTeamAccepted);
+    signalRService.off("ReceiveTeamRejectedNotification", onTeamRejected);
+  };
+}, [shortCode]);
 
   // AUTO REFRESH REQUEST STATUS
   // Citizen sẽ tự động cập nhật trạng thái mỗi 10 giây
@@ -114,7 +319,7 @@ const RequestStatus = () => {
     const interval = setInterval(() => {
       console.log("Auto refreshing request status...");
       loadRequestByShortCode(request.shortCode);
-    }, 3000); // refresh mỗi 10 giây
+    }, 5000); // refresh mỗi 10 giây
 
     return () => {
       clearInterval(interval);
@@ -155,6 +360,19 @@ const RequestStatus = () => {
 
       const res = await trackRescueRequest(code.trim());
       const dto = res?.content;
+      const realMission = (dto?.missionStatus || "").toLowerCase();
+      const realStatus = (dto?.status || "").toLowerCase();
+
+      if (
+        realMission === "completed" ||
+        realStatus === "completed" ||
+        realStatus === "delivered" ||
+        realMission === "inprogress" ||
+        realMission === "processing" ||
+        realStatus === "processing"
+      ) {
+        setForcedStatus("");
+      }
 
       if (!dto) {
         throw new Error("No request data found.");
@@ -174,16 +392,39 @@ const RequestStatus = () => {
         peopleCount: dto?.peopleCount ?? 0,
         fullName: dto?.citizenName || "",
         phoneNumber: dto?.citizenPhone || "",
-        teamName: dto?.teamName || "",
+        teamName: dto?.teamName || null,
       };
 
-      const rescueTeamData = {
-        name: dto?.teamName,
-        leader: dto?.teamLeader,
-        members: dto?.members || [],
-      };
+      const safeRequestData = { ...requestData };
 
-      setRequest(requestData);
+      if (forcedStatus === "processing") {
+        safeRequestData.status =
+          safeRequestData.status?.toLowerCase() === "pending"
+            ? "Processing"
+            : safeRequestData.status;
+
+        safeRequestData.missionStatus =
+          safeRequestData.missionStatus || "InProgress";
+      }
+
+      if (forcedStatus === "completed") {
+        safeRequestData.status = "Completed";
+        safeRequestData.missionStatus = "Completed";
+      }
+      console.log("TRACK CONTENT FULL:", dto);
+      console.log("STATUS:", dto?.status);
+      console.log("MISSION STATUS:", dto?.missionStatus);
+      console.log("TEAM NAME:", dto?.teamName);
+
+      const rescueTeamData = dto?.teamName
+        ? {
+            name: dto?.teamName,
+            leader: dto?.teamLeader,
+            members: dto?.members || [],
+          }
+        : null;
+
+      setRequest(safeRequestData);
       setRescueTeam(rescueTeamData);
 
       localStorage.setItem("lastRequestData", JSON.stringify(requestData));
@@ -249,9 +490,12 @@ const RequestStatus = () => {
 
       if (confirmFill) {
         setInputCode(savedCode);
-        setTimeout(() => {
-          loadRequestByShortCode(savedCode); // tự load luôn sau khi đồng ý ko cần bấm enter nữa. Không thì bỏ rồi nhấn Enter
-        }, 1000); // 1 giây rồi mới load
+        navigate(
+          `/citizen/request-status?code=${encodeURIComponent(savedCode)}`,
+          {
+            replace: true,
+          },
+        );
       }
     }, 1000); // đợi trang render xong rồi mới hỏi
 
@@ -290,16 +534,128 @@ const RequestStatus = () => {
     );
   };
 
-  const getStatusColor = (status) => {
+  // const getStatusColor = (status) => {
+  //   switch ((status || "").toLowerCase()) {
+  //     case "pending":
+  //       return "#f59e0b";
+
+  //     case "accepted":
+  //     case "inprogress":
+  //     case "in_progress":
+  //     case "processing":
+  //       return "#3b82f6";
+
+  //     case "completed":
+  //       return "#22c55e";
+
+  //     case "delivered":
+  //       return "#10b981";
+
+  //     case "rejected":
+  //     case "cancelled":
+  //       return "#ef4444";
+
+  //     default:
+  //       return "#94a3b8";
+  //   }
+  // };
+
+  const normalizeTimelineStatus = (request, forcedStatus) => {
+    const forced = (forcedStatus || "").toLowerCase();
+    const mission = (request?.missionStatus || "").toLowerCase();
+    const status = (request?.status || "").toLowerCase();
+    const hasTeam = !!request?.teamName;
+
+    // 1. Ưu tiên forced status từ realtime event
+    if (forced === "completed" || forced === "delivered") return forced;
+    if (forced === "processing") return "processing";
+
+    // 2. Ưu tiên mission status
+    if (mission === "completed") return "completed";
+    if (mission === "delivered") return "delivered";
+
+    if (
+      mission === "inprogress" ||
+      mission === "in_progress" ||
+      mission === "accepted" ||
+      mission === "processing"
+    ) {
+      return "processing";
+    }
+
+    // 3. Có team mà mission chưa kịp về thì vẫn cho processing
+    if (hasTeam && !mission) {
+      return "processing";
+    }
+
+    // 4. fallback qua request.status
+    if (status === "completed") return "completed";
+    if (status === "delivered") return "delivered";
+
+    if (
+      status === "processing" ||
+      status === "inprogress" ||
+      status === "in_progress" ||
+      status === "accepted"
+    ) {
+      return "processing";
+    }
+
+    return "pending";
+  };
+
+  const formatMissionStatus = (status, requestType) => {
+    const s = (status || "").toString().trim().toLowerCase();
+    const type = (requestType || "").toString().trim().toLowerCase();
+
+    if (s === "completed") {
+      return type === "supply" ? "Đã giao hàng cứu trợ" : "Hoàn thành";
+    }
+
+    if (s === "inprogress" || s === "in_progress" || s === "processing") {
+      return "Đang xử lý";
+    }
+
+    if (s === "accepted") {
+      return "Đội cứu hộ đã chấp nhận";
+    }
+
+    if (s === "pending") {
+      return "Đang chờ xử lý";
+    }
+
+    if (s === "rejected") {
+      return "Đã từ chối";
+    }
+
+    if (s === "cancelled") {
+      return "Đã hủy";
+    }
+
+    return status || "Đang chọn đội cứu hộ...";
+  };
+
+  const getDisplayStatusColor = (status) => {
     switch ((status || "").toLowerCase()) {
       case "pending":
         return "#f59e0b";
+
+      case "accepted":
       case "processing":
+      case "inprogress":
+      case "in_progress":
         return "#3b82f6";
+
       case "completed":
         return "#22c55e";
+
       case "delivered":
         return "#10b981";
+
+      case "rejected":
+      case "cancelled":
+        return "#ef4444";
+
       default:
         return "#94a3b8";
     }
@@ -345,14 +701,19 @@ const RequestStatus = () => {
     request?.emergencyType || request?.requestType,
   );
 
+  //const normalizedTimelineStatus = normalizeTimelineStatus(request);
+
+  const normalizedTimelineStatus = normalizeTimelineStatus(
+    request,
+    forcedStatus,
+  );
+
   const currentStatusIndex = Math.max(
     statusFlow.findIndex(
-      (step) =>
-        step.status.toLowerCase() === (request?.status || "").toLowerCase(),
+      (step) => step.status.toLowerCase() === normalizedTimelineStatus,
     ),
     0,
   );
-
   return (
     <>
       <Header />
@@ -548,13 +909,30 @@ const RequestStatus = () => {
             </div> */}
 
             {/* MISSION STATUS */}
-            <div className="detail-item">
+            {/* <div className="detail-item">
               <span className="detail-label">Trạng thái nhiệm vụ</span>
               <span
                 className="detail-value"
                 style={{ color: getStatusColor(request.missionStatus) }}
               >
                 {request.missionStatus || "Đang chọn đội cứu hộ....."}
+              </span>
+            </div>
+          </div>
+        </div> */}
+
+            <div className="detail-item">
+              <span className="detail-label">Trạng thái nhiệm vụ</span>
+              <span
+                className="detail-value"
+                style={{
+                  color: getDisplayStatusColor(normalizedTimelineStatus),
+                }}
+              >
+                {formatMissionStatus(
+                  normalizedTimelineStatus,
+                  request.emergencyType,
+                )}
               </span>
             </div>
           </div>

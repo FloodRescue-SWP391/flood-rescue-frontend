@@ -447,7 +447,13 @@ export default function RescueTeamLeader({ teamId }) {
 
       console.log("MISSION CLICKED:", mission);
       console.log("MISSION ID SENT:", missionId);
-      console.log("MISSION STATUS:", mission?.currentStatus);
+      console.log("MISSION NORMALIZED STATUS:", getMissionStatus(mission));
+      console.log("MISSION RAW STATUS:", {
+        missionStatus: mission?.missionStatus,
+        currentStatus: mission?.currentStatus,
+        status: mission?.status,
+        newMissionStatus: mission?.newMissionStatus,
+      });
 
       if (!missionId) {
         console.error("Mission ID is missing", mission);
@@ -478,10 +484,30 @@ export default function RescueTeamLeader({ teamId }) {
 
       console.log("MISSION CLICKED:", mission);
       console.log("MISSION ID SENT:", missionId);
-      console.log("MISSION STATUS:", mission?.currentStatus);
 
+      console.log("MISSION STATUS:", getMissionStatus(mission));
+      console.log("MISSION RAW STATUS:", {
+        missionStatus: mission?.missionStatus,
+        currentStatus: mission?.currentStatus,
+        status: mission?.status,
+        newMissionStatus: mission?.newMissionStatus,
+      });
       if (!missionId) {
         console.error("Mission ID is missing", mission);
+        return;
+      }
+
+      const status = getMissionStatus(mission);
+
+      if (status !== "Assigned") {
+        console.warn(
+          "Accept blocked: mission status is not Assigned",
+          missionId,
+          status,
+        );
+        window.alert(
+          "Không thể chấp nhận: nhiệm vụ không ở trạng thái Được giao.",
+        );
         return;
       }
 
@@ -610,7 +636,16 @@ export default function RescueTeamLeader({ teamId }) {
                 </p>
                 <p>|</p>
                 {userFullName && (
-                  <p className="dashboard-sub" style={{color: "blue" , fontWeight :"600" , fontSize : "18px"}}>👤 {userFullName}</p>
+                  <p
+                    className="dashboard-sub"
+                    style={{
+                      color: "blue",
+                      fontWeight: "600",
+                      fontSize: "18px",
+                    }}
+                  >
+                    👤 {userFullName}
+                  </p>
                 )}
               </div>
             </div>

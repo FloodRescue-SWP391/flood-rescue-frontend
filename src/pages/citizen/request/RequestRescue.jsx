@@ -424,9 +424,9 @@ const RequestRescue = () => {
         } catch (uploadError) {
           alert("Tải ảnh lên thất bại. Vui lòng thử lại.");
           throw uploadError;
-        } finally {
-          setUploadingImage(false);
         }
+
+        setUploadingImage(false);
       }
 
       // lat/long lấy từ mapCenter (giữ map không đổi)
@@ -485,11 +485,10 @@ const RequestRescue = () => {
       setShowSuccess(true);
       localStorage.setItem("lastShortCode", shortCode);
       setTimeout(() => {
-        navigate(`/citizen/request-status?code=${shortCode}`, {
+        navigate("/citizen/request-status", {
           replace: true,
         });
-      }, 1500);
-
+      }, 3000);
       return;
 
       // chuyển trang (nếu bạn muốn truyền code thì dùng query)
@@ -531,10 +530,10 @@ const RequestRescue = () => {
       {showSuccess && (
         <div className="success-toast show">
           <div className="toast-content">
-            <span className="toast-icon">✅</span>
-            <div className="toast-text">
-              <h4>Gửi yêu cầu cứu hộ thành công!</h4>
-              <p>Đội cứu hộ đã được thông báo. Sự hỗ trợ đang đến.</p>
+            
+            <div className="toast-text2">
+              <h4> ✅ Gửi yêu cầu cứu hộ thành công! <br /> Đội cứu hộ đã được thông báo. Sự hỗ trợ đang đến.</h4>
+             
             </div>
           </div>
         </div>

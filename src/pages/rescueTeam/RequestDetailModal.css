@@ -253,7 +253,7 @@
 }
 
 /* TIMELINE */
-.modern-timeline {
+.modern-timeline1 {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -266,7 +266,7 @@
   align-items: flex-start;
 }
 
-.timeline-marker {
+.timeline-marker1 {
   display: flex;
   flex-direction: column;
   align-items: center;
