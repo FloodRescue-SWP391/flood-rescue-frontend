@@ -16,7 +16,10 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 //api
-import { createRescueRequest } from "../../../services/rescueRequestService.js";
+import {
+  createRescueRequest,
+  trackRescueRequest,
+} from "../../../services/rescueRequestService.js";
 
 import { uploadToCloudinary } from "../../../utils/cloudinary.js";
 /* FIX ICON */
@@ -96,7 +99,7 @@ const RequestRescue = () => {
     phoneNumber: "",
     email: "",
     address: "",
-    emergencyType: "Medical Emergency",
+    emergencyType: "",
     peopleCount: 1,
     priorityLevel: "Medium",
     description: "",
@@ -112,6 +115,41 @@ const RequestRescue = () => {
   const [mapCenter, setMapCenter] = useState([10.8231, 106.6297]); // Ho Chi Minh City
   const [mapZoom, setMapZoom] = useState(13);
   const [userLocation, setUserLocation] = useState(null);
+
+  // Check existing request
+  useEffect(() => {
+    const checkExistingRequest = async () => {
+      const lastShortCode = localStorage.getItem("lastShortCode");
+      if (!lastShortCode) return;
+
+      try {
+        const res = await trackRescueRequest(lastShortCode);
+        const status = (res?.content?.status || "").toLowerCase();
+
+        const isActive =
+          status === "pending" ||
+          status === "processing" ||
+          status === "in_progress";
+
+        if (isActive) {
+          alert(
+            "Bạn đang có một yêu cầu cứu hộ chưa hoàn thành. Hệ thống sẽ chuyển bạn đến trang theo dõi yêu cầu hiện tại.",
+          );
+
+          navigate(`/citizen/request-status?code=${lastShortCode}`, {
+            replace: true,
+          });
+        } else {
+          localStorage.removeItem("lastShortCode");
+        }
+      } catch (error) {
+        console.error("Check existing request failed:", error);
+        localStorage.removeItem("lastShortCode");
+      }
+    };
+
+    checkExistingRequest();
+  }, [navigate]);
 
   const categories = [
     { categoryID: 1, categoryName: "Nước uống" },
@@ -354,7 +392,7 @@ const RequestRescue = () => {
 
     if (missingFields.length > 0) {
       alert(
-        `Vui lòng nhập đầy đủ các trường bắt buộc: ${missingFields.join(", ")}`,
+        `Vui lòng điền đầy đủ họ tên, số điện thoại, email, địa chỉ và loại khẩn cấp.`,
       );
       setIsLoading(false);
       return;
@@ -367,7 +405,9 @@ const RequestRescue = () => {
     }
 
     if (!formData.agreeTerms) {
-      alert("Vui lòng xác nhận điều khoản khẩn cấp trước khi gửi.");
+      alert(
+        "Vui lòng xác nhận rằng đây là tình huống khẩn cấp thực sự trước khi gửi yêu cầu.",
+      );
       setIsLoading(false);
       return;
     }
@@ -376,12 +416,17 @@ const RequestRescue = () => {
       let imageUrls = [];
       if (rescueImages.length > 0) {
         setUploadingImage(true);
-        for (const image of rescueImages) {
-          const uploadRes = await uploadToCloudinary(image);
-          imageUrls.push(uploadRes.secure_url);
+        try {
+          for (const image of rescueImages) {
+            const uploadRes = await uploadToCloudinary(image);
+            imageUrls.push(uploadRes.secure_url);
+          }
+        } catch (uploadError) {
+          alert("Tải ảnh lên thất bại. Vui lòng thử lại.");
+          throw uploadError;
+        } finally {
+          setUploadingImage(false);
         }
-
-        setUploadingImage(false);
       }
 
       // lat/long lấy từ mapCenter (giữ map không đổi)
@@ -390,9 +435,9 @@ const RequestRescue = () => {
 
       // Map emergencyType -> requestType backend
       const isSupply =
-        formData.emergencyType === "Need food / drinking water" ||
-        formData.emergencyType === "Need medical supplies" ||
-        formData.emergencyType === "Need life jackets / boats";
+        formData.emergencyType === "Cần thực phẩm / nước uống" ||
+        formData.emergencyType === "Cần thuốc men" ||
+        formData.emergencyType === "Cần áo phao / thuyền";
 
       const payload = {
         citizenName: formData.fullName.trim(),
@@ -415,7 +460,7 @@ const RequestRescue = () => {
       // Lấy thời gian thực
       const createdAt = new Date().toISOString();
       localStorage.setItem("requestCreatedAt", createdAt);
-      
+
       // Gọi API
       const api = await createRescueRequest(payload);
       console.log("API RESPONSE:", api);
@@ -437,15 +482,16 @@ const RequestRescue = () => {
       }
 
       // Lưu shortCode để trang status dùng
-      localStorage.setItem("lastShortCode", shortCode);
-
       setShowSuccess(true);
       localStorage.setItem("lastShortCode", shortCode);
-      navigate(`/citizen/request-status`);
       setTimeout(() => {
-        navigate(`/citizen/request-status`);
-      }, 2000);
+        navigate(`/citizen/request-status?code=${shortCode}`, {
+          replace: true,
+        });
+      }, 1500);
+
       return;
+
       // chuyển trang (nếu bạn muốn truyền code thì dùng query)
     } catch (error) {
       console.error(error);
@@ -810,7 +856,16 @@ const RequestRescue = () => {
                     Mô tả chi tiết{" "}
                     <span className="label-required">Bắt buộc</span>
                   </label>
-
+                  <p
+                    className="helper-text"
+                    style={{
+                      marginTop: "-15px",
+                      marginLeft: "2px",
+                      color: "red",
+                    }}
+                  >
+                    Khi là yêu cầu cứu hộ lương thực, thực phẩm.
+                  </p>
                   <textarea
                     name="description"
                     value={formData.description}

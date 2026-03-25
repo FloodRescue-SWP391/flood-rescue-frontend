@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import Header from "../../../components/common/Header";
 import { trackRescueRequest } from "../../../services/rescueRequestService";
 import "./RequestStatus.css";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import {  useLocation, useNavigate } from "react-router-dom";
 import "../../../pages/home/Introduce.css";
 import signalRService from "../../../services/signalrService";
 import Footer from "../../../components/common/Footer";
@@ -27,6 +27,7 @@ const RequestStatus = () => {
   }, [location.search]);
 
   // Lấy thời gian thực
+  //const createdAt = request?.timestamp || "";
   const createdAt = localStorage.getItem("requestCreatedAt");
 
   const navigate = useNavigate();
@@ -44,15 +45,10 @@ const RequestStatus = () => {
 
     // Khi backend báo request có thay đổi trạng thái, citizen sẽ gọi lại API track theo shortCode.
     const handleMissionUpdate = (data) => {
-      // console.log("Citizen realtime update:", data);
-
-      // // Nếu request trùng shortCode thì reload lại data
-      // if (data.requestShortCode === shortCode) {
-      //   loadRequestByShortCode(shortCode);
-      // }
+      console.log("Citizen realtime update:", data);
       const code =
         data?.requestShortCode ?? data?.RequestShortCode ?? data?.shortCode;
-      if (code && code === shortCode) {
+      if (!code || code === shortCode) {
         loadRequestByShortCode(shortCode);
       }
     };
@@ -118,7 +114,7 @@ const RequestStatus = () => {
     const interval = setInterval(() => {
       console.log("Auto refreshing request status...");
       loadRequestByShortCode(request.shortCode);
-    }, 10000); // refresh mỗi 10 giây
+    }, 3000); // refresh mỗi 10 giây
 
     return () => {
       clearInterval(interval);
@@ -271,13 +267,19 @@ const RequestStatus = () => {
   // }, []);
 
   const handleSearchShortCode = () => {
-    loadRequestByShortCode(inputCode);
+    const code = inputCode.trim();
+    if (!code) {
+      setLookupError("Vui lòng nhập mã tra cứu.");
+      return;
+    }
+
+    navigate(`/citizen/request-status?code=${encodeURIComponent(code)}`);
   };
 
   const handleCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      loadRequestByShortCode(inputCode);
+      handleSearchShortCode();
     }
   };
 
@@ -334,6 +336,7 @@ const RequestStatus = () => {
             {lookupError && <p className="lookup-error">{lookupError}</p>}
           </div>
         </div>
+        <Footer />
       </>
     );
   }
@@ -350,14 +353,12 @@ const RequestStatus = () => {
     0,
   );
 
-
-
   return (
     <>
       <Header />
 
       <button className="back-button1" onClick={() => navigate("/")}>
-        ⬅ Quay lại
+        Quay lại
       </button>
 
       <div className="request-status-container">
@@ -370,10 +371,13 @@ const RequestStatus = () => {
             </p>
             <p className="timestamp">
               Thời gian gửi:{" "}
-              {new Date(createdAt).toLocaleString("vi-VN", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
+              {createdAt
+                ? new Date(createdAt).toLocaleString("vi-VN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                    timeZone: "Asia/Ho_Chi_Minh",
+                  })
+                : "Không có"}
             </p>
           </div>
         </div>
@@ -533,7 +537,7 @@ const RequestStatus = () => {
               </span>
             </div>
 
-            <div className="detail-item">
+            {/* <div className="detail-item">
               <span className="detail-label">Trạng thái</span>
               <span
                 className="detail-value status-text"
@@ -541,7 +545,7 @@ const RequestStatus = () => {
               >
                 {request.status || "Không có"}
               </span>
-            </div>
+            </div> */}
 
             {/* MISSION STATUS */}
             <div className="detail-item">
@@ -550,7 +554,7 @@ const RequestStatus = () => {
                 className="detail-value"
                 style={{ color: getStatusColor(request.missionStatus) }}
               >
-                {request.missionStatus || "Chưa được phân công"}
+                {request.missionStatus || "Đang chọn đội cứu hộ....."}
               </span>
             </div>
           </div>
@@ -598,10 +602,8 @@ const RequestStatus = () => {
             </div>
           </div>
         </div>
-
-
       </div>
-              <Footer />
+      <Footer />
     </>
   );
 };
