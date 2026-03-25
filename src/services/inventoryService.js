@@ -57,7 +57,7 @@ export async function receiveInventory(payload) {
   // }
 
   // return res; // UI lấy res.content
-    return await parseJsonResponse(res);
+  return await parseJsonResponse(res);
 }
 /**
  * PUT /api/Inventories/adjust
@@ -80,7 +80,7 @@ export async function adjustInventory(payload) {
   // }
 
   // return res; // UI lấy res.content
-    return await parseJsonResponse(res);
+  return await parseJsonResponse(res);
 }
 
 export const inventoryService = {

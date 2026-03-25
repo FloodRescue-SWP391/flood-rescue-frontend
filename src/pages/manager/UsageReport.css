@@ -2,27 +2,27 @@
    LAYOUT
 ====================== */
 
-.report-wrap{
-  width:100%;
-  padding:30px;
+.report-wrap {
+  width: 100%;
+  padding: 30px;
 }
 
-.report-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:25px;
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
 }
 
-.report-title{
-  font-size:32px;
-  font-weight:700;
-  color:#111827;
+.report-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
 }
 
-.report-sub{
-  color:#6b7280;
-  font-size:14px;
+.report-sub {
+  color: #6b7280;
+  font-size: 14px;
 }
 
 
@@ -30,10 +30,10 @@
    CARD
 ====================== */
 
-.report-card{
-  border-radius:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.05);
-  margin-bottom:20px;
+.report-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
 }
 
 
@@ -41,15 +41,15 @@
    KPI
 ====================== */
 
-.kpi-label{
-  font-size:13px;
-  color:#6b7280;
+.kpi-label {
+  font-size: 13px;
+  color: #6b7280;
 }
 
-.kpi-value{
-  font-size:28px;
-  font-weight:800;
-  margin-top:5px;
+.kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin-top: 5px;
 }
 
 
@@ -57,21 +57,21 @@
    CHART
 ====================== */
 
-.report-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
-  margin-bottom:20px;
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-.chart-box{
-  width:100%;
-  height:300px;
+.chart-box {
+  width: 100%;
+  height: 300px;
 }
 
-.chart-title{
-  font-weight:700;
-  margin-bottom:10px;
+.chart-title {
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 
 
@@ -79,16 +79,16 @@
    TABLE
 ====================== */
 
-.table-title{
-  font-weight:700;
-  margin-bottom:12px;
+.table-title {
+  font-weight: 700;
+  margin-bottom: 12px;
 }
 
 
-@media(max-width:900px){
+@media(max-width:900px) {
 
-  .report-grid{
-    grid-template-columns:1fr;
+  .report-grid {
+    grid-template-columns: 1fr;
   }
 
 }
