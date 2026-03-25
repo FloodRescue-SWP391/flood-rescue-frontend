@@ -16,11 +16,16 @@ async function parseResponse(res) {
 
   if (!res.ok) {
     console.error(`API Error (${res.status}):`, json || raw);
-    throw new Error(
+    const error = new Error(
       (json && (json.message || json.title)) ||
+      (res.status === 403
+        ? "Bạn không có quyền thực hiện thao tác này."
+        : "") ||
       raw ||
       `Lỗi từ Server (${res.status})`
     );
+    error.status = res.status;
+    throw error;
   }
 
   return json;

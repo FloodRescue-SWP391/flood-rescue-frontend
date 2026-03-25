@@ -77,6 +77,11 @@ function MapClickHandler({ onMapClick }) {
 }
 
 export default function Warehouse() {
+  const currentRole = (localStorage.getItem("role") || "").trim();
+  const canMutateWarehouses = currentRole === "Administrator";
+  const readonlyMessage =
+    "Tai khoan Manager hien chi co quyen xem danh sach kho. Tao, sua hoac xoa kho can quyen Administrator tu backend.";
+
   const [warehouses, setWarehouses] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -97,6 +102,13 @@ export default function Warehouse() {
   const [isSuggestLoading, setIsSuggestLoading] = useState(false);
   const [miniMapCenter, setMiniMapCenter] = useState(null); // null = chưa chọn
   const searchTimerRef = useRef(null);
+
+  const buildWarehousePayload = () => ({
+    name: form.name.trim(),
+    address: form.address.trim(),
+    locationLong: Number(form.locationLong),
+    locationLat: Number(form.locationLat),
+  });
 
   /* =========================
       LOAD DATA
@@ -146,6 +158,11 @@ export default function Warehouse() {
   ========================= */
 
   const handleCreate = async () => {
+    if (!canMutateWarehouses) {
+      toast.error(readonlyMessage);
+      return;
+    }
+
     if (!form.name || !form.address || !form.locationLat || !form.locationLong) {
       return toast.error("Vui lòng nhập đầy đủ thông tin kho.");
     }
@@ -153,14 +170,7 @@ export default function Warehouse() {
     setSaving(true);
     const t = toast.loading("Đang tạo kho...");
     try {
-      const payload = {
-        warehouseId: 0,
-        name: form.name,
-        address: form.address,
-        locationLong: Number(form.locationLong),
-        locationLat: Number(form.locationLat),
-        isDeleted: false,
-      };
+      const payload = buildWarehousePayload();
       console.log("SENDING CREATE PAYLOAD:", payload);
       await createWarehouse(payload);
       toast.success("Tạo kho thành công!", { id: t });
@@ -178,6 +188,11 @@ export default function Warehouse() {
   ========================= */
 
   const handleEdit = async () => {
+    if (!canMutateWarehouses) {
+      toast.error(readonlyMessage);
+      return;
+    }
+
     if (!form.name || !form.address || !form.locationLat || !form.locationLong) {
       return toast.error("Vui lòng nhập đầy đủ thông tin kho.");
     }
@@ -185,14 +200,7 @@ export default function Warehouse() {
     setSaving(true);
     const t = toast.loading("Đang cập nhật...");
     try {
-      const payload = {
-        warehouseId: editing.warehouseId,
-        name: form.name,
-        address: form.address,
-        locationLong: Number(form.locationLong),
-        locationLat: Number(form.locationLat),
-        isDeleted: false,
-      };
+      const payload = buildWarehousePayload();
       console.log("SENDING UPDATE PAYLOAD:", payload);
       await updateWarehouse(editing.warehouseId, payload);
       toast.success("Cập nhật kho thành công!", { id: t });
@@ -210,6 +218,10 @@ export default function Warehouse() {
   ========================= */
 
   const handleDelete = async (id) => {
+    if (!canMutateWarehouses) {
+      toast.error(readonlyMessage);
+      return;
+    }
     if (!window.confirm("Bạn có chắc muốn xóa kho này?")) return;
     const t = toast.loading("Đang xóa...");
     try {
@@ -226,6 +238,11 @@ export default function Warehouse() {
   ========================= */
 
   const openCreate = () => {
+    if (!canMutateWarehouses) {
+      toast.error(readonlyMessage);
+      return;
+    }
+
     setEditing(null);
     setForm({ name: "", address: "", locationLong: "", locationLat: "" });
     setAddressQuery("");
@@ -239,6 +256,11 @@ export default function Warehouse() {
   ========================= */
 
   const openEdit = (warehouse) => {
+    if (!canMutateWarehouses) {
+      toast.error(readonlyMessage);
+      return;
+    }
+
     setEditing(warehouse);
     setForm({
       name: warehouse.name || "",
@@ -353,12 +375,16 @@ export default function Warehouse() {
     <div className="warehouse-page">
       <div className="warehouse-header">
         <h2>Quản lý kho</h2>
-        <button className="btn-add" onClick={openCreate}>
+        <button className="btn-add" onClick={openCreate} disabled={!canMutateWarehouses} title={!canMutateWarehouses ? readonlyMessage : ""}>
           + Thêm kho
         </button>
       </div>
 
       {/* BẢN ĐỒ VỊ TRÍ KHO */}
+      {!canMutateWarehouses && (
+        <div className="warehouse-permission-note">{readonlyMessage}</div>
+      )}
+
       <div className="warehouse-map-card">
         <div className="warehouse-map-title">
           <span>📍</span>
@@ -426,9 +452,12 @@ export default function Warehouse() {
                         color: "#fff",
                         border: "none",
                         borderRadius: 4,
-                        cursor: "pointer",
+                        cursor: canMutateWarehouses ? "pointer" : "not-allowed",
                         fontSize: 12,
+                        opacity: canMutateWarehouses ? 1 : 0.55,
                       }}
+                      disabled={!canMutateWarehouses}
+                      title={!canMutateWarehouses ? readonlyMessage : ""}
                       onClick={() => openEdit(w)}
                     >
                       Chỉnh sửa
@@ -489,11 +518,13 @@ export default function Warehouse() {
                   <td>{w.locationLong}</td>
                   <td>{w.locationLat}</td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    <button className="btn-icon" onClick={() => openEdit(w)}>
+                    <button className="btn-icon" onClick={() => openEdit(w)} disabled={!canMutateWarehouses} title={!canMutateWarehouses ? readonlyMessage : ""}>
                       Chỉnh sửa
                     </button>
                     <button
                       className="btn-icon btn-delete"
+                      disabled={!canMutateWarehouses}
+                      title={!canMutateWarehouses ? readonlyMessage : ""}
                       onClick={() => handleDelete(w.warehouseId)}
                     >
                       Xóa
