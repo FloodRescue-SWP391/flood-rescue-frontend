@@ -26,6 +26,9 @@ const RequestStatus = () => {
     return (qs.get("code") || qs.get("shortCode") || "").trim();
   }, [location.search]);
 
+  // Lấy thời gian thực
+  const createdAt = localStorage.getItem("requestCreatedAt");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -347,6 +350,8 @@ const RequestStatus = () => {
     0,
   );
 
+
+
   return (
     <>
       <Header />
@@ -365,7 +370,7 @@ const RequestStatus = () => {
             </p>
             <p className="timestamp">
               Thời gian gửi:{" "}
-              {new Date(request.timestamp).toLocaleString("vi-VN", {
+              {new Date(createdAt).toLocaleString("vi-VN", {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
@@ -594,8 +599,9 @@ const RequestStatus = () => {
           </div>
         </div>
 
-        <Footer />
+
       </div>
+              <Footer />
     </>
   );
 };
