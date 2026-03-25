@@ -95,7 +95,21 @@ export default function RescueTeamLeader({ teamId }) {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedMission, setSelectedMission] = useState(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [userFullName, setUserFullName] = useState("");
 
+  // Lấy tên của username
+  useEffect(() => {
+    try {
+      const name =
+        localStorage.getItem("fullName") ||
+        localStorage.getItem("userFullName") ||
+        "";
+
+      setUserFullName(name);
+    } catch (err) {
+      console.error("Load fullName failed:", err);
+    }
+  }, []);
   /* ================= HELPERS ================= */
 
   const getMissionId = (mission) =>
@@ -342,11 +356,11 @@ export default function RescueTeamLeader({ teamId }) {
 
   //   return () => clearInterval(interval);
   // }, [teamId]);
- useEffect(() => {
-  if (teamId) {
-    loadMissions();
-  }
-}, [teamId]);
+  useEffect(() => {
+    if (teamId) {
+      loadMissions();
+    }
+  }, [teamId]);
   useEffect(() => {
     const handleMissionNotification = () => loadMissions();
     const handleOrderPrepared = (data) => {
@@ -583,7 +597,6 @@ export default function RescueTeamLeader({ teamId }) {
       <div className="dashboard-container">
         <div className="dashboard-content">
           <div className="dashboard-header">
-               <FaShieldAlt size={32} color="red"  />
             <div>
               <div className="dashboard-header-top">
                 <h1 className="dashboard-title">Dashboard trưởng đội cứu hộ</h1>
@@ -591,9 +604,15 @@ export default function RescueTeamLeader({ teamId }) {
                   🚪 Đăng xuất
                 </button>
               </div>
-              <p className="dashboard-sub">
-                Đội cứu hộ #{teamId?.substring(0, 8) || "Không xác định"}
-              </p>
+              <div className="a">
+                <p className="dashboard-sub">
+                  Đội cứu hộ #{teamId?.substring(0, 8) || "Không xác định"}
+                </p>
+                <p>|</p>
+                {userFullName && (
+                  <p className="dashboard-sub" style={{color: "blue" , fontWeight :"600" , fontSize : "18px"}}>👤 {userFullName}</p>
+                )}
+              </div>
             </div>
           </div>
 
