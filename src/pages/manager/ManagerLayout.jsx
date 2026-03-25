@@ -8,7 +8,7 @@ export default function ManagerLayout() {
 
   return (
     <>
-      <Header />
+      <Header showNotification={true} />
 
       <div className="manager-layout">
 
