@@ -8,7 +8,7 @@ import Footer from "../../components/common/Footer";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-
+  const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [toast, setToast] = useState({
@@ -36,10 +36,11 @@ const Dashboard = () => {
     }
 
     try {
+      setIsLoading(true);
+
       const auth = await login(username, password);
       console.log("Phản hồi đăng nhập:", auth);
 
-      // vì backend bọc trong content
       const content = auth?.content ?? auth?.data?.content ?? auth;
       const roleRaw =
         content?.role ??
@@ -65,22 +66,17 @@ const Dashboard = () => {
 
       if (!roleRaw) {
         console.log("Cannot read role. Raw auth:", auth);
-        showToast("Không lấy được role từ response", "error");
+        showToast("Không lấy được vai trò từ hệ thống", "error");
         return;
       }
 
-      // ✅ Normalize
       const roleKey = String(roleRaw).trim().toLowerCase();
 
-      // ✅ Map role theo DB (RoleName/RoleID)
       const roleMap = {
-        // RoleName trong DB
         admin: "Administrator",
         "inventory manager": "Manager",
         "rescue coordinator": "Coordinator",
         "rescue team member": "RescueTeam",
-
-        // nếu backend trả RoleID
         ad: "Administrator",
         im: "Manager",
         rc: "Coordinator",
@@ -89,55 +85,64 @@ const Dashboard = () => {
 
       const role = roleMap[roleKey];
 
-      console.log("roleRaw =", roleRaw, "=> mapped =", role);
-
       if (!role) {
         showToast(`Vai trò không hợp lệ: ${roleRaw}`, "error");
         return;
       }
 
-      // lưu token/role để ProtectedRoute dùng
       if (token) localStorage.setItem("token", token);
-      localStorage.setItem("role", role); // lưu role đã map (FE role)
+      localStorage.setItem("role", role);
       localStorage.setItem("isAuth", "true");
       localStorage.setItem("fullName", fullName);
 
-      console.log("FULL NAME SAVED:", fullName);
+      if (role === "RescueTeam") {
+        const teamId = content?.teamID || content?.teamId || content?.TeamId;
 
-      showToast("Đăng nhập thành công", "success");
-
-      console.log("NAVIGATE TO ROLE:", role);
-      switch (role) {
-        case "Administrator":
-          navigate("/admin", { replace: true });
-          break;
-        case "Manager":
-          navigate("/manager", { replace: true });
-          break;
-        case "RescueTeam": {
-          const teamId = content?.teamID || content?.teamId || content?.TeamId;
-
-          if (!teamId) {
-            showToast("Không tìm thấy teamId", "error");
-            console.log("LOGIN CONTENT:", content);
-            return;
-          }
-
-          localStorage.setItem("teamId", teamId);
-
-          navigate(`/rescue-team/${teamId}`, { replace: true });
-
-          break;
+        if (!teamId) {
+          showToast("Không tìm thấy mã đội cứu hộ", "error");
+          return;
         }
 
-        case "Coordinator":
-          navigate("/coordinator", { replace: true });
-          break;
-        default:
-          navigate("/unauthorized", { replace: true });
+        localStorage.setItem("teamId", teamId);
+
+        showToast("Đăng nhập thành công", "success", 1200);
+
+        setTimeout(() => {
+          navigate(`/rescue-team/${teamId}`, { replace: true });
+        }, 1200);
+
+        return;
       }
+
+      showToast("Đăng nhập thành công", "success", 1200);
+
+      setTimeout(() => {
+        switch (role) {
+          case "Administrator":
+            navigate("/admin", { replace: true });
+            break;
+          case "Manager":
+            navigate("/manager", { replace: true });
+            break;
+          case "Coordinator":
+            navigate("/coordinator", { replace: true });
+            break;
+          default:
+            navigate("/unauthorized", { replace: true });
+        }
+      }, 1200);
     } catch (err) {
-      showToast(err?.message || "Đăng nhập thất bại", "error");
+      console.error("LOGIN ERROR:", err);
+
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.title ||
+        err?.message ||
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.";
+
+      showToast(message, "error", 2000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -199,8 +204,12 @@ const Dashboard = () => {
                   </Form.Group>
 
                   <div className="d-grid">
-                    <button type="submit" className="login-btn1 fw-semibold">
-                      Đăng nhập
+                    <button
+                      type="submit"
+                      className="login-btn1 fw-semibold"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                     </button>
                   </div>
 
