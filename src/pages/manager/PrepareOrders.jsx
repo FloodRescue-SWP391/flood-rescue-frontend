@@ -4,29 +4,54 @@ import { useEffect, useState } from "react";
 import { reliefOrdersService } from "../../services/reliefOrdersService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
+import { toast } from "react-hot-toast";
+import { RefreshCw } from "lucide-react";
+
 export default function PrepareOrder() {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showPrepare, setShowPrepare] = useState(false);
   const [items, setItems] = useState([]);
 
-  const loadOrders = async () => {
+  const extractList = (res) => {
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.content)) return res.content;
+    if (Array.isArray(res?.items)) return res.items;
+    if (Array.isArray(res?.data?.content)) return res.data.content;
+    if (typeof res === "object" && res !== null) {
+      const potentialArray = Object.values(res).find(Array.isArray);
+      if (potentialArray) return potentialArray;
+    }
+    return [];
+  };
+
+  const loadOrders = async (silent = false) => {
     try {
-      const res = await reliefOrdersService.getPending();
-      let list = [];
-      if (Array.isArray(res)) list = res;
-      else if (Array.isArray(res?.data)) list = res.data;
-      else if (Array.isArray(res?.content)) list = res.content;
-      else if (Array.isArray(res?.items)) list = res.items;
-      else if (Array.isArray(res?.data?.content)) list = res.data.content;
-      else if (typeof res === "object" && res !== null) {
-        const potentialArray = Object.values(res).find(Array.isArray);
-        if (potentialArray) list = potentialArray;
+      if (!silent) setLoading(true);
+      
+      // Ưu tiên lấy đơn dạng Supply (nguồn cung cấp vật tư cho Manager)
+      const resSupply = await reliefOrdersService.getPendingSupply();
+      console.log("getPendingSupply response:", resSupply);
+      let list = extractList(resSupply);
+
+      // Nếu API supply không trả về gì, fallback về getPending thông thường
+      if (list.length === 0) {
+        console.log("Supply list empty, fallback to getPending...");
+        const resPending = await reliefOrdersService.getPending();
+        console.log("getPending response:", resPending);
+        list = extractList(resPending);
       }
+
       setOrders(list);
+      if (!silent) toast.success("Đã cập nhật danh sách đơn hàng.");
     } catch (err) {
-      console.error(err);
+      console.error("loadOrders error:", err);
+      if (!silent) toast.error("Không thể cập nhật danh sách đơn hàng.");
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
 
@@ -126,8 +151,18 @@ export default function PrepareOrder() {
     <div className="prepare-page">
       <div className="prepare-header">
         <h2>Quản lý đơn hàng cứu trợ</h2>
-        <button className="btn-refresh" onClick={loadOrders}>
-          Làm mới
+        <button 
+          className="btn-refresh" 
+          onClick={() => loadOrders()} 
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <RefreshCw className="spinner" size={16} /> Đang tải...
+            </>
+          ) : (
+            "Làm mới"
+          )}
         </button>
       </div>
 

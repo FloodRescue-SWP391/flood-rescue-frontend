@@ -16,10 +16,34 @@
   background:#2563eb;
   color:white;
   border:none;
-  padding:8px 14px;
+  padding:8px 16px;
   border-radius:6px;
   font-weight:600;
   cursor:pointer;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 

@@ -3,45 +3,47 @@ import { fetchWithAuth } from "./apiClient";
 
 const BASE_PATH = "/Warehouses";
 
-/**
- * GET /api/Warehouses
- * Lấy danh sách warehouse
- */
-export async function getWarehouses() {
-  const res = await fetchWithAuth(BASE_PATH, {
-    method: "GET",
-  });
+/** Parse response an toàn - giống rescueRequestService */
+async function parseResponse(res) {
+  const raw = await res.text();
+  let json = null;
 
-  if (res?.success === false) {
-    throw new Error(res?.message || "Failed to get warehouses.");
+  try {
+    json = raw ? JSON.parse(raw) : null;
+  } catch {
+    json = null;
   }
 
-  return res; // UI dùng res.content
+  if (!res.ok) {
+    console.error(`API Error (${res.status}):`, json || raw);
+    throw new Error(
+      (json && (json.message || json.title)) ||
+      raw ||
+      `Lỗi từ Server (${res.status})`
+    );
+  }
+
+  return json;
+}
+
+/**
+ * GET /api/Warehouses
+ */
+export async function getWarehouses() {
+  const res = await fetchWithAuth(BASE_PATH, { method: "GET" });
+  return await parseResponse(res);
 }
 
 /**
  * GET /api/Warehouses/{id}
- * Lấy chi tiết warehouse
  */
 export async function getWarehouseById(id) {
-  if (!id || Number(id) <= 0) {
-    throw new Error("Warehouse id must be a positive number.");
-  }
-
-  const res = await fetchWithAuth(`${BASE_PATH}/${id}`, {
-    method: "GET",
-  });
-
-  if (res?.success === false) {
-    throw new Error(res?.message || "Failed to get warehouse.");
-  }
-
-  return res;
+  const res = await fetchWithAuth(`${BASE_PATH}/${id}`, { method: "GET" });
+  return await parseResponse(res);
 }
 
 /**
  * POST /api/Warehouses
- * Tạo warehouse
  */
 export async function createWarehouse(payload) {
   if (!payload || typeof payload !== "object") {
@@ -50,61 +52,35 @@ export async function createWarehouse(payload) {
 
   const res = await fetchWithAuth(BASE_PATH, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
-  if (res?.success === false) {
-    throw new Error(res?.message || "Create warehouse failed.");
-  }
-
-  return res;
+  return await parseResponse(res);
 }
 
 /**
  * PUT /api/Warehouses/{id}
- * Update warehouse
  */
 export async function updateWarehouse(id, payload) {
-  if (!id || Number(id) <= 0) {
-    throw new Error("Warehouse id must be a positive number.");
-  }
-
   const res = await fetchWithAuth(`${BASE_PATH}/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
-  if (res?.success === false) {
-    throw new Error(res?.message || "Update warehouse failed.");
-  }
-
-  return res;
+  return await parseResponse(res);
 }
 
 /**
  * DELETE /api/Warehouses/{id}
- * Xóa warehouse
  */
 export async function deleteWarehouse(id) {
-  if (!id || Number(id) <= 0) {
-    throw new Error("Warehouse id must be a positive number.");
-  }
-
   const res = await fetchWithAuth(`${BASE_PATH}/${id}`, {
     method: "DELETE",
   });
 
-  if (res?.success === false) {
-    throw new Error(res?.message || "Delete warehouse failed.");
-  }
-
-  return res;
+  return await parseResponse(res);
 }
 
 export const warehouseService = {
