@@ -6,7 +6,10 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { getAllRescueRequests } from "../../services/rescueRequestService.js";
-import { getAllRescueTeams } from "../../services/rescueTeamService.js";
+import {
+  getAllRescueTeams,
+  getRescueTeamById,
+} from "../../services/rescueTeamService.js";
 import {
   rescueMissionService,
   completeMission,
@@ -40,6 +43,145 @@ const dotIcon = (color) =>
     iconSize: [20, 20],
     iconAnchor: [10, 10],
   });
+
+const TEAM_MARKER_REFRESH_MS = 20000;
+const teamIconCache = new Map();
+
+const pickFirstValue = (...values) =>
+  values.find((value) => value !== undefined && value !== null && value !== "");
+
+const readTeamId = (team) =>
+  team?.rescueTeamID ??
+  team?.RescueTeamID ??
+  team?.rescueTeamId ??
+  team?.RescueTeamId ??
+  team?.id ??
+  team?.Id;
+
+const getTeamLatitudeValue = (team) => {
+  const lat = Number(
+    pickFirstValue(
+      team?.currentLatitude,
+      team?.CurrentLatitude,
+      team?.latitude,
+      team?.Latitude,
+    ),
+  );
+
+  return Number.isFinite(lat) && lat >= -90 && lat <= 90 ? lat : null;
+};
+
+const getTeamLongitudeValue = (team) => {
+  const lng = Number(
+    pickFirstValue(
+      team?.currentLongitude,
+      team?.CurrentLongitude,
+      team?.longitude,
+      team?.Longitude,
+    ),
+  );
+
+  return Number.isFinite(lng) && lng >= -180 && lng <= 180 ? lng : null;
+};
+
+const hasValidTeamLocation = (team) =>
+  getTeamLatitudeValue(team) !== null && getTeamLongitudeValue(team) !== null;
+
+const normalizeTeamStatus = (status) => {
+  const s = String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (!s) return "unknown";
+  if (["available", "idle", "ready"].includes(s)) return "available";
+  if (
+    [
+      "assigned",
+      "inprogress",
+      "in_progress",
+      "processing",
+      "onmission",
+      "on_mission",
+      "busy",
+    ].includes(s)
+  ) {
+    return "busy";
+  }
+  if (["offline", "inactive", "disabled"].includes(s)) return "offline";
+  return "unknown";
+};
+
+const getTeamStatusMeta = (status) => {
+  switch (normalizeTeamStatus(status)) {
+    case "available":
+      return {
+        markerClass: "available",
+        badgeClass: "available",
+        label: "Sẵn sàng",
+      };
+    case "busy":
+      return {
+        markerClass: "busy",
+        badgeClass: "busy",
+        label: status || "Đang làm nhiệm vụ",
+      };
+    case "offline":
+      return {
+        markerClass: "offline",
+        badgeClass: "offline",
+        label: status || "Ngoại tuyến",
+      };
+    default:
+      return {
+        markerClass: "unknown",
+        badgeClass: "unknown",
+        label: status || "Chưa rõ",
+      };
+  }
+};
+
+const buildTeamMarkerIcon = (status) => {
+  const { markerClass } = getTeamStatusMeta(status);
+
+  if (!teamIconCache.has(markerClass)) {
+    teamIconCache.set(
+      markerClass,
+      L.divIcon({
+        className: "team-marker-wrapper",
+        html: `
+          <div class="team-marker team-marker--${markerClass}">
+            <div class="team-marker__body">
+              <svg class="team-marker__icon" viewBox="0 0 32 32" aria-hidden="true">
+                <path fill="currentColor" d="M13 5h6v6h6v6h-6v6h-6v-6H7v-6h6z"></path>
+              </svg>
+            </div>
+            <span class="team-marker__badge team-marker__badge--${markerClass}"></span>
+          </div>
+        `,
+        iconSize: [44, 44],
+        iconAnchor: [22, 40],
+        popupAnchor: [0, -34],
+      }),
+    );
+  }
+
+  return teamIconCache.get(markerClass);
+};
+
+const readApiJson = async (res) => {
+  if (!res || typeof res.text !== "function") return null;
+
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Parse API JSON failed:", error);
+    return null;
+  }
+};
 
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
@@ -292,6 +434,109 @@ const Dashboard = () => {
     if (Array.isArray(res.data?.content)) return res.data.content;
 
     return [];
+  };
+
+  const extractApiObject = (res) => {
+    if (!res || Array.isArray(res)) return null;
+
+    if (res.content && !Array.isArray(res.content)) {
+      if (res.content.data && !Array.isArray(res.content.data)) {
+        return res.content.data;
+      }
+      return res.content;
+    }
+
+    if (res.data && !Array.isArray(res.data)) {
+      if (res.data.data && !Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+      if (res.data.content && !Array.isArray(res.data.content)) {
+        return res.data.content;
+      }
+      return res.data;
+    }
+
+    return res;
+  };
+
+  const hydrateTeamsWithLocation = async (teamList) => {
+    if (!Array.isArray(teamList) || teamList.length === 0) return [];
+
+    const missingLocationTeams = teamList.filter(
+      (team) => readTeamId(team) && !hasValidTeamLocation(team),
+    );
+
+    if (missingLocationTeams.length === 0) {
+      return teamList;
+    }
+
+    const detailEntries = await Promise.all(
+      missingLocationTeams.map(async (team) => {
+        const teamId = readTeamId(team);
+
+        try {
+          const res = await getRescueTeamById(teamId);
+
+          if (!res?.ok) {
+            console.warn("Load rescue team detail failed:", teamId, res?.status);
+            return [String(teamId), null];
+          }
+
+          const json = await readApiJson(res);
+          const detail = extractApiObject(json);
+
+          return [String(teamId), detail];
+        } catch (error) {
+          console.warn("Load rescue team detail threw:", teamId, error);
+          return [String(teamId), null];
+        }
+      }),
+    );
+
+    const detailMap = new Map(detailEntries);
+
+    return teamList.map((team) => {
+      const teamId = readTeamId(team);
+      const detail = detailMap.get(String(teamId));
+
+      if (!detail) return team;
+
+      return {
+        ...detail,
+        ...team,
+        currentLatitude: pickFirstValue(
+          team?.currentLatitude,
+          team?.CurrentLatitude,
+          detail?.currentLatitude,
+          detail?.CurrentLatitude,
+          detail?.latitude,
+          detail?.Latitude,
+        ),
+        currentLongitude: pickFirstValue(
+          team?.currentLongitude,
+          team?.CurrentLongitude,
+          detail?.currentLongitude,
+          detail?.CurrentLongitude,
+          detail?.longitude,
+          detail?.Longitude,
+        ),
+        currentStatus: pickFirstValue(
+          team?.currentStatus,
+          team?.CurrentStatus,
+          detail?.currentStatus,
+          detail?.CurrentStatus,
+        ),
+        teamName: pickFirstValue(
+          team?.teamName,
+          team?.TeamName,
+          detail?.teamName,
+          detail?.TeamName,
+          detail?.rescueTeamName,
+          detail?.RescueTeamName,
+        ),
+        city: pickFirstValue(team?.city, team?.City, detail?.city, detail?.City),
+      };
+    });
   };
 
   useEffect(() => {
@@ -663,6 +908,7 @@ const Dashboard = () => {
   );
 
   const availableTeams = teams;
+  const trackedTeams = teams.filter((team) => hasValidTeamLocation(team));
 
   //load team
   useEffect(() => {
@@ -678,8 +924,18 @@ const Dashboard = () => {
         console.log("Teams extracted:", data);
 
         if (Array.isArray(data)) {
-          setTeams(data);
-          setSelectedTeamId("");
+          const hydratedTeams = await hydrateTeamsWithLocation(data);
+
+          setTeams(hydratedTeams);
+          setSelectedTeamId((prevSelectedTeamId) => {
+            if (!prevSelectedTeamId) return "";
+
+            const stillExists = hydratedTeams.some(
+              (team) => String(readTeamId(team)) === String(prevSelectedTeamId),
+            );
+
+            return stillExists ? prevSelectedTeamId : "";
+          });
           setDispatchError("");
           setDispatchSuccess("");
         } else {
@@ -696,6 +952,34 @@ const Dashboard = () => {
     };
 
     loadTeams();
+  }, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(async () => {
+      try {
+        const res = await getAllRescueTeams({ noCache: true });
+        const data = extractApiData(res);
+
+        if (!Array.isArray(data)) return;
+
+        const hydratedTeams = await hydrateTeamsWithLocation(data);
+
+        setTeams(hydratedTeams);
+        setSelectedTeamId((prevSelectedTeamId) => {
+          if (!prevSelectedTeamId) return "";
+
+          const stillExists = hydratedTeams.some(
+            (team) => String(readTeamId(team)) === String(prevSelectedTeamId),
+          );
+
+          return stillExists ? prevSelectedTeamId : "";
+        });
+      } catch (error) {
+        console.warn("Refresh rescue teams failed:", error);
+      }
+    }, TEAM_MARKER_REFRESH_MS);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
   //F5 vẫn giữ số lượng chuông
@@ -1398,6 +1682,11 @@ const Dashboard = () => {
                       <span className="legend-dot supply"></span>
                       <span>Cứu trợ</span>
                     </div>
+
+                    <div className="legend-item">
+                      <span className="legend-dot team"></span>
+                      <span>Rescue team</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1459,6 +1748,50 @@ const Dashboard = () => {
                           </Popup>
                         </Marker>
                       ))}
+
+                    {trackedTeams.map((team) => {
+                      const teamLat = getTeamLatitudeValue(team);
+                      const teamLng = getTeamLongitudeValue(team);
+                      const teamStatus = getTeamStatusMeta(team?.currentStatus);
+
+                      return (
+                        <Marker
+                          key={`team-${getTeamId(team)}`}
+                          position={[teamLat, teamLng]}
+                          icon={buildTeamMarkerIcon(team?.currentStatus)}
+                          zIndexOffset={700}
+                          eventHandlers={{
+                            click: () => {
+                              setMapCenter([teamLat, teamLng]);
+                              setMapZoom((prevZoom) => Math.max(prevZoom, 15));
+                            },
+                          }}
+                        >
+                          <Popup>
+                            <div className="team-popup">
+                              <div className="team-popup__title">
+                                {getTeamLabel(team)}
+                              </div>
+
+                              <div
+                                className={`team-popup__status team-popup__status--${teamStatus.badgeClass}`}
+                              >
+                                {teamStatus.label}
+                              </div>
+
+                              <div className="team-popup__meta">
+                                <strong>Thành phố:</strong>{" "}
+                                {team?.city || team?.City || "Chưa cập nhật"}
+                              </div>
+                              <div className="team-popup__meta">
+                                <strong>Tọa độ:</strong>{" "}
+                                {teamLat.toFixed(5)}, {teamLng.toFixed(5)}
+                              </div>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
                   </MapContainer>
                 </div>
 
