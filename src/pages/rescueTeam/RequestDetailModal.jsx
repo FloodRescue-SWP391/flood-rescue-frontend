@@ -439,9 +439,9 @@ export default function RequestDetailModal({
           {/* TIMELINE */}
           {activeTab === "timeline" && (
             <div className="tab-content">
-              <div className="timeline modern-timeline">
+              <div className="timeline modern-timeline1">
                 <div className="timeline-item">
-                  <div className="timeline-marker">
+                  <div className="timeline-marker1">
                     <div className="timeline-dot active"></div>
                     <div className="timeline-line"></div>
                   </div>
@@ -455,7 +455,7 @@ export default function RequestDetailModal({
                 </div>
 
                 <div className="timeline-item">
-                  <div className="timeline-marker">
+                  <div className="timeline-marker1">
                     <div className="timeline-dot active"></div>
                     <div className="timeline-line"></div>
                   </div>
@@ -467,7 +467,7 @@ export default function RequestDetailModal({
                 </div>
 
                 <div className="timeline-item">
-                  <div className="timeline-marker">
+                  <div className="timeline-marker1">
                     <div className="timeline-dot"></div>
                     {mission?.endTime && <div className="timeline-line"></div>}
                   </div>
@@ -482,7 +482,7 @@ export default function RequestDetailModal({
 
                 {mission?.endTime && (
                   <div className="timeline-item">
-                    <div className="timeline-marker">
+                    <div className="timeline-marker1">
                       <div className="timeline-dot completed"></div>
                     </div>
                     <div className="timeline-content card-style">
