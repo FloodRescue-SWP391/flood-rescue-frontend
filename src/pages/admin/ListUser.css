@@ -273,22 +273,20 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 15px 20px;
-  border-radius: 6px;
-  color: #fff;
-  font-weight: 500;
-  z-index: 1000;
-  animation: slideIn 0.3s ease-out;
-  max-width: 400px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  padding: 14px 18px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .toast.success {
-  background: linear-gradient(135deg, #28a745, #1e7e34);
+  background: #16a34a;
 }
 
 .toast.error {
-  background: linear-gradient(135deg, #dc3545, #c82333);
+  background: #dc2626;
 }
 
 @keyframes slideIn {

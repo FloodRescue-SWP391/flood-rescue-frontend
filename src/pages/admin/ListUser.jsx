@@ -36,7 +36,14 @@ const ListUser = () => {
 
   const showToast = (message) => {
     setToast(message);
-    setTimeout(() => setToast(""), 3000);
+
+    if (window.__toastTimer) {
+      clearTimeout(window.__toastTimer);
+    }
+
+    window.__toastTimer = setTimeout(() => {
+      setToast("");
+    }, 3000);
   };
 
   const loadUsers = async () => {
@@ -50,7 +57,13 @@ const ListUser = () => {
       const roleId = "";
       const isActive = "";
 
-      console.log("Loading users with params:", { searchKeyword: search, roleId, isActive, pageNumber, pageSize });
+      console.log("Loading users with params:", {
+        searchKeyword: search,
+        roleId,
+        isActive,
+        pageNumber,
+        pageSize,
+      });
       const res = await getUsers({
         searchKeyword: search,
         roleId,
@@ -136,6 +149,30 @@ const ListUser = () => {
     });
   };
   // ===== ADD: save tạm ở frontend trước, sau nối API sau =====
+  // const handleSaveEdit = async (userId) => {
+  //   try {
+  //     const payload = {
+  //       fullName: editForm.fullName,
+  //       phone: editForm.phone,
+  //       roleID: editForm.roleID,
+  //     };
+
+  //     const res = await updateUser(userId, payload);
+  //     console.log("UpdateUser API Response:", res);
+
+  //     if (res?.success) {
+  //       showToast("✅ Cập nhật người dùng thành công");
+  //       setEditingUserId(null);
+  //       loadUsers();
+  //     } else {
+  //       showToast("❌ Không thể cập nhật người dùng");
+  //     }
+  //   } catch (error) {
+  //     console.error("Lỗi cập nhật người dùng:", error);
+  //     showToast("❌ Không thể cập nhật người dùng");
+  //   }
+  // };
+
   const handleSaveEdit = async (userId) => {
     try {
       const payload = {
@@ -147,10 +184,29 @@ const ListUser = () => {
       const res = await updateUser(userId, payload);
       console.log("UpdateUser API Response:", res);
 
-      if (res?.success) {
-        showToast("✅ Cập nhật người dùng thành công");
+      const isSuccess =
+        res?.success === true || res?.status === 200 || res?.status === 204;
+
+      if (isSuccess) {
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.userID === userId
+              ? {
+                  ...user,
+                  fullName: editForm.fullName,
+                  phone: editForm.phone,
+                  roleID: editForm.roleID,
+                }
+              : user,
+          ),
+        );
+
         setEditingUserId(null);
-        loadUsers();
+        showToast("✅ Tài khoản này đã cập nhật");
+
+        setTimeout(() => {
+          loadUsers();
+        }, 200);
       } else {
         showToast("❌ Không thể cập nhật người dùng");
       }
@@ -371,7 +427,11 @@ const ListUser = () => {
                                 ? "status-active"
                                 : "status-inactive"
                             }
-                            style={{padding: "8px 12px", borderRadius : "6px", fontSize: "14px"}}
+                            style={{
+                              padding: "8px 12px",
+                              borderRadius: "6px",
+                              fontSize: "14px",
+                            }}
                           >
                             {user.isActive ? "Hoạt động" : "Không hoạt động"}
                           </span>
