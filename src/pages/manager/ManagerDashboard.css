@@ -140,3 +140,386 @@
   color: #6b7280;
   margin-bottom: 20px;
 }
+
+/* ======================
+   MANAGER NOTIFICATION
+====================== */
+
+.manager-dashboard-page {
+  width: 100%;
+}
+
+.manager-dashboard-page .top-user-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.manager-dashboard-page .user-chip {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.manager-dashboard-page .user-info {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.manager-dashboard-page .user-greeting {
+  line-height: 1.4;
+}
+
+.manager-dashboard-page .user-name {
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.manager-dashboard-page .logout-btn3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.25s ease;
+}
+
+.manager-dashboard-page .logout-btn3:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.15);
+}
+
+.manager-dashboard-page .logout-btn3:active {
+  transform: scale(0.96);
+}
+
+.manager-dashboard-page .logout-icon {
+  font-size: 16px;
+}
+
+.manager-dashboard-header {
+  position: relative;
+  overflow: visible;
+}
+
+.manager-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.manager-dashboard-copy {
+  min-width: 260px;
+}
+
+.manager-dashboard-copy .panel-sub {
+  margin-bottom: 0;
+}
+
+.manager-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.manager-dashboard-page .button {
+  display: flex;
+  align-items: center;
+}
+
+.manager-export-btn {
+  min-height: 48px;
+}
+
+.manager-dashboard-page .notification-container {
+  position: relative;
+}
+
+.manager-dashboard-page .notification-bell {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: #ffffff;
+  font-size: 22px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
+}
+
+.manager-dashboard-page .notification-bell:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 14px 28px rgba(6, 182, 212, 0.25);
+  filter: brightness(1.05);
+}
+
+.manager-dashboard-page .notification-bell:active {
+  transform: scale(0.96);
+}
+
+.manager-dashboard-page .notification-bell.active .bell-icon {
+  display: inline-block;
+  animation: managerBellPulse 1.2s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+@keyframes managerBellPulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  20% {
+    transform: scale(1.08) rotate(-8deg);
+  }
+  40% {
+    transform: scale(1.15) rotate(8deg);
+  }
+  60% {
+    transform: scale(1.08) rotate(-6deg);
+  }
+  80% {
+    transform: scale(1.04) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.manager-dashboard-page .notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+}
+
+.manager-dashboard-page .bell-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.manager-dashboard-page .notification-panel {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  width: 460px;
+  max-width: min(460px, calc(100vw - 80px));
+  max-height: 500px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.14);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.manager-dashboard-page .notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+}
+
+.manager-dashboard-page .notification-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.manager-dashboard-page .mark-all-read {
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.manager-dashboard-page .mark-all-read:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.manager-dashboard-page .notification-list {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.manager-dashboard-page .notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+  padding: 14px 14px 14px 12px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+
+.manager-dashboard-page .notification-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.manager-dashboard-page .notification-item.read {
+  opacity: 0.75;
+}
+
+.manager-dashboard-page .notification-icon {
+  font-size: 22px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.manager-dashboard-page .notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.manager-dashboard-page .notification-content h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.manager-dashboard-page .notification-content p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.manager-dashboard-page .notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manager-dashboard-page .notification-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.manager-dashboard-page .notification-action {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.manager-dashboard-page .notification-action:hover {
+  background: #1d4ed8;
+}
+
+.manager-dashboard-page .notification-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.manager-dashboard-page .notification-close:hover {
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.manager-dashboard-page .no-notifications {
+  text-align: center;
+  padding: 30px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .manager-panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manager-header-actions {
+    width: 100%;
+  }
+
+  .manager-export-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .manager-dashboard-page .top-user-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manager-dashboard-page .user-name {
+    font-size: 20px;
+  }
+
+  .manager-dashboard-page .notification-panel {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 14px;
+  }
+
+  .manager-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .manager-dashboard-page .button {
+    align-self: flex-start;
+  }
+}

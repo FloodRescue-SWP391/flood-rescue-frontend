@@ -20,6 +20,22 @@
   cursor: pointer;
 }
 
+.btn-add:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.warehouse-permission-note {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 /* MAP CARD */
 .warehouse-map-card {
   background: white;
@@ -93,6 +109,11 @@
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.btn-icon:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
 }
 
 .btn-delete {

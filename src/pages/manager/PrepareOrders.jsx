@@ -1,6 +1,7 @@
 // File này đã được chú thích lại để bạn biết các block realtime/API dùng để làm gì.
 import "./PrepareOrders.css";
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { reliefOrdersService } from "../../services/reliefOrdersService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
@@ -8,6 +9,8 @@ import { toast } from "react-hot-toast";
 import { RefreshCw } from "lucide-react";
 
 export default function PrepareOrder() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -103,6 +106,16 @@ export default function PrepareOrder() {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    const openOrderId = location.state?.openOrderId;
+
+    if (!openOrderId) return;
+
+    handleView(openOrderId).finally(() => {
+      navigate(location.pathname, { replace: true, state: null });
+    });
+  }, [location.pathname, location.state, navigate]);
 
   const openPrepare = async (id) => {
     try {
