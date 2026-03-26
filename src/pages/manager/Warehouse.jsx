@@ -1,3 +1,4 @@
+import "./ManagerDashboard.css";
 import "./Warehouse.css";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState, useRef } from "react";
@@ -97,7 +98,7 @@ export default function Warehouse() {
     "Tài khoản hiện tại không có quyền thêm, sửa hoặc xóa kho.";
 
   const missingWarehouseIdMessage =
-    "Kho nay chua co id hop le (id/warehouseID) tu API nen frontend chua the sua hoac xoa.";
+    "Kho này chưa có ID hợp lệ (`id/warehouseID`) từ API nên frontend chưa thể sửa hoặc xóa.";
 
   const [warehouses, setWarehouses] = useState([]);
   const [filters, setFilters] = useState(DEFAULT_WAREHOUSE_FILTERS);
@@ -457,7 +458,14 @@ export default function Warehouse() {
 
   return (
     <div className="warehouse-page">
-      <div className="warehouse-header">
+      <div className="mp-wrap">
+      <div className="warehouse-header panel-card manager-page-hero warehouse-hero">
+        <div className="warehouse-hero-copy">
+          <div className="dashboardManager-title warehouse-page-title">Quản lý kho</div>
+          <div className="panel-sub warehouse-page-subtitle">
+            Theo dõi vị trí, lọc và cập nhật thông tin các kho trong hệ thống.
+          </div>
+        </div>
         <h2>Quản lý kho</h2>
         <button className="btn-add" onClick={openCreate} disabled={!canMutateWarehouses} title={!canMutateWarehouses ? readonlyMessage : ""}>
           + Thêm kho
@@ -465,7 +473,7 @@ export default function Warehouse() {
       </div>
 
       {/* BẢN ĐỒ VỊ TRÍ KHO */}
-      <div className="warehouse-filter-bar">
+      <div className="warehouse-filter-bar panel-card warehouse-filter-card">
         <input
           placeholder="Lọc theo tên kho"
           value={filters.name}
@@ -501,7 +509,7 @@ export default function Warehouse() {
           className="btn-filter btn-filter-secondary"
           onClick={handleFilterReset}
         >
-          Reset
+          Đặt lại
         </button>
       </div>
 
@@ -511,11 +519,11 @@ export default function Warehouse() {
 
       {canMutateWarehouses && hasMissingWarehouseIds && (
         <div className="warehouse-permission-note">
-          Danh sach kho hien dang thieu `id/warehouseID` tu API, nen mot so dong chi xem duoc chu chua the sua hoac xoa.
+          Danh sách kho hiện đang thiếu `id/warehouseID` từ API, nên một số dòng chỉ xem được chứ chưa thể sửa hoặc xóa.
         </div>
       )}
 
-      <div className="warehouse-map-card">
+      <div className="warehouse-map-card panel-card">
         <div className="warehouse-map-title">
           <span>📍</span>
           <span>Bản đồ vị trí kho</span>
@@ -607,7 +615,7 @@ export default function Warehouse() {
       </div>
 
       {/* BẢNG DANH SÁCH KHO */}
-      <div className="warehouse-table-container">
+      <div className="warehouse-table-container panel-card">
         <table className="warehouse-table">
           <thead>
             <tr>
@@ -779,6 +787,7 @@ export default function Warehouse() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

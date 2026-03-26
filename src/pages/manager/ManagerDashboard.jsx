@@ -44,6 +44,18 @@ import {
 
 const NOTI_STORAGE_KEY = "manager_notifications";
 const MANAGER_WAREHOUSE_STORAGE_KEY = "manager_dashboard_warehouse_id";
+const MANAGER_RELIEF_ORDERS_ROUTE = "/manager/relief-orders";
+const INVENTORY_TREND_STORAGE_KEY = "manager_inventory_trend_history";
+const INVENTORY_TREND_MAX_POINTS = 24;
+const SHOW_RELIEF_ORDERS_ON_DASHBOARD = false;
+const SHOW_RELIEF_ORDER_SUMMARY_CARD = false;
+const SHOW_DASHBOARD_NOTIFICATION_BELL = false;
+const SHOW_DASHBOARD_ORDER_SHORTCUT = false;
+
+const buildManagerReliefOrdersRoute = (orderId = "") =>
+  orderId
+    ? `${MANAGER_RELIEF_ORDERS_ROUTE}?orderId=${encodeURIComponent(orderId)}`
+    : MANAGER_RELIEF_ORDERS_ROUTE;
 
 const extractList = (res) => {
   if (Array.isArray(res)) return res;
@@ -188,6 +200,101 @@ const normalizeInventoryList = (items) => {
 };
 
 const createTimestamp = () => new Date().toLocaleString("vi-VN");
+
+const getInventoryTrendStorageKey = (warehouseId) =>
+  `${INVENTORY_TREND_STORAGE_KEY}_${warehouseId || "default"}`;
+
+const readInventoryTrendHistory = (warehouseId) => {
+  if (!warehouseId) return [];
+
+  try {
+    const raw = localStorage.getItem(getInventoryTrendStorageKey(warehouseId));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn("Load inventory trend history failed:", error);
+    return [];
+  }
+};
+
+const saveInventoryTrendSnapshot = (warehouseId, inventoryItems = []) => {
+  if (!warehouseId) return;
+
+  const totalQuantity = inventoryItems.reduce(
+    (sum, item) => sum + (Number(item?.quantity) || 0),
+    0,
+  );
+  const history = readInventoryTrendHistory(warehouseId);
+  const now = new Date().toISOString();
+  const lastPoint = history[history.length - 1];
+  const lastTimestamp = new Date(lastPoint?.timestamp || 0).getTime();
+  const shouldAppend =
+    !lastPoint ||
+    Number(lastPoint?.quantity) !== totalQuantity ||
+    Date.now() - lastTimestamp > 5 * 60 * 1000;
+
+  if (!shouldAppend) {
+    return;
+  }
+
+  try {
+    const nextHistory = [
+      ...history,
+      {
+        timestamp: now,
+        quantity: totalQuantity,
+      },
+    ].slice(-INVENTORY_TREND_MAX_POINTS);
+
+    localStorage.setItem(
+      getInventoryTrendStorageKey(warehouseId),
+      JSON.stringify(nextHistory),
+    );
+  } catch (error) {
+    console.warn("Save inventory trend history failed:", error);
+  }
+};
+
+const formatTrendLabel = (value) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const buildInventoryTrendData = (inventoryItems = [], warehouseId = "") => {
+  const history = readInventoryTrendHistory(warehouseId);
+
+  if (history.length >= 2) {
+    return history.map((entry) => ({
+      date: formatTrendLabel(entry.timestamp),
+      quantity: Number(entry.quantity) || 0,
+    }));
+  }
+
+  return inventoryItems
+    .filter((item) => item?.lastUpdated)
+    .map((item) => ({
+      timestamp: item.lastUpdated,
+      date: formatTrendLabel(item.lastUpdated),
+      quantity: Number(item?.quantity) || 0,
+    }))
+    .sort(
+      (left, right) =>
+        new Date(left.timestamp || 0).getTime() -
+        new Date(right.timestamp || 0).getTime(),
+    );
+};
 
 const mergeNotifications = (oldList, newList) => {
   const map = new Map();
@@ -582,6 +689,7 @@ export default function ManagerDashboard() {
 
       const inventoryList = await fetchInventoryData(resolvedWarehouseId);
       setInventory(inventoryList);
+      saveInventoryTrendSnapshot(resolvedWarehouseId, inventoryList);
 
       return {
         products: productsList,
@@ -630,6 +738,7 @@ export default function ManagerDashboard() {
 
       const inventoryList = await fetchInventoryData(nextWarehouseId);
       setInventory(inventoryList);
+      saveInventoryTrendSnapshot(nextWarehouseId, inventoryList);
     } catch (error) {
       console.error("[ManagerDashboard] handleWarehouseChange failed:", error);
       setInventory([]);
@@ -842,14 +951,17 @@ export default function ManagerDashboard() {
     setShowNotifications(false);
 
     const targetRoute =
-      notification.targetRoute === "/manager/orders"
-        ? "/manager#relief-orders"
+      notification.targetRoute === "/manager/orders" ||
+      notification.targetRoute === "/manager#relief-orders"
+        ? buildManagerReliefOrdersRoute(notification.referenceId || "")
         : notification.targetRoute;
 
-    if (targetRoute === "/manager#relief-orders") {
+    if (
+      typeof targetRoute === "string" &&
+      targetRoute.startsWith(MANAGER_RELIEF_ORDERS_ROUTE)
+    ) {
       pendingFocusOrderIdRef.current = notification.referenceId || "";
       navigate(targetRoute);
-      scrollToReliefOrders(notification.referenceId || "", "smooth");
       return;
     }
 
@@ -1005,7 +1117,7 @@ export default function ManagerDashboard() {
             title: "Don cuu tro moi",
             message: messageParts.join(" "),
             referenceId: reliefOrderId || "",
-            targetRoute: "/manager#relief-orders",
+            targetRoute: buildManagerReliefOrdersRoute(reliefOrderId || ""),
             timestamp: createTimestamp(),
             createdAt: new Date().toISOString(),
             read: false,
@@ -1144,7 +1256,7 @@ export default function ManagerDashboard() {
               ? `${teamName} đã xác nhận nhận hàng cho đơn ${reliefOrderId || "cứu trợ"}. Kiểm tra tồn kho nếu backend chưa đồng bộ tự động.`
               : `Đã có xác nhận nhận hàng cho đơn ${reliefOrderId || "cứu trợ"}. Kiểm tra tồn kho nếu backend chưa đồng bộ tự động.`,
             referenceId: reliefOrderId || "",
-            targetRoute: "/manager#relief-orders",
+            targetRoute: buildManagerReliefOrdersRoute(reliefOrderId || ""),
             timestamp: createTimestamp(),
             createdAt: new Date().toISOString(),
             read: false,
@@ -1215,23 +1327,10 @@ export default function ManagerDashboard() {
     quantity: item.quantity,
   }));
 
-  const grouped = {};
-  inventory.forEach((item) => {
-    if (!item?.lastUpdated) return;
-
-    const date = new Date(item.lastUpdated);
-    const dateKey = Number.isNaN(date.getTime())
-      ? String(item.lastUpdated)
-      : date.toLocaleDateString("vi-VN");
-
-    grouped[dateKey] = (grouped[dateKey] || 0) + (item.quantity || 0);
-  });
-
-  const lineData = Object.keys(grouped).map((date) => ({
-    date,
-    quantity: grouped[date],
-  }));
-  const canRenderCharts = inventory.length > 0 && Boolean(activeWarehouseId);
+  const lineData = buildInventoryTrendData(inventory, activeWarehouseId);
+  const canRenderTrendChart = lineData.length > 1;
+  const canRenderDistributionChart =
+    inventory.length > 0 && Boolean(activeWarehouseId);
 
   const bellCount = notifications.length;
   const activeWarehouse = warehouses.find(
@@ -1356,7 +1455,8 @@ export default function ManagerDashboard() {
               <div className="dashboardManager-title">Bảng điều khiển quản lý</div>
 
               <div className="panel-sub">
-                Quản lý kho, tồn kho, vật phẩm cứu trợ và Relief Orders
+                Quản lý kho, tồn kho và vật phẩm cứu trợ. Đơn cứu trợ đã được tách sang
+                trang riêng cho quản lý.
               </div>
 
               {activeWarehouseName && (
@@ -1411,7 +1511,10 @@ export default function ManagerDashboard() {
             </div>
 
             <div className="manager-header-actions">
-              <div className="button">
+              <div
+                className="button"
+                style={{ display: SHOW_DASHBOARD_NOTIFICATION_BELL ? undefined : "none" }}
+              >
                 <button
                   className={`notification-bell ${bellCount > 0 ? "active" : ""}`}
                   onClick={() => setShowNotifications((prev) => !prev)}
@@ -1424,6 +1527,14 @@ export default function ManagerDashboard() {
               </div>
 
               <button
+                className="btn btn-outline-primary manager-relief-orders-link-btn"
+                onClick={() => navigate(MANAGER_RELIEF_ORDERS_ROUTE)}
+                style={{ display: SHOW_DASHBOARD_ORDER_SHORTCUT ? undefined : "none" }}
+              >
+                Mở trang Đơn cứu trợ
+              </button>
+
+              <button
                 className="btn btn-primary manager-export-btn"
                 onClick={exportReliefItemsAndInventory}
               >
@@ -1432,7 +1543,10 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
-          <div className="notification-container">
+          <div
+            className="notification-container"
+            style={{ display: SHOW_DASHBOARD_NOTIFICATION_BELL ? undefined : "none" }}
+          >
             {showNotifications && (
               <div className="notification-panel">
                 <div className="notification-header">
@@ -1521,6 +1635,26 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
+        {SHOW_RELIEF_ORDER_SUMMARY_CARD && !SHOW_RELIEF_ORDERS_ON_DASHBOARD && (
+          <div className="panel-card manager-relief-orders-summary-card">
+            <div>
+              <div className="panel-card-title">Relief Orders</div>
+              <div className="relief-orders-subtitle">
+                Relief order da duoc tach khoi trang tong quan. Manager vao trang rieng de
+                loc don, soan do va goi PUT prepare.
+              </div>
+            </div>
+
+            <button
+              className="btn btn-primary relief-orders-refresh-btn"
+              onClick={() => navigate(MANAGER_RELIEF_ORDERS_ROUTE)}
+            >
+              Den trang Relief Orders
+            </button>
+          </div>
+        )}
+
+        {SHOW_RELIEF_ORDERS_ON_DASHBOARD && (
         <div
           className="panel-card relief-orders-panel"
           id="relief-orders"
@@ -1722,6 +1856,7 @@ export default function ManagerDashboard() {
             </div>
           )}
         </div>
+        )}
 
         <div className="mp-grid">
           <div className="panel-card">
@@ -1730,18 +1865,20 @@ export default function ManagerDashboard() {
             </div>
 
             <div className="chart-box">
-              {canRenderCharts ? (
+              {canRenderTrendChart ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={lineData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
+                    <XAxis dataKey="date" minTickGap={28} />
                     <YAxis />
                     <Tooltip />
                     <Line
-                      type="monotone"
+                      type="linear"
                       dataKey="quantity"
                       stroke="#ff3b3b"
                       strokeWidth={3}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1759,7 +1896,7 @@ export default function ManagerDashboard() {
             </div>
 
             <div className="chart-box">
-              {canRenderCharts ? (
+              {canRenderDistributionChart ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData}>
                     <CartesianGrid strokeDasharray="3 3" />

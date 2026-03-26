@@ -586,6 +586,16 @@ export function normalizeReliefOrder(order = {}) {
     ["createdAt", "CreatedAt", "createdTime", "CreatedTime", "createTime", "CreateTime"],
     null,
   );
+  const preparedAt = pickFirstValue(
+    order,
+    ["preparedAt", "PreparedAt", "preparedTime", "PreparedTime"],
+    null,
+  );
+  const pickedUpAt = pickFirstValue(
+    order,
+    ["pickedUpAt", "PickedUpAt", "pickedUpTime", "PickedUpTime"],
+    null,
+  );
   const updatedAt = pickFirstValue(
     order,
     [
@@ -627,7 +637,12 @@ export function normalizeReliefOrder(order = {}) {
     items: extractOrderItems(order),
     description: pickFirstValue(order, ["description", "Description"], ""),
     createdAt: normalizeDateValue(createdAt),
+    preparedAt: normalizeDateValue(preparedAt),
+    pickedUpAt: normalizeDateValue(pickedUpAt),
     updatedAt: normalizeDateValue(updatedAt),
+    totalItems: numberOrZero(
+      pickFirstValue(order, ["totalItems", "TotalItems"], extractOrderItems(order).length),
+    ),
   };
 }
 
@@ -824,6 +839,134 @@ const normalizeReliefOrderResult = (payload) => {
   return data;
 };
 
+const extractCollectionItems = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  const candidates = [
+    payload?.data?.content?.data,
+    payload?.data?.content?.items,
+    payload?.data?.content?.Items,
+    payload?.data?.data,
+    payload?.data?.items,
+    payload?.data?.Items,
+    payload?.content?.data,
+    payload?.content?.items,
+    payload?.content?.Items,
+    payload?.items,
+    payload?.Items,
+  ];
+
+  const firstArray = candidates.find(Array.isArray);
+  if (Array.isArray(firstArray)) {
+    return firstArray;
+  }
+
+  const extracted = extractReliefOrderApiData(payload);
+  return Array.isArray(extracted) ? extracted : [];
+};
+
+const extractCollectionTotalCount = (payload, fallbackCount = 0) => {
+  const collectionSources = [
+    payload?.data?.content,
+    payload?.data,
+    payload?.content,
+    payload,
+  ];
+
+  for (const source of collectionSources) {
+    if (!isPlainObject(source)) continue;
+
+    const totalCount = pickFirstValue(source, ["totalCount", "TotalCount"], null);
+    if (isPresent(totalCount)) {
+      return numberOrZero(totalCount);
+    }
+  }
+
+  return fallbackCount;
+};
+
+const buildReliefOrderFilterSearchParams = (params = {}, keyStyle = "pascal") => {
+  const searchParams = new URLSearchParams();
+  const statuses = Array.isArray(params?.statuses)
+    ? params.statuses
+    : String(params?.statuses || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+  const keyMap =
+    keyStyle === "camel"
+      ? {
+          statuses: "statuses",
+          createdFromDate: "createdFromDate",
+          createdToDate: "createdToDate",
+          preparedFromDate: "preparedFromDate",
+          preparedToDate: "preparedToDate",
+          pickedUpFromDate: "pickedUpFromDate",
+          pickedUpToDate: "pickedUpToDate",
+          pageNumber: "pageNumber",
+          pageSize: "pageSize",
+        }
+      : {
+          statuses: "Statuses",
+          createdFromDate: "CreatedFromDate",
+          createdToDate: "CreatedToDate",
+          preparedFromDate: "PreparedFromDate",
+          preparedToDate: "PreparedToDate",
+          pickedUpFromDate: "PickedUpFromDate",
+          pickedUpToDate: "PickedUpToDate",
+          pageNumber: "PageNumber",
+          pageSize: "PageSize",
+        };
+
+  statuses.forEach((status) => {
+    searchParams.append(keyMap.statuses, status);
+  });
+
+  const dateParams = [
+    [keyMap.createdFromDate, params?.createdFromDate],
+    [keyMap.createdToDate, params?.createdToDate],
+    [keyMap.preparedFromDate, params?.preparedFromDate],
+    [keyMap.preparedToDate, params?.preparedToDate],
+    [keyMap.pickedUpFromDate, params?.pickedUpFromDate],
+    [keyMap.pickedUpToDate, params?.pickedUpToDate],
+  ];
+
+  dateParams.forEach(([key, value]) => {
+    if (isPresent(value)) {
+      searchParams.append(key, value);
+    }
+  });
+
+  searchParams.append(keyMap.pageNumber, String(params?.pageNumber || 1));
+  searchParams.append(keyMap.pageSize, String(params?.pageSize || 20));
+
+  return searchParams;
+};
+
+const hasActiveReliefOrderFilters = (params = {}) =>
+  (Array.isArray(params?.statuses) && params.statuses.length > 0) ||
+  [
+    params?.createdFromDate,
+    params?.createdToDate,
+    params?.preparedFromDate,
+    params?.preparedToDate,
+    params?.pickedUpFromDate,
+    params?.pickedUpToDate,
+  ].some((value) => isPresent(value));
+
+const parseReliefOrderCollectionPayload = (payload) => {
+  const items = normalizeReliefOrders(extractCollectionItems(payload));
+
+  return {
+    items,
+    totalCount: extractCollectionTotalCount(payload, items.length),
+    payload,
+  };
+};
+
 async function requestReliefOrder(url, options = {}) {
   const res = await fetchWithAuth(url, options);
   const payload = await parseJsonSafe(res);
@@ -912,6 +1055,85 @@ export async function getManagerReliefOrders() {
   }
 
   return [];
+}
+
+export async function filterReliefOrders(params = {}) {
+  const hasActiveFilters = hasActiveReliefOrderFilters(params);
+  const pascalQuery = buildReliefOrderFilterSearchParams(params, "pascal").toString();
+  const camelQuery = buildReliefOrderFilterSearchParams(params, "camel").toString();
+  const endpoints = hasActiveFilters
+    ? [
+        `${BASE}/filter?${pascalQuery}`,
+        `${BASE}/filter?${camelQuery}`,
+      ]
+    : [
+        `${BASE}/pending`,
+        `${BASE}/filter?${pascalQuery}`,
+        `${BASE}/filter?${camelQuery}`,
+        `${BASE}`,
+      ];
+
+  const attemptedEndpoints = [];
+  let lastSuccessfulEmptyResult = null;
+  let lastError = null;
+
+  for (const endpoint of endpoints) {
+    attemptedEndpoints.push(endpoint);
+
+    try {
+      const res = await fetchWithAuth(endpoint, { method: "GET" });
+      const payload = await parseJsonSafe(res);
+      const parsedResult = parseReliefOrderCollectionPayload(payload);
+
+      console.log("[reliefOrdersService.filterReliefOrders] Endpoint payload:", {
+        endpoint,
+        itemCount: parsedResult.items.length,
+        totalCount: parsedResult.totalCount,
+        payload,
+      });
+
+      if (
+        parsedResult.items.length > 0 ||
+        parsedResult.totalCount > 0 ||
+        hasActiveFilters ||
+        endpoint === endpoints[endpoints.length - 1]
+      ) {
+        return parsedResult;
+      }
+
+      lastSuccessfulEmptyResult = parsedResult;
+    } catch (error) {
+      lastError = error;
+      const status = Number(error?.status || 0);
+      const canTryNext = !hasActiveFilters && (status === 404 || status === 405);
+
+      console.warn(
+        "[reliefOrdersService.filterReliefOrders] Endpoint failed:",
+        endpoint,
+        error,
+      );
+
+      if (!canTryNext) {
+        error.attemptedEndpoints = attemptedEndpoints;
+        throw error;
+      }
+    }
+  }
+
+  if (lastSuccessfulEmptyResult) {
+    return lastSuccessfulEmptyResult;
+  }
+
+  if (lastError) {
+    lastError.attemptedEndpoints = attemptedEndpoints;
+    throw lastError;
+  }
+
+  return {
+    items: [],
+    totalCount: 0,
+    payload: null,
+  };
 }
 
 export async function createReliefOrder(payload) {
@@ -1037,6 +1259,8 @@ export const reliefOrdersService = {
   getAllReliefOrders: async () => await getAllReliefOrders(),
 
   getManagerReliefOrders: async () => await getManagerReliefOrders(),
+
+  filterReliefOrders: async (params) => await filterReliefOrders(params),
 
   createReliefOrder: async (payload) => await createReliefOrder(payload),
 
