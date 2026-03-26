@@ -110,7 +110,9 @@
   transform: translateY(0);
 }
 
-.toast {
+.toast_container {
+  display: flex;
+  align-items: center;
   position: fixed;
   top: 100px !important;
   right: 20px;
@@ -124,11 +126,11 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.toast.success {
+.toast_container.success {
   background: linear-gradient(135deg, #28a745, #1e7e34);
 }
 
-.toast.error {
+.toast_container.error {
   background: linear-gradient(135deg, #dc3545, #c82333);
 }
 

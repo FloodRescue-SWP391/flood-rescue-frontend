@@ -175,7 +175,7 @@ const CreateUser = () => {
   return (
     <>
       {toast && (
-        <div className={`toast ${toast.includes("❌") ? "error" : "success"}`}>
+        <div className={`toast_container ${toast.includes("❌") ? "error" : "success"}`}>
           {toast}
         </div>
       )}

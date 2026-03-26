@@ -147,7 +147,7 @@
   letter-spacing: 0.5px;
 }
 
-.user-info {
+.user-info1 {
   margin-bottom: 20px;
 }
 
@@ -269,9 +269,9 @@
 }
 
 /* Toast */
-.toast {
+.toast_container1 {
   position: fixed;
-  top: 20px;
+  top: 150px;
   right: 20px;
   z-index: 9999;
   padding: 14px 18px;
@@ -279,13 +279,14 @@
   color: white;
   font-weight: 600;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+   animation: slideIn 0.25s ease;
 }
 
-.toast.success {
+.toast_container1.success {
   background: #16a34a;
 }
 
-.toast.error {
+.toast_container1.error {
   background: #dc2626;
 }
 
