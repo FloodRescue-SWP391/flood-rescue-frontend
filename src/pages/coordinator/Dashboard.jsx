@@ -222,6 +222,15 @@ const Dashboard = () => {
   // State cho thông báo
   const NOTI_STORAGE_KEY = "coordinator_notifications";
 
+  // Bộ lọc mới
+  const [requestBoxType, setRequestBoxType] = useState("rescue");
+  // rescue | supply | rejected
+  const [teamRejectedRequests, setTeamRejectedRequests] = useState([]);
+  const [rejectedToast, setRejectedToast] = useState(null);
+
+  const [requestStatusTab, setRequestStatusTab] = useState("new");
+  // new | processing | completed
+
   const [notifications, setNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem(NOTI_STORAGE_KEY);
@@ -238,6 +247,23 @@ const Dashboard = () => {
 
   // Lưu tên user hệ thống
   const [userFullName, setUserFullName] = useState("");
+
+  // Hàm lọc trạng thái
+  const matchRequestStatusTab = (request, tab) => {
+    if (tab === "new") {
+      return request.status === "pending";
+    }
+
+    if (tab === "processing") {
+      return request.status === "in_progress";
+    }
+
+    if (tab === "completed") {
+      return request.status === "completed";
+    }
+
+    return true;
+  };
 
   useEffect(() => {
     try {
@@ -356,6 +382,8 @@ const Dashboard = () => {
       return "";
     }
   };
+
+  // Lưu Lại team đã reject vào request gốc
   const mapRequestToUI = (r) => {
     const lat = Number(r.LocationLatitude ?? r.locationLatitude ?? 0);
     const lng = Number(r.LocationLongitude ?? r.locationLongitude ?? 0);
@@ -369,32 +397,64 @@ const Dashboard = () => {
       phoneNumber: r.CitizenPhone ?? r.citizenPhone ?? "",
       address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
       location: { lat, lng },
-
       emergencyType: r.RequestType ?? r.requestType ?? "Unknown",
-
       emergencyCategory:
         (r.RequestType ?? r.requestType)?.toLowerCase() === "supply"
           ? "supply"
           : "life_threatening",
-
       description: r.Description ?? r.description ?? "",
-
       status: uiStatus,
-
       timestamp: r.CreatedTime
         ? new Date(r.CreatedTime).toLocaleString("vi-VN")
         : "",
-
       imageUrl:
         Array.isArray(r.ImageUrls) && r.ImageUrls.length > 0
           ? r.ImageUrls[0]
           : "",
-
       isNew: uiStatus === "pending",
-
       waterLevel: "0m",
       peopleCount: 0,
+
+      rejectedTeamIds: [],
+      rejectedTeamNames: [],
     };
+  };
+
+  // Hàm phân loại Request
+  const normalizeEmergencyText = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  const isSupplyRequest = (request) => {
+    const text = normalizeEmergencyText(request.emergencyType);
+
+    return (
+      request.emergencyCategory === "supply" ||
+      text.includes("food") ||
+      text.includes("water") ||
+      text.includes("medicine") ||
+      text.includes("thực phẩm") ||
+      text.includes("nước") ||
+      text.includes("thuốc")
+    );
+  };
+
+  const isMedicineOrFoodRequest = (request) => {
+    const text = normalizeEmergencyText(request.emergencyType);
+
+    return (
+      text.includes("food") ||
+      text.includes("water") ||
+      text.includes("medicine") ||
+      text.includes("thực phẩm") ||
+      text.includes("nước") ||
+      text.includes("thuốc")
+    );
+  };
+
+  const isRescueRequest = (request) => {
+    return !isMedicineOrFoodRequest(request);
   };
 
   useEffect(() => {
@@ -479,7 +539,11 @@ const Dashboard = () => {
           const res = await getRescueTeamById(teamId);
 
           if (!res?.ok) {
-            console.warn("Load rescue team detail failed:", teamId, res?.status);
+            console.warn(
+              "Load rescue team detail failed:",
+              teamId,
+              res?.status,
+            );
             return [String(teamId), null];
           }
 
@@ -535,70 +599,132 @@ const Dashboard = () => {
           detail?.rescueTeamName,
           detail?.RescueTeamName,
         ),
-        city: pickFirstValue(team?.city, team?.City, detail?.city, detail?.City),
+        city: pickFirstValue(
+          team?.city,
+          team?.City,
+          detail?.city,
+          detail?.City,
+        ),
       };
     });
   };
 
   useEffect(() => {
-    // const handleTeamAccepted = (data) => {
-    //   console.log("TeamAcceptedNotification:", data);
-
-    //   setAllRequests((prev) =>
-    //     prev.map((r) =>
-    //       r.requestId === (data.requestShortCode || data.ShortCode)
-    //         ? {
-    //             ...r,
-    //             status: "in_progress",
-    //             assignedTeamName: data.teamName,
-    //             rescueMissionId: data.rescueMissionID,
-    //           }
-    //         : r,
-    //     ),
-    //   );
-    // };
-    // Rescue Team Leader accept/reject -> coordinator reload request/mission để thấy trạng thái mới.
+    //Khi nhận event reject, câp nhật trạng thái request, reload request/mission.
     const handleTeamResponse = async (data) => {
       console.log("ReceiveTeamResponse:", data);
 
       const code =
         data.requestShortCode || data.RequestShortCode || data.ShortCode;
+
       const type = String(
         data.notificationType || data.NotificationType || "",
       ).toLowerCase();
-      const nextStatus = type.includes("reject") ? "pending" : "in_progress";
+
+      const rejected =
+        type.includes("reject") ||
+        type.includes("decline") ||
+        type.includes("refuse");
+
+      const teamName = data.teamName || data.TeamName || "Đội cứu hộ";
+      const teamId =
+        data.rescueTeamID ||
+        data.RescueTeamID ||
+        data.teamId ||
+        data.TeamId ||
+        null;
+
+      const missionId = data.rescueMissionID || data.RescueMissionID || null;
+      const requestId = data.rescueRequestID || data.RescueRequestID || null;
+
+      let rejectedRequestSnapshot = null;
 
       setAllRequests((prev) =>
-        prev.map((r) =>
-          r.requestId === code
-            ? {
-                ...r,
-                status: nextStatus,
-                assignedTeamName:
-                  data.teamName || data.TeamName || r.assignedTeamName,
-                rescueMissionId:
-                  data.rescueMissionID ||
-                  data.RescueMissionID ||
-                  r.rescueMissionId,
-              }
-            : r,
-        ),
+        prev.map((r) => {
+          if (String(r.requestId) !== String(code)) return r;
+
+          if (!rejected) {
+            return {
+              ...r,
+              status: "in_progress",
+              assignedTeamName: teamName,
+              assignedTeamId: teamId ? String(teamId) : r.assignedTeamId,
+              rescueMissionId: missionId,
+            };
+          }
+
+          const nextRejectedTeamIds = Array.from(
+            new Set([
+              ...(Array.isArray(r.rejectedTeamIds) ? r.rejectedTeamIds : []),
+              ...(teamId ? [String(teamId)] : []),
+            ]),
+          );
+
+          const nextRejectedTeamNames = Array.from(
+            new Set([
+              ...(Array.isArray(r.rejectedTeamNames)
+                ? r.rejectedTeamNames
+                : []),
+              teamName,
+            ]),
+          );
+
+          const updatedRequest = {
+            ...r,
+            status: "pending",
+            assignedTeamName: "",
+            assignedTeamId: "",
+            rescueMissionId: null,
+            rejectedTeamIds: nextRejectedTeamIds,
+            rejectedTeamNames: nextRejectedTeamNames,
+          };
+
+          rejectedRequestSnapshot = updatedRequest;
+          return updatedRequest;
+        }),
       );
+
+      if (rejected) {
+        const rejectedItem = {
+          ...(rejectedRequestSnapshot || {}),
+          id: `rejected-${code}-${Date.now()}`,
+          originalRequestId: requestId || rejectedRequestSnapshot?.id || code,
+          shortCode: code,
+          rejectedByTeamId: teamId ? String(teamId) : "",
+          rejectedByTeamName: teamName,
+          message: `[${teamName}] đã từ chối nhận nhiệm vụ có ID [${code}]`,
+          createdAt: new Date().toISOString(),
+        };
+
+        setTeamRejectedRequests((prev) => {
+          const filtered = prev.filter(
+            (item) => String(item.shortCode) !== String(code),
+          );
+          return [rejectedItem, ...filtered];
+        });
+
+        setRejectedToast(rejectedItem);
+
+        setNotifications((prev) =>
+          mergeNotifications(prev, [
+            {
+              id: `reject-${code}`,
+              type: "critical",
+              title: "Đội cứu hộ từ chối nhiệm vụ",
+              message: `[${teamName}] đã từ chối nhận nhiệm vụ có ID [${code}]`,
+              requestId: String(code),
+              rawRequestId: String(requestId || code),
+              timestamp: new Date().toLocaleString("vi-VN"),
+              createdAt: new Date().toISOString(),
+              read: false,
+              status: "pending",
+            },
+          ]),
+        );
+      }
 
       await loadRealRequests();
     };
-
-    // const handleMissionCompleted = (data) => {
-    //   console.log("MissionCompletedNotification:", data);
-
-    //   setAllRequests((prev) =>
-    //     prev.map((r) =>
-    //       r.requestId === data.requestShortCode
-    //         ? { ...r, status: "completed" }
-    //         : r,
-    //     ),
-    //   );
-    // };
 
     // Mission hoàn thành -> coordinator cập nhật thông báo và reload danh sách.
     const handleMissionCompleted = async (data) => {
@@ -760,6 +886,16 @@ const Dashboard = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!rejectedToast) return;
+
+    const timer = setTimeout(() => {
+      setRejectedToast(null);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [rejectedToast]);
+
   const loadPendingIncidents = async () => {
     try {
       setIncidentLoading(true);
@@ -844,66 +980,44 @@ const Dashboard = () => {
   };
 
   // Lọc requests
-  const getFilteredRequests = () => {
-    let filtered = allRequests.filter((request) => {
-      if (!showCompleted && request.status === "completed") return false;
+  const getDisplayedRequests = () => {
+    if (requestBoxType === "rejected") {
+      return teamRejectedRequests;
+    }
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active"
-          ? request.status !== "completed"
-          : request.status === statusFilter);
-      const matchesType =
-        typeFilter === "all" || request.emergencyType === typeFilter;
-      const matchesPriority =
-        priorityFilter === "all" || request.priorityLevel === priorityFilter;
+    let source = [...allRequests];
 
-      // Lọc theo mức nước
-      let matchesFloodLevel = true;
-      if (floodLevelFilter !== "all") {
-        const waterLevel = parseFloat(request.waterLevel);
-        switch (floodLevelFilter) {
-          case "low":
-            matchesFloodLevel = waterLevel < 0.5;
-            break;
-          case "medium":
-            matchesFloodLevel = waterLevel >= 0.5 && waterLevel < 1.5;
-            break;
-          case "high":
-            matchesFloodLevel = waterLevel >= 1.5;
-            break;
-        }
-      }
+    if (requestBoxType === "rescue") {
+      source = source.filter(isRescueRequest);
+    }
 
-      return (
-        matchesStatus && matchesType && matchesPriority && matchesFloodLevel
-      );
-    });
+    if (requestBoxType === "supply") {
+      source = source.filter(isMedicineOrFoodRequest);
+    }
 
-    // Sắp xếp: critical -> new -> theo priority
-    filtered.sort((a, b) => {
-      // Ưu tiên Critical
-      if (a.priorityLevel === "Critical" && b.priorityLevel !== "Critical")
-        return -1;
-      if (b.priorityLevel === "Critical" && a.priorityLevel !== "Critical")
-        return 1;
+    source = source.filter((request) =>
+      matchRequestStatusTab(request, requestStatusTab),
+    );
 
-      // Ưu tiên yêu cầu mới
+    source.sort((a, b) => {
+      const priorityOrder = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+      const aPriority = priorityOrder[a.priorityLevel] ?? 99;
+      const bPriority = priorityOrder[b.priorityLevel] ?? 99;
+
+      if (aPriority !== bPriority) return aPriority - bPriority;
       if (a.isNew && !b.isNew) return -1;
       if (!a.isNew && b.isNew) return 1;
 
-      // Ưu tiên theo mức độ nghiêm trọng
-      const priorityOrder = { Critical: 0, High: 1, Medium: 2, Low: 3 };
-      return priorityOrder[a.priorityLevel] - priorityOrder[b.priorityLevel];
+      return 0;
     });
 
-    return filtered;
+    return source;
   };
 
-  const filteredRequests = getFilteredRequests();
-  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+  const displayedRequests = getDisplayedRequests();
+  const totalPages = Math.ceil(displayedRequests.length / itemsPerPage);
 
-  const paginatedRequests = filteredRequests.slice(
+  const paginatedRequests = displayedRequests.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
@@ -1073,18 +1187,30 @@ const Dashboard = () => {
     }
   };
 
-  const isSupplyDispatchRequest = (request) => {
-    const token = String(
-      request?.emergencyCategory ||
-        request?.requestType ||
-        request?.emergencyType ||
-        request?.type ||
-        "",
-    )
-      .trim()
-      .toLowerCase();
+  // Cho ô “Nhiệm vụ bị từ chối” mở lại request gốc
+  const handleRejectedRequestClick = (item) => {
+    const originalRequest = allRequests.find(
+      (req) =>
+        String(req.requestId) === String(item.shortCode) ||
+        String(req.id) === String(item.originalRequestId),
+    );
 
-    return token.includes("supply");
+    if (!originalRequest) return;
+
+    const mergedRequest = {
+      ...originalRequest,
+      rejectedTeamIds:
+        item.rejectedTeamIds || originalRequest.rejectedTeamIds || [],
+      rejectedTeamNames:
+        item.rejectedTeamNames || originalRequest.rejectedTeamNames || [],
+    };
+
+    setSelectedRequest(mergedRequest);
+    setSelectedTeamId("");
+    setDispatchError("");
+    setDispatchSuccess("");
+    setMapCenter([mergedRequest.location.lat, mergedRequest.location.lng]);
+    setMapZoom(16);
   };
 
   const handleDispatchMission = async () => {
@@ -1105,6 +1231,13 @@ const Dashboard = () => {
 
     if (!selectedTeamId) {
       setDispatchError("Vui lòng chọn đội cứu hộ.");
+      return;
+    }
+
+    const rejectedTeamIds = selectedRequest?.rejectedTeamIds || [];
+
+    if (rejectedTeamIds.some((id) => String(id) === String(selectedTeamId))) {
+      setDispatchError("Đội này vừa từ chối nhiệm vụ, vui lòng chọn đội khác.");
       return;
     }
 
@@ -1162,21 +1295,16 @@ const Dashboard = () => {
         reliefOrderId: createdReliefOrderId,
       });
 
-      if (isSupplyRequest && createdReliefOrderId) {
-        setDispatchSuccess(
-          `Đã phân công ${assignedTeamName} và tạo Relief Order ${createdReliefOrderId} cho yêu cầu #${selectedRequest.requestId}.`,
-        );
-      } else {
-        setDispatchSuccess(
-          `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`,
-        );
-      }
+      setTeamRejectedRequests((prev) =>
+        prev.filter(
+          (item) =>
+            String(item.shortCode) !== String(selectedRequest.requestId),
+        ),
+      );
 
-      if (reliefOrderWarning) {
-        setDispatchError(
-          `Đội đã được phân công, nhưng Relief Order cho manager chưa tạo được: ${reliefOrderWarning}`,
-        );
-      }
+      setDispatchSuccess(
+        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`,
+      );
 
       await loadRealRequests();
     } catch (e) {
@@ -1272,6 +1400,19 @@ const Dashboard = () => {
 
   const bellCount = notifications.length;
 
+  //Loại team vừa reject khỏi dropdown điều phối
+  const dispatchableTeams = teams.filter((team) => {
+    const teamId = String(getTeamId(team));
+
+    const rejectedTeamIds = selectedRequest?.rejectedTeamIds || [];
+
+    const isRejectedBefore = rejectedTeamIds.some(
+      (id) => String(id) === teamId,
+    );
+
+    return !isRejectedBefore;
+  });
+
   return (
     <div className="dashboard-container">
       <Header />
@@ -1281,11 +1422,7 @@ const Dashboard = () => {
           <div className="user-info">
             <span className="user-greeting">
               Xin chào,{" "}
-              <span
-                className="user-name"              
-              >
-                {userFullName || "Người dùng"}
-              </span>
+              <span className="user-name">{userFullName || "Người dùng"}</span>
             </span>
           </div>
         </div>
@@ -1383,6 +1520,16 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+
+          {rejectedToast && (
+            <div className="rejected-toast">
+              <div className="rejected-toast-icon">🚨</div>
+              <div className="rejected-toast-content">
+                <h4>Đội cứu hộ từ chối nhiệm vụ</h4>
+                <p>{rejectedToast.message}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards cho lũ lụt */}
@@ -1451,106 +1598,168 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Filter Controls */}
-        <div className="filter-section">
-          <h3>🔎 Lọc yêu cầu cứu hộ</h3>
-
-          <div className="filter-controls">
-            <div className="filter-group">
-              <span className="filter-label">Trạng thái yêu cầu</span>
-
-              <div className="status-tabs">
-                <button
-                  className={`status-tab ${statusFilter === "active" ? "active" : ""}`}
-                  onClick={() => setStatusFilter("active")}
-                >
-                  ĐANG HOẠT ĐỘNG
-                </button>
-
-                <button
-                  className={`status-tab ${statusFilter === "pending" ? "active" : ""}`}
-                  onClick={() => setStatusFilter("pending")}
-                >
-                  CHỜ XỬ LÝ
-                </button>
-
-                <button
-                  className={`status-tab ${statusFilter === "in_progress" ? "active" : ""}`}
-                  onClick={() => setStatusFilter("in_progress")}
-                >
-                  ĐANG XỬ LÝ
-                </button>
-
-                <button
-                  className={`status-tab ${statusFilter === "completed" ? "active" : ""}`}
-                  onClick={() => setStatusFilter("completed")}
-                >
-                  HOÀN THÀNH
-                </button>
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <span className="filter-label">Loại yêu cầu</span>
-
-              <div className="type-tabs">
-                <button
-                  className={`type-tab ${typeFilter === "all" ? "active" : ""}`}
-                  onClick={() => setTypeFilter("all")}
-                >
-                  Tất cả
-                </button>
-
-                <button
-                  className={`type-tab emergency ${
-                    typeFilter === "emergency" ? "active" : ""
-                  }`}
-                  onClick={() => setTypeFilter("emergency")}
-                >
-                  🚨 Khẩn cấp
-                </button>
-
-                <button
-                  className={`type-tab supply ${
-                    typeFilter === "supply" ? "active" : ""
-                  }`}
-                  onClick={() => setTypeFilter("supply")}
-                >
-                  📦 Nhu yếu phẩm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Main Content */}
         <div className="main-content">
           {/* Left: Requests List */}
           <div className="requests-panel">
-            <div className="panel-header">
-              <div className="list">
-                <h2>📋 Danh sách yêu cầu ({filteredRequests.length})</h2>
-                <span className="last-update">
-                  {stats.newRequests > 0 && (
-                    <span className="new-indicator">
-                      • {stats.newRequests} New
-                    </span>
+            <div className="panel-header request-mode-header">
+              <h4
+                style={{ fontSize: "26px", color: "brown", fontWeight: "700" }}
+              >
+                Danh sách yêu cầu
+              </h4>
+              <div className="request-mode-grid1">
+                <button
+                  className={`request-mode-card ${requestBoxType === "rescue" ? "active" : ""}`}
+                  onClick={() => {
+                    setRequestBoxType("rescue");
+                    setRequestStatusTab("new");
+                    setCurrentPage(1);
+                    setSelectedRequest(null);
+                  }}
+                >
+                  <div className="request-mode-icon">🚨</div>
+                  <div className="request-mode-content">
+                    <h3>Yêu cầu cứu hộ</h3>
+                    <strong>
+                      {allRequests.filter(isRescueRequest).length}
+                    </strong>
+                  </div>
+                </button>
+
+                <button
+                  className={`request-mode-card ${requestBoxType === "supply" ? "active" : ""}`}
+                  onClick={() => {
+                    setRequestBoxType("supply");
+                    setRequestStatusTab("new");
+                    setCurrentPage(1);
+                    setSelectedRequest(null);
+                  }}
+                >
+                  <div className="request-mode-icon">📦</div>
+                  <div className="request-mode-content">
+                    <h3>Cung ứng cứu hộ</h3>
+
+                    <strong>
+                      {allRequests.filter(isMedicineOrFoodRequest).length}
+                    </strong>
+                  </div>
+                </button>
+
+                <button
+                  className={`request-mode-card rejected ${requestBoxType === "rejected" ? "active" : ""} ${teamRejectedRequests.length > 0 ? "has-alert" : ""}`}
+                  onClick={() => {
+                    setRequestBoxType("rejected");
+                    setCurrentPage(1);
+                    setSelectedRequest(null);
+                  }}
+                >
+                  <div className="request-mode-icon">⚠️</div>
+                  <div className="request-mode-content">
+                    <h3> Nhiệm vụ bị từ chối</h3>
+
+                    <strong>{teamRejectedRequests.length}</strong>
+                  </div>
+                  {teamRejectedRequests.length > 0 && (
+                    <span className="pulse-dot"></span>
                   )}
-                </span>
+                </button>
               </div>
+
+              {requestBoxType !== "rejected" && (
+                <div className="request-status-filter">
+                  <button
+                    className={requestStatusTab === "new" ? "active" : ""}
+                    onClick={() => {
+                      setRequestStatusTab("new");
+                      setCurrentPage(1);
+                      setSelectedRequest(null);
+                    }}
+                  >
+                    Mới nhận
+                  </button>
+
+                  <button
+                    className={
+                      requestStatusTab === "processing" ? "active" : ""
+                    }
+                    onClick={() => {
+                      setRequestStatusTab("processing");
+                      setCurrentPage(1);
+                      setSelectedRequest(null);
+                    }}
+                  >
+                    Đang xử lý
+                  </button>
+
+                  <button
+                    className={requestStatusTab === "completed" ? "active" : ""}
+                    onClick={() => {
+                      setRequestStatusTab("completed");
+                      setCurrentPage(1);
+                      setSelectedRequest(null);
+                    }}
+                  >
+                    Hoàn thành
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="requests-list">
-              {filteredRequests.length === 0 ? (
+              {displayedRequests.length === 0 ? (
                 <div className="no-requests">
-                  <p>Không tìm thấy yêu cầu cứu hộ</p>
-                  <button
-                    className="btn-show-completed"
-                    onClick={() => setShowCompleted(true)}
-                  >
-                    Hiển thị yêu cầu đã hoàn thành
-                  </button>
+                  <p>
+                    {requestBoxType === "rejected"
+                      ? "Chưa có yêu cầu nào bị từ chối trả về"
+                      : requestStatusTab === "new"
+                        ? "Không có yêu cầu mới nhận"
+                        : requestStatusTab === "processing"
+                          ? "Không có yêu cầu đang xử lý"
+                          : "Không có yêu cầu đã hoàn thành"}
+                  </p>
                 </div>
+              ) : requestBoxType === "rejected" ? (
+                paginatedRequests.map((item) => (
+                  <div
+                    key={item.id}
+                    className="request-card rejected-card"
+                    onClick={() => handleRejectedRequestClick(item)}
+                  >
+                    <div className="request-card-header">
+                      <div className="request-id">#{item.shortCode}</div>
+                      <div className="status-badge pending">↩️ Bị từ chối</div>
+                    </div>
+
+                    <div className="request-card-body">
+                      <h4 className="request-title">⚠️ Nhiệm vụ bị trả về</h4>
+
+                      <div className="request-details">
+                        <div className="detail-row">
+                          <span className="detail-label">🚑 Đội cứu hộ:</span>
+                          <span className="detail-value">{item.teamName}</span>
+                        </div>
+
+                        <div className="detail-row">
+                          <span className="detail-label">📝 Thông báo:</span>
+                          <span className="detail-value">{item.message}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="request-card-footer">
+                      <div
+                        className="priority-tag"
+                        style={{ backgroundColor: "#fee2e2", color: "#dc2626" }}
+                      >
+                        CẦN ĐIỀU PHỐI LẠI
+                      </div>
+                      <div className="request-time">
+                        {new Date(item.createdAt).toLocaleString("vi-VN")}
+                      </div>
+                    </div>
+                  </div>
+                ))
               ) : (
                 paginatedRequests.map((request) => (
                   <div
@@ -1679,7 +1888,7 @@ const Dashboard = () => {
               )}
             </div>
 
-            {filteredRequests.length > 0 && (
+            {displayedRequests.length > 0 && (
               <div className="pagination">
                 <button
                   className="pagination-btn"
@@ -1839,8 +2048,8 @@ const Dashboard = () => {
                                 {team?.city || team?.City || "Chưa cập nhật"}
                               </div>
                               <div className="team-popup__meta">
-                                <strong>Tọa độ:</strong>{" "}
-                                {teamLat.toFixed(5)}, {teamLng.toFixed(5)}
+                                <strong>Tọa độ:</strong> {teamLat.toFixed(5)},{" "}
+                                {teamLng.toFixed(5)}
                               </div>
                             </div>
                           </Popup>
@@ -1854,7 +2063,7 @@ const Dashboard = () => {
                 <div
                   className={`details-overlay ${selectedRequest ? "open" : ""}`}
                 >
-                  {selectedRequest && (
+                  {selectedRequest && requestBoxType !== "rejected" && (
                     <div className="details-section floating">
                       <div className="request-details-card1">
                         <div className="details-header1">
@@ -1956,12 +2165,12 @@ const Dashboard = () => {
                                 <option value="">
                                   {teamsLoading
                                     ? "Đang tải đội..."
-                                    : availableTeams.length === 0
-                                      ? "Không có đội khả dụng"
+                                    : dispatchableTeams.length === 0
+                                      ? "Không còn đội phù hợp"
                                       : "Chọn đội cứu hộ"}
                                 </option>
 
-                                {teams.map((team) => (
+                                {dispatchableTeams.map((team) => (
                                   <option
                                     key={getTeamId(team)}
                                     value={getTeamId(team)}
