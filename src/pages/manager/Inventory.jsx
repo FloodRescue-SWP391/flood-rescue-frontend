@@ -1,3 +1,4 @@
+import "./ManagerDashboard.css";
 import "./Inventory.css";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
@@ -409,14 +410,21 @@ export default function Inventory() {
 
   return (
     <div className="inventory-page">
-      <div className="inventory-header">
+      <div className="mp-wrap">
+      <div className="inventory-header panel-card manager-page-hero">
         <div>
+          <div className="dashboardManager-title inventory-page-title">
+            Quản lý hàng tồn kho
+          </div>
+          <div className="panel-sub inventory-page-subtitle">
+            Theo dõi tồn kho từng kho, điều chỉnh số lượng và nhập kho cho vật phẩm cứu trợ.
+          </div>
           <h2>Quản lý kho</h2>
           <p>Hệ thống quản lý hàng cứu trợ thiên tai</p>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card panel-card inventory-warehouse-card">
         <label>Chọn kho</label>
 
         <select
@@ -440,7 +448,7 @@ export default function Inventory() {
         </div>
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar panel-card inventory-toolbar-card">
         <div className="search-box">
           <Search size={18} />
 
@@ -478,7 +486,7 @@ export default function Inventory() {
         </div>
       </div>
 
-      <div className="inventory-table">
+      <div className="inventory-table panel-card inventory-table-card">
         <table>
           <thead>
             <tr>
@@ -561,7 +569,7 @@ export default function Inventory() {
         </table>
       </div>
 
-      <div className="card inventory-reference">
+      <div className="card panel-card inventory-reference">
         <div className="reference-header">
           <div>
             <h3 className="reference-title">Bảng mã vật phẩm</h3>
@@ -686,6 +694,7 @@ export default function Inventory() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

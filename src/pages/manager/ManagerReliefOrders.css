@@ -1,0 +1,469 @@
+.manager-relief-orders-page {
+  width: 100%;
+}
+
+.manager-relief-orders-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.manager-relief-orders-hero-copy {
+  min-width: 280px;
+  flex: 1 1 420px;
+}
+
+.manager-relief-orders-actions {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: start;
+  justify-content: end;
+  gap: 16px 20px;
+  position: relative;
+}
+
+.manager-relief-orders-page .notification-container {
+  position: relative;
+  justify-self: end;
+}
+
+.manager-relief-orders-page .notification-bell {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  color: #ffffff;
+  font-size: 22px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.28);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
+}
+
+.manager-relief-orders-page .notification-bell:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 14px 28px rgba(6, 182, 212, 0.28);
+  filter: brightness(1.05);
+}
+
+.manager-relief-orders-page .notification-bell:active {
+  transform: scale(0.96);
+}
+
+.manager-relief-orders-page .notification-bell.active .bell-icon {
+  display: inline-block;
+  animation: bellPulse 1.2s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+@keyframes bellPulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  20% {
+    transform: scale(1.08) rotate(-8deg);
+  }
+  40% {
+    transform: scale(1.15) rotate(8deg);
+  }
+  60% {
+    transform: scale(1.08) rotate(-6deg);
+  }
+  80% {
+    transform: scale(1.04) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.manager-relief-orders-page .notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+}
+
+.manager-relief-orders-page .bell-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  line-height: 1;
+}
+
+.manager-relief-orders-page .bell-icon::before {
+  content: "\1F514";
+  font-size: 22px;
+}
+
+.manager-relief-orders-page .notification-panel {
+  position: absolute;
+  top: 64px;
+  right: 0;
+  width: 730px;
+  max-width: min(730px, calc(100vw - 120px));
+  max-height: 500px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.14);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.manager-relief-orders-page .notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+}
+
+.manager-relief-orders-page .notification-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.manager-relief-orders-page .mark-all-read {
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.manager-relief-orders-page .mark-all-read:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.manager-relief-orders-page .notification-list {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.manager-relief-orders-page .notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+  padding: 14px 14px 14px 12px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+
+.manager-relief-orders-page .notification-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.manager-relief-orders-page .notification-item.read {
+  opacity: 0.75;
+}
+
+.manager-relief-orders-page .notification-icon {
+  font-size: 22px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.manager-relief-orders-page .notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.manager-relief-orders-page .notification-content h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.manager-relief-orders-page .notification-content p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.manager-relief-orders-page .notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manager-relief-orders-page .notification-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.manager-relief-orders-page .notification-action {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.manager-relief-orders-page .notification-action:hover {
+  background: #1d4ed8;
+}
+
+.manager-relief-orders-page .notification-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0;
+  cursor: pointer;
+}
+
+.manager-relief-orders-page .notification-close::before {
+  content: "\00D7";
+  font-size: 20px;
+  line-height: 1;
+}
+
+.manager-relief-orders-page .notification-close:hover {
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.manager-relief-orders-page .no-notifications {
+  text-align: center;
+  padding: 30px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.manager-relief-orders-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.manager-relief-orders-summary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.manager-relief-orders-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.manager-relief-orders-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manager-relief-orders-field span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.manager-relief-orders-field input,
+.manager-relief-orders-field select {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 14px;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.manager-relief-orders-field input:focus,
+.manager-relief-orders-field select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.manager-relief-orders-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.manager-relief-orders-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.manager-relief-order-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-relief-order-items-box {
+  margin-top: 2px;
+}
+
+.manager-relief-order-item-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.manager-relief-order-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(191, 219, 254, 0.9);
+}
+
+.manager-relief-order-item-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.manager-relief-order-item-copy strong {
+  color: #0f172a;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.manager-relief-order-item-copy span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.manager-relief-order-prepare-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 112px;
+}
+
+.manager-relief-order-prepare-field span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.manager-relief-order-prepare-field input {
+  min-height: 42px;
+  border: 1px solid #93c5fd;
+  border-radius: 12px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.manager-relief-orders-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1200px) {
+  .manager-relief-orders-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .manager-relief-orders-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .manager-relief-orders-hero,
+  .manager-relief-orders-pagination,
+  .manager-relief-order-item-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .manager-relief-orders-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .manager-relief-orders-page .notification-container {
+    width: 100%;
+  }
+
+  .manager-relief-orders-page .notification-panel {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 14px;
+  }
+
+  .manager-relief-orders-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-relief-order-prepare-field {
+    min-width: 100%;
+  }
+}

@@ -231,6 +231,15 @@
   overflow: visible;
 }
 
+.manager-page-hero,
+.manager-relief-orders-summary-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
 .manager-panel-head {
   display: flex;
   align-items: flex-start;
@@ -301,6 +310,10 @@
 }
 
 .manager-export-btn {
+  min-height: 48px;
+}
+
+.manager-relief-orders-link-btn {
   min-height: 48px;
 }
 
