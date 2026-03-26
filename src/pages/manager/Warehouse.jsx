@@ -5,9 +5,11 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import {
   getWarehouses,
+  filterWarehouses,
   createWarehouse,
   updateWarehouse,
   deleteWarehouse,
+  normalizeWarehouses,
 } from "../../services/warehouseService";
 import { toast } from "react-hot-toast";
 
@@ -76,13 +78,29 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
+const DEFAULT_WAREHOUSE_FILTERS = {
+  name: "",
+  address: "",
+  isActive: "",
+  pageNumber: 1,
+  pageSize: 50,
+};
+
 export default function Warehouse() {
   const currentRole = (localStorage.getItem("role") || "").trim();
-  const canMutateWarehouses = currentRole === "Administrator";
+  const canMutateWarehouses = [
+    "Manager",
+    "Inventory Manager",
+    "Administrator",
+  ].includes(currentRole);
   const readonlyMessage =
-    "Tai khoan Manager hien chi co quyen xem danh sach kho. Tao, sua hoac xoa kho can quyen Administrator tu backend.";
+    "Tài khoản hiện tại không có quyền thêm, sửa hoặc xóa kho.";
+
+  const missingWarehouseIdMessage =
+    "Kho nay chua co id hop le (id/warehouseID) tu API nen frontend chua the sua hoac xoa.";
 
   const [warehouses, setWarehouses] = useState([]);
+  const [filters, setFilters] = useState(DEFAULT_WAREHOUSE_FILTERS);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
@@ -103,6 +121,41 @@ export default function Warehouse() {
   const [miniMapCenter, setMiniMapCenter] = useState(null); // null = chưa chọn
   const searchTimerRef = useRef(null);
 
+  const getWarehouseId = (warehouse) =>
+    warehouse?.id ??
+    warehouse?.Id ??
+    warehouse?.warehouseId ??
+    warehouse?.WarehouseId ??
+    warehouse?.warehouseID ??
+    warehouse?.WarehouseID ??
+    warehouse?.ID ??
+    null;
+
+  const hasWarehouseId = (warehouse) => {
+    const id = getWarehouseId(warehouse);
+    return id !== null && id !== undefined && id !== "";
+  };
+
+  const getWarehouseName = (warehouse) =>
+    warehouse?.name || warehouse?.warehouseName || "Không tên";
+
+  const extractWarehouseList = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.content?.data)) return data.content.data;
+    if (Array.isArray(data?.data?.content?.data)) return data.data.content.data;
+    if (Array.isArray(data?.content)) return data.content;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.data?.content)) return data.data.content;
+
+    if (typeof data === "object" && data !== null) {
+      const potentialArray = Object.values(data).find(Array.isArray);
+      if (potentialArray) return potentialArray;
+    }
+
+    return [];
+  };
+
   const buildWarehousePayload = () => ({
     name: form.name.trim(),
     address: form.address.trim(),
@@ -114,22 +167,25 @@ export default function Warehouse() {
       LOAD DATA
   ========================= */
 
-  const loadWarehouses = async (silent = false) => {
+  const loadWarehouses = async (silent = false, nextFilters = filters) => {
     try {
-      const res = await getWarehouses();
-      // Service parseResponse đã bóc tách JSON, nhưng we handle variants if any
-      const data = res;
-      console.log("WAREHOUSE API:", data);
+      const hasFilterValues = Boolean(
+        nextFilters?.name?.trim() ||
+        nextFilters?.address?.trim() ||
+        nextFilters?.isActive !== "",
+      );
 
-      let list = [];
-      if (Array.isArray(data)) list = data;
-      else if (Array.isArray(data?.data)) list = data.data;
-      else if (Array.isArray(data?.content)) list = data.content;
-      else if (Array.isArray(data?.items)) list = data.items;
-      else if (Array.isArray(data?.data?.content)) list = data.data.content;
-      else if (typeof data === "object" && data !== null) {
-        const potentialArray = Object.values(data).find(Array.isArray);
-        if (potentialArray) list = potentialArray;
+      const filterResponse = await filterWarehouses(nextFilters);
+      // Service parseResponse đã bóc tách JSON, nhưng we handle variants if any
+      const data = filterResponse;
+      console.log("WAREHOUSE FILTER API:", data);
+
+      let list = normalizeWarehouses(extractWarehouseList(data));
+
+      if (!hasFilterValues && list.length === 0) {
+        const fallbackResponse = await getWarehouses();
+        console.log("WAREHOUSE API FALLBACK:", fallbackResponse);
+        list = normalizeWarehouses(extractWarehouseList(fallbackResponse));
       }
 
       setWarehouses(list);
@@ -200,9 +256,15 @@ export default function Warehouse() {
     setSaving(true);
     const t = toast.loading("Đang cập nhật...");
     try {
-      const payload = buildWarehousePayload();
+      if (!hasWarehouseId(editing)) {
+        throw new Error("Không tìm thấy mã kho để cập nhật.");
+      }
+      const payload = {
+        ...buildWarehousePayload(),
+        isDeleted: Boolean(editing?.isDeleted ?? false),
+      };
       console.log("SENDING UPDATE PAYLOAD:", payload);
-      await updateWarehouse(editing.warehouseId, payload);
+      await updateWarehouse(getWarehouseId(editing), payload);
       toast.success("Cập nhật kho thành công!", { id: t });
       setShowModal(false);
       loadWarehouses(true);
@@ -225,6 +287,9 @@ export default function Warehouse() {
     if (!window.confirm("Bạn có chắc muốn xóa kho này?")) return;
     const t = toast.loading("Đang xóa...");
     try {
+      if (id === null || id === undefined || id === "") {
+        throw new Error("Không tìm thấy mã kho để xóa.");
+      }
       await deleteWarehouse(id);
       toast.success("Đã xóa kho.", { id: t });
       loadWarehouses(true);
@@ -258,6 +323,11 @@ export default function Warehouse() {
   const openEdit = (warehouse) => {
     if (!canMutateWarehouses) {
       toast.error(readonlyMessage);
+      return;
+    }
+
+    if (!hasWarehouseId(warehouse)) {
+      toast.error(missingWarehouseIdMessage);
       return;
     }
 
@@ -371,6 +441,20 @@ export default function Warehouse() {
     }
   };
 
+  const handleFilterSubmit = () => {
+    loadWarehouses(false, {
+      ...filters,
+      pageNumber: 1,
+    });
+  };
+
+  const handleFilterReset = () => {
+    setFilters(DEFAULT_WAREHOUSE_FILTERS);
+    loadWarehouses(false, DEFAULT_WAREHOUSE_FILTERS);
+  };
+
+  const hasMissingWarehouseIds = warehouses.some((warehouse) => !hasWarehouseId(warehouse));
+
   return (
     <div className="warehouse-page">
       <div className="warehouse-header">
@@ -381,8 +465,54 @@ export default function Warehouse() {
       </div>
 
       {/* BẢN ĐỒ VỊ TRÍ KHO */}
+      <div className="warehouse-filter-bar">
+        <input
+          placeholder="Lọc theo tên kho"
+          value={filters.name}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, name: e.target.value }))
+          }
+        />
+
+        <input
+          placeholder="Lọc theo địa chỉ"
+          value={filters.address}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, address: e.target.value }))
+          }
+        />
+
+        <select
+          value={filters.isActive}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, isActive: e.target.value }))
+          }
+        >
+          <option value="">Tất cả trạng thái</option>
+          <option value="true">Đang hoạt động</option>
+          <option value="false">Ngưng hoạt động</option>
+        </select>
+
+        <button className="btn-filter" onClick={handleFilterSubmit}>
+          Lọc
+        </button>
+
+        <button
+          className="btn-filter btn-filter-secondary"
+          onClick={handleFilterReset}
+        >
+          Reset
+        </button>
+      </div>
+
       {!canMutateWarehouses && (
         <div className="warehouse-permission-note">{readonlyMessage}</div>
+      )}
+
+      {canMutateWarehouses && hasMissingWarehouseIds && (
+        <div className="warehouse-permission-note">
+          Danh sach kho hien dang thieu `id/warehouseID` tu API, nen mot so dong chi xem duoc chu chua the sua hoac xoa.
+        </div>
       )}
 
       <div className="warehouse-map-card">
@@ -420,12 +550,12 @@ export default function Warehouse() {
 
             const isSelected =
               selectedWarehouse &&
-              (selectedWarehouse.warehouseId === w.warehouseId ||
-                selectedWarehouse.id === w.id);
+              String(getWarehouseId(selectedWarehouse)) ===
+                String(getWarehouseId(w));
 
             return (
               <Marker
-                key={w.warehouseId || w.id || idx}
+                key={getWarehouseId(w) || idx}
                 position={[lat, lng]}
                 icon={isSelected ? selectedIcon : defaultIcon}
                 eventHandlers={{ click: () => setSelectedWarehouse(w) }}
@@ -456,8 +586,8 @@ export default function Warehouse() {
                         fontSize: 12,
                         opacity: canMutateWarehouses ? 1 : 0.55,
                       }}
-                      disabled={!canMutateWarehouses}
-                      title={!canMutateWarehouses ? readonlyMessage : ""}
+                      disabled={!canMutateWarehouses || !hasWarehouseId(w)}
+                      title={!canMutateWarehouses ? readonlyMessage : !hasWarehouseId(w) ? missingWarehouseIdMessage : ""}
                       onClick={() => openEdit(w)}
                     >
                       Chỉnh sửa
@@ -501,31 +631,31 @@ export default function Warehouse() {
             {warehouses.map((w, index) => {
               const isSelected =
                 selectedWarehouse &&
-                (selectedWarehouse.warehouseId === w.warehouseId ||
-                  selectedWarehouse.id === w.id);
+                String(getWarehouseId(selectedWarehouse)) ===
+                  String(getWarehouseId(w));
               return (
                 <tr
-                  key={w.warehouseId || w.id || w.warehouseID || index}
+                  key={getWarehouseId(w) || index}
                   className={isSelected ? "row-selected" : ""}
                   style={{ cursor: "pointer" }}
                   onClick={() => focusWarehouse(w)}
                 >
                   <td>
                     <span style={{ marginRight: 6 }}>🏭</span>
-                    {w.name}
+                    {getWarehouseName(w)}
                   </td>
                   <td>{w.address}</td>
                   <td>{w.locationLong}</td>
                   <td>{w.locationLat}</td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    <button className="btn-icon" onClick={() => openEdit(w)} disabled={!canMutateWarehouses} title={!canMutateWarehouses ? readonlyMessage : ""}>
+                    <button className="btn-icon" onClick={() => openEdit(w)} disabled={!canMutateWarehouses || !hasWarehouseId(w)} title={!canMutateWarehouses ? readonlyMessage : !hasWarehouseId(w) ? missingWarehouseIdMessage : ""}>
                       Chỉnh sửa
                     </button>
                     <button
                       className="btn-icon btn-delete"
                       disabled={!canMutateWarehouses}
                       title={!canMutateWarehouses ? readonlyMessage : ""}
-                      onClick={() => handleDelete(w.warehouseId)}
+                      onClick={() => handleDelete(getWarehouseId(w))}
                     >
                       Xóa
                     </button>

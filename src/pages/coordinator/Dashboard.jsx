@@ -14,6 +14,7 @@ import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService.js";
+import { createReliefOrder } from "../../services/reliefOrdersService.js";
 import { incidentReportService } from "../../services/incidentReportService.js";
 import signalRService from "../../services/signalrService.js";
 import { useNavigate } from "react-router-dom";
@@ -1072,6 +1073,20 @@ const Dashboard = () => {
     }
   };
 
+  const isSupplyDispatchRequest = (request) => {
+    const token = String(
+      request?.emergencyCategory ||
+        request?.requestType ||
+        request?.emergencyType ||
+        request?.type ||
+        "",
+    )
+      .trim()
+      .toLowerCase();
+
+    return token.includes("supply");
+  };
+
   const handleDispatchMission = async () => {
     setDispatchError("");
     setDispatchSuccess("");
@@ -1095,6 +1110,7 @@ const Dashboard = () => {
 
     try {
       setDispatching(true);
+      const isSupplyRequest = isSupplyDispatchRequest(selectedRequest);
 
       const res = await rescueMissionService.dispatch({
         rescueRequestID: selectedRequest.id,
@@ -1114,16 +1130,53 @@ const Dashboard = () => {
       const missionId = data.rescueMissionID ?? data.RescueMissionID ?? null;
 
       const assignedTeamName = findTeamLabelById(selectedTeamId);
+      let createdReliefOrderId = null;
+      let reliefOrderWarning = "";
+
+      if (isSupplyRequest) {
+        try {
+          const reliefOrder = await createReliefOrder({
+            rescueRequestID: selectedRequest.id,
+            rescueTeamID: selectedTeamId,
+          });
+
+          console.log("Create ReliefOrder API response:", reliefOrder);
+
+          createdReliefOrderId =
+            reliefOrder?.reliefOrderID ??
+            reliefOrder?.ReliefOrderID ??
+            reliefOrder?.id ??
+            null;
+        } catch (reliefOrderError) {
+          console.error("Create ReliefOrder after dispatch failed:", reliefOrderError);
+          reliefOrderWarning =
+            reliefOrderError?.message ||
+            "Đã phân công đội nhưng chưa tạo được Relief Order cho manager.";
+        }
+      }
 
       updateRequestAfterDispatch(selectedRequest.id, {
         assignedTeamId: selectedTeamId,
         assignedTeamName,
         rescueMissionId: missionId,
+        reliefOrderId: createdReliefOrderId,
       });
 
-      setDispatchSuccess(
-        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`,
-      );
+      if (isSupplyRequest && createdReliefOrderId) {
+        setDispatchSuccess(
+          `Đã phân công ${assignedTeamName} và tạo Relief Order ${createdReliefOrderId} cho yêu cầu #${selectedRequest.requestId}.`,
+        );
+      } else {
+        setDispatchSuccess(
+          `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`,
+        );
+      }
+
+      if (reliefOrderWarning) {
+        setDispatchError(
+          `Đội đã được phân công, nhưng Relief Order cho manager chưa tạo được: ${reliefOrderWarning}`,
+        );
+      }
 
       await loadRealRequests();
     } catch (e) {
@@ -1145,6 +1198,7 @@ const Dashboard = () => {
           assignedTeamId: payload.assignedTeamId,
           assignedTeamName: payload.assignedTeamName,
           rescueMissionId: payload.rescueMissionId,
+          reliefOrderId: payload.reliefOrderId,
         };
       }),
     );
@@ -1156,6 +1210,7 @@ const Dashboard = () => {
         assignedTeamId: payload.assignedTeamId,
         assignedTeamName: payload.assignedTeamName,
         rescueMissionId: payload.rescueMissionId,
+        reliefOrderId: payload.reliefOrderId,
       }));
     }
   };

@@ -232,6 +232,33 @@ td{
   text-decoration:underline;
 }
 
+.inventory-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.delete-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:none;
+  border:none;
+  color:#dc2626;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.delete-btn:hover:not(:disabled){
+  text-decoration:underline;
+}
+
+.delete-btn:disabled{
+  opacity:0.6;
+  cursor:not-allowed;
+}
+
 /* =========================
    LOADING
 ========================= */
@@ -267,6 +294,12 @@ td{
   margin-top:0;
 }
 
+.modal-helper-text{
+  margin:8px 0 0;
+  color:#6b7280;
+  font-size:13px;
+}
+
 .modal-box input{
   width:100%;
   padding:10px;
@@ -297,4 +330,28 @@ td{
 .modal-buttons .success{
   background:#22c55e;
   color:white;
+}
+
+.inventory-reference{
+  margin-top:20px;
+}
+
+.reference-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:16px;
+}
+
+.reference-title{
+  margin:0;
+  font-size:18px;
+  font-weight:700;
+}
+
+.reference-note{
+  margin:6px 0 0;
+  color:#6b7280;
+  font-size:14px;
 }
