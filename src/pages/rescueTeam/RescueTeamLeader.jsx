@@ -1,4 +1,3 @@
-// Màn hình dành cho Rescue Team Leader: nhận mission mới, OrderPrepared và IncidentResolved.
 import "./Dashboard.css";
 import Header from "../../components/common/Header";
 import { fetchWithAuth } from "../../services/apiClient";
@@ -8,9 +7,7 @@ import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService";
-import { getRescueTeamById } from "../../services/rescueTeamService";
 import {
-  FaShieldAlt,
   FaClipboardList,
   FaCheckCircle,
   FaMapMarkerAlt,
@@ -34,13 +31,16 @@ L.Icon.Default.mergeOptions({
 });
 
 const formatVNTime = (dateString) => {
-  if (!dateString) return "Không có thời gian";
+  if (!dateString || dateString === "N/A") return "Không có thời gian";
+
   try {
     return new Date(dateString).toLocaleString("vi-VN", {
+      dateStyle: "medium",
+      timeStyle: "short",
       timeZone: "Asia/Ho_Chi_Minh",
     });
   } catch (e) {
-    return "Thời gian không hợp lệ";
+    return dateString;
   }
 };
 
@@ -86,7 +86,6 @@ const AddressDisplay = ({ lat, lng }) => {
 };
 
 export default function RescueTeamLeader({ teamId }) {
-  const [teamName, setTeamName] = useState("");
   const [assigned, setAssigned] = useState([]);
   const [inProgress, setInProgress] = useState([]);
   const [completed, setCompleted] = useState([]);
@@ -97,7 +96,6 @@ export default function RescueTeamLeader({ teamId }) {
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [userFullName, setUserFullName] = useState("");
 
-  // Lấy tên của username
   useEffect(() => {
     try {
       const name =
@@ -110,7 +108,6 @@ export default function RescueTeamLeader({ teamId }) {
       console.error("Load fullName failed:", err);
     }
   }, []);
-  /* ================= HELPERS ================= */
 
   const getMissionId = (mission) =>
     mission?.rescueMissionID || mission?.rescueMissionId || mission?.id;
@@ -120,6 +117,7 @@ export default function RescueTeamLeader({ teamId }) {
       mission?.citizenName ||
       mission?.citizen?.fullName ||
       mission?.rescueRequest?.citizenName ||
+      mission?.rescueRequest?.fullName ||
       "Chưa có tên người dân"
     );
   };
@@ -128,37 +126,41 @@ export default function RescueTeamLeader({ teamId }) {
     return (
       mission?.description ||
       mission?.rescueRequest?.description ||
+      mission?.rescueRequest?.note ||
       "Chưa có mô tả"
     );
   };
 
   const getLatitude = (mission) => {
-    return mission?.locationLatitude ?? mission?.latitude ?? null;
-  };
-  const getLongitude = (mission) => {
-    return mission?.locationLongitude ?? mission?.longitude ?? null;
-  };
-
-  const getMissionTime = (mission) => {
     return (
-      mission?.requestCreatedTime ||
-      mission?.startTime ||
-      mission?.assignedAt ||
-      mission?.createdAt ||
-      mission?.createdDate ||
-      mission?.assignedDate ||
-      mission?.timestamp ||
+      mission?.locationLatitude ??
+      mission?.latitude ??
+      mission?.rescueRequest?.locationLatitude ??
+      mission?.rescueRequest?.latitude ??
       null
     );
   };
+
+  const getLongitude = (mission) => {
+    return (
+      mission?.locationLongitude ??
+      mission?.longitude ??
+      mission?.rescueRequest?.locationLongitude ??
+      mission?.rescueRequest?.longitude ??
+      null
+    );
+  };
+
   const normalizeStatus = (status) => {
     const s = String(status || "")
       .trim()
       .toLowerCase();
+
     if (!s) return "unknown";
-    if (s === "assigned" || s === "assigned") return "Assigned";
-    if (s === "inprogress" || s === "in_progress" || s === "in progress")
+    if (s === "assigned") return "Assigned";
+    if (s === "inprogress" || s === "in_progress" || s === "in progress") {
       return "InProgress";
+    }
     if (s === "completed" || s === "complete") return "Completed";
     return status;
   };
@@ -195,24 +197,32 @@ export default function RescueTeamLeader({ teamId }) {
 
       const text = await res.text();
       const json = text ? JSON.parse(text) : null;
-      const detail = json?.content || json?.data || json;
-      const requestInfo = detail?.requestInfo || {};
+      const detail = json?.content || json?.data || json || {};
+      const requestInfo =
+        detail?.requestInfo ||
+        detail?.rescueRequest ||
+        mission?.rescueRequest ||
+        {};
 
       return {
         ...mission,
+        ...detail,
         rescueRequest: {
           ...(mission?.rescueRequest || {}),
+          ...(detail?.rescueRequest || {}),
           ...requestInfo,
         },
 
         citizenName:
           mission?.citizenName ||
+          detail?.citizenName ||
           requestInfo?.citizenName ||
           requestInfo?.fullName ||
           null,
 
         citizenPhone:
           mission?.citizenPhone ||
+          detail?.citizenPhone ||
           requestInfo?.citizenPhone ||
           requestInfo?.phoneNumber ||
           requestInfo?.phone ||
@@ -220,12 +230,15 @@ export default function RescueTeamLeader({ teamId }) {
 
         citizenEmail:
           mission?.citizenEmail ||
+          detail?.citizenEmail ||
           requestInfo?.citizenEmail ||
           requestInfo?.email ||
           null,
 
         address:
           mission?.address ||
+          detail?.citizenAddress ||
+          detail?.address ||
           requestInfo?.address ||
           requestInfo?.locationAddress ||
           requestInfo?.formattedAddress ||
@@ -233,55 +246,85 @@ export default function RescueTeamLeader({ teamId }) {
 
         description:
           mission?.description ||
+          detail?.description ||
           requestInfo?.description ||
           requestInfo?.note ||
           null,
 
         requestType:
           mission?.requestType ||
+          detail?.requestType ||
           requestInfo?.requestType ||
           requestInfo?.type ||
           null,
 
         peopleCount:
           mission?.peopleCount ??
+          detail?.peopleCount ??
           requestInfo?.peopleCount ??
           requestInfo?.numberOfPeople ??
           null,
 
         priorityLevel:
           mission?.priorityLevel ||
+          detail?.priorityLevel ||
           requestInfo?.priorityLevel ||
           requestInfo?.priority ||
           null,
 
         locationLatitude:
           mission?.locationLatitude ??
+          detail?.locationLatitude ??
           requestInfo?.locationLatitude ??
           requestInfo?.latitude ??
           null,
 
         locationLongitude:
           mission?.locationLongitude ??
+          detail?.locationLongitude ??
           requestInfo?.locationLongitude ??
           requestInfo?.longitude ??
           null,
 
         requestCreatedTime:
           mission?.requestCreatedTime ||
-          requestInfo?.createdAt ||
           requestInfo?.createdTime ||
+          requestInfo?.createdAt ||
+          requestInfo?.requestCreatedTime ||
+          detail?.requestCreatedTime ||
           detail?.createdAt ||
+          detail?.createdTime ||
           null,
 
         assignedAt:
           mission?.assignedAt ||
           detail?.assignedAt ||
+          detail?.dispatchedAt ||
+          detail?.assignedTime ||
           detail?.updatedAt ||
           null,
 
+        startedAt:
+          mission?.startedAt ||
+          mission?.startTime ||
+          detail?.startedAt ||
+          detail?.startTime ||
+          detail?.acceptedAt ||
+          null,
+
+        completedAt:
+          mission?.completedAt ||
+          mission?.endTime ||
+          detail?.completedAt ||
+          detail?.endTime ||
+          null,
+
         missionStatus:
-          mission?.missionStatus || detail?.status || mission?.status || null,
+          mission?.missionStatus ||
+          detail?.missionStatus ||
+          detail?.status ||
+          mission?.status ||
+          null,
 
         teamName: mission?.teamName || detail?.teamName || null,
       };
@@ -290,7 +333,6 @@ export default function RescueTeamLeader({ teamId }) {
       return mission;
     }
   };
-  /* ================= LOAD MISSIONS ================= */
 
   const loadMissions = async () => {
     if (!teamId || loading) return;
@@ -308,21 +350,18 @@ export default function RescueTeamLeader({ teamId }) {
         return;
       }
 
-      let missions =
+      let missionList =
         json?.content?.data || json?.content?.items || json?.content || [];
 
-      if (!Array.isArray(missions)) {
-        missions = Object.values(missions).filter(
+      if (!Array.isArray(missionList)) {
+        missionList = Object.values(missionList).filter(
           (m) => m?.rescueMissionID || m?.rescueMissionId,
         );
       }
 
-      // Add fallback data for display
       const enrichedMissions = await Promise.all(
-        missions.map(enrichMissionDetail),
+        missionList.map(enrichMissionDetail),
       );
-
-      console.log("ENRICHED MISSIONS:", enrichedMissions);
 
       const assignedList = enrichedMissions.filter(
         (m) => getMissionStatus(m) === "Assigned",
@@ -345,29 +384,21 @@ export default function RescueTeamLeader({ teamId }) {
     }
   };
 
-  /* ================= AUTO REFRESH ================= */
-
-  // useEffect(() => {
-  //   loadMissions();
-
-  //   const interval = setInterval(() => {
-  //     loadMissions();
-  //   }, 5000);
-
-  //   return () => clearInterval(interval);
-  // }, [teamId]);
   useEffect(() => {
     if (teamId) {
       loadMissions();
     }
   }, [teamId]);
+
   useEffect(() => {
     const handleMissionNotification = () => loadMissions();
+
     const handleOrderPrepared = (data) => {
       console.log("OrderPrepared:", data);
       loadMissions();
       window.alert("Manager đã chuẩn bị xong hàng cho team leader.");
     };
+
     const handleIncidentResolved = (data) => {
       console.log("IncidentResolved:", data);
       loadMissions();
@@ -393,6 +424,7 @@ export default function RescueTeamLeader({ teamId }) {
         console.error("SignalR init error in RescueTeamLeader:", err);
       }
     };
+
     init();
 
     return () => {
@@ -407,7 +439,6 @@ export default function RescueTeamLeader({ teamId }) {
       );
     };
   }, [teamId]);
-  /* ================= ACTIONS ================= */
 
   const handleShowDetail = (mission) => {
     setSelectedMission(mission);
@@ -433,7 +464,6 @@ export default function RescueTeamLeader({ teamId }) {
   const handleIncidentSubmit = async (formData) => {
     try {
       await incidentReportService.reportIncident(formData);
-      console.log("Incident Report Submitted:", formData);
       await loadMissions();
     } catch (err) {
       console.error("Failed to submit incident:", err);
@@ -444,17 +474,6 @@ export default function RescueTeamLeader({ teamId }) {
   const handleAccept = async (mission) => {
     try {
       const missionId = getMissionId(mission);
-
-      console.log("MISSION CLICKED:", mission);
-      console.log("MISSION ID SENT:", missionId);
-      console.log("MISSION NORMALIZED STATUS:", getMissionStatus(mission));
-      console.log("MISSION RAW STATUS:", {
-        missionStatus: mission?.missionStatus,
-        currentStatus: mission?.currentStatus,
-        status: mission?.status,
-        newMissionStatus: mission?.newMissionStatus,
-      });
-
       if (!missionId) {
         console.error("Mission ID is missing", mission);
         return;
@@ -465,8 +484,6 @@ export default function RescueTeamLeader({ teamId }) {
         isAccepted: true,
         rejectReason: "",
       });
-
-      console.log("ACCEPT RESPONSE:", res);
 
       if (res?.success) {
         await loadMissions();
@@ -481,32 +498,15 @@ export default function RescueTeamLeader({ teamId }) {
   const handleReject = async (mission) => {
     try {
       const missionId = getMissionId(mission);
-
-      console.log("MISSION CLICKED:", mission);
-      console.log("MISSION ID SENT:", missionId);
-
-      console.log("MISSION STATUS:", getMissionStatus(mission));
-      console.log("MISSION RAW STATUS:", {
-        missionStatus: mission?.missionStatus,
-        currentStatus: mission?.currentStatus,
-        status: mission?.status,
-        newMissionStatus: mission?.newMissionStatus,
-      });
       if (!missionId) {
         console.error("Mission ID is missing", mission);
         return;
       }
 
       const status = getMissionStatus(mission);
-
       if (status !== "Assigned") {
-        console.warn(
-          "Accept blocked: mission status is not Assigned",
-          missionId,
-          status,
-        );
         window.alert(
-          "Không thể chấp nhận: nhiệm vụ không ở trạng thái Được giao.",
+          "Không thể từ chối: nhiệm vụ không ở trạng thái Được giao.",
         );
         return;
       }
@@ -516,8 +516,6 @@ export default function RescueTeamLeader({ teamId }) {
         isAccepted: false,
         rejectReason: "Team unavailable",
       });
-
-      console.log("REJECT RESPONSE:", res);
 
       if (res?.success) {
         await loadMissions();
@@ -549,7 +547,6 @@ export default function RescueTeamLeader({ teamId }) {
         reliefOrderID,
       });
 
-      // loadMissions();
       await loadMissions();
     } catch (err) {
       console.error("Confirm pickup error:", err);
@@ -559,11 +556,6 @@ export default function RescueTeamLeader({ teamId }) {
   const handleComplete = async (mission) => {
     try {
       const missionId = getMissionId(mission);
-
-      console.log("COMPLETE MISSION OBJECT:", mission);
-      console.log("COMPLETE MISSION ID:", missionId);
-      console.log("COMPLETE MISSION STATUS:", getMissionStatus(mission));
-
       if (!missionId) {
         console.error("Mission ID is missing");
         return;
@@ -571,11 +563,6 @@ export default function RescueTeamLeader({ teamId }) {
 
       const status = getMissionStatus(mission);
       if (status !== "InProgress") {
-        console.warn(
-          "Complete blocked: mission status not InProgress",
-          missionId,
-          status,
-        );
         window.alert(
           "Không thể hoàn thành: nhiệm vụ không ở trạng thái Đang thực hiện.",
         );
@@ -589,11 +576,8 @@ export default function RescueTeamLeader({ teamId }) {
     }
   };
 
-  /* ================= MAP MISSIONS ================= */
-
   const mapMissions = useMemo(() => {
     const all = [...assigned, ...inProgress, ...completed];
-
     return all.filter((m) => isValidCoord(getLatitude(m), getLongitude(m)));
   }, [assigned, inProgress, completed]);
 
@@ -605,17 +589,12 @@ export default function RescueTeamLeader({ teamId }) {
         ]
       : [10.8231, 106.6297];
 
-  /* ================= Nút Logout ================= */
-
   const navigate = useNavigate();
   const handleLogout = () => {
-    // Xử lý logout
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");
     navigate("/login");
   };
-
-  /* ================= UI ================= */
 
   return (
     <>
@@ -693,9 +672,18 @@ export default function RescueTeamLeader({ teamId }) {
 
                   <p>
                     <small>
-                      🕒{" "}
-                      {getMissionTime(mission)
-                        ? formatVNTime(getMissionTime(mission))
+                      📝 Tạo lúc:{" "}
+                      {mission?.requestCreatedTime
+                        ? formatVNTime(mission.requestCreatedTime)
+                        : "Không có thời gian"}
+                    </small>
+                  </p>
+
+                  <p>
+                    <small>
+                      📤 Giao lúc:{" "}
+                      {mission?.assignedAt
+                        ? formatVNTime(mission.assignedAt)
                         : "Không có thời gian"}
                     </small>
                   </p>
@@ -763,9 +751,18 @@ export default function RescueTeamLeader({ teamId }) {
 
                   <p>
                     <small>
-                      🕒{" "}
-                      {getMissionTime(mission)
-                        ? formatVNTime(getMissionTime(mission))
+                      📝 Tạo lúc:{" "}
+                      {mission?.requestCreatedTime
+                        ? formatVNTime(mission.requestCreatedTime)
+                        : "Không có thời gian"}
+                    </small>
+                  </p>
+
+                  <p>
+                    <small>
+                      🚒 Bắt đầu lúc:{" "}
+                      {mission?.startedAt || mission?.startTime
+                        ? formatVNTime(mission?.startedAt || mission?.startTime)
                         : "Không có thời gian"}
                     </small>
                   </p>
@@ -875,9 +872,20 @@ export default function RescueTeamLeader({ teamId }) {
 
                     <p>
                       <small>
-                        🕒{" "}
-                        {getMissionTime(mission)
-                          ? formatVNTime(getMissionTime(mission))
+                        📝 Tạo lúc:{" "}
+                        {mission?.requestCreatedTime
+                          ? formatVNTime(mission.requestCreatedTime)
+                          : "Không có thời gian"}
+                      </small>
+                    </p>
+
+                    <p>
+                      <small>
+                        ✅ Hoàn thành lúc:{" "}
+                        {mission?.completedAt || mission?.endTime
+                          ? formatVNTime(
+                              mission?.completedAt || mission?.endTime,
+                            )
                           : "Không có thời gian"}
                       </small>
                     </p>
@@ -909,7 +917,6 @@ export default function RescueTeamLeader({ teamId }) {
             </div>
           </div>
 
-          {/* Modals */}
           {showDetailModal && selectedMission && (
             <RequestDetailModal
               mission={selectedMission}
