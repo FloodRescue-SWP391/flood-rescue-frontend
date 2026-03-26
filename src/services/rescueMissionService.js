@@ -4,7 +4,15 @@ const BASE = "/RescueMission";
 
 async function parseJsonResponse(res) {
   const text = await res.text();
-  const json = text ? JSON.parse(text) : {};
+  let json = {};
+
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch (error) {
+    console.warn("[rescueMissionService] Response is not valid JSON:", error);
+    json = {};
+  }
+
   if (!res.ok || json?.success === false) {
     throw new Error(json?.message || `Request failed (${res.status})`);
   }
@@ -55,7 +63,7 @@ export const rescueMissionService = {
 
     console.log("DISPATCH RAW RESPONSE:", res);
 
-    const json = await res.json();
+    const json = await parseJsonResponse(res);
     console.log("DISPATCH RESPONSE JSON:", json);
 
     return json;
@@ -92,7 +100,7 @@ export const rescueMissionService = {
       }),
     });
 
-    return await res.json();
+    return await parseJsonResponse(res);
   },
 
   filter: async ({ rescueTeamID, statuses, pageNumber = 1, pageSize = 20 }) => {
@@ -106,7 +114,7 @@ export const rescueMissionService = {
       method: "GET",
     });
 
-    return await res.json();
+    return await parseJsonResponse(res);
   },
 
   getById: async (id) => {
@@ -114,7 +122,7 @@ export const rescueMissionService = {
       method: "GET",
     });
 
-    return await res.json();
+    return await parseJsonResponse(res);
   },
 
   getTeamMembers: async (teamId) => {
@@ -122,6 +130,6 @@ export const rescueMissionService = {
       method: "GET",
     });
 
-    return await res.json();
+    return await parseJsonResponse(res);
   },
 };

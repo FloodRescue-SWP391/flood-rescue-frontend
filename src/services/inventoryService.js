@@ -5,7 +5,15 @@ const BASE_PATH = "/Inventories";
 // Parse JSON và ném lỗi thống nhất để màn Manager đọc dữ liệu ổn định.
 async function parseJsonResponse(res) {
   const text = await res.text();
-  const json = text ? JSON.parse(text) : {};
+  let json = {};
+
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch (error) {
+    console.warn("[inventoryService] Response is not valid JSON:", error);
+    json = {};
+  }
+
   if (!res.ok || json?.success === false) {
     throw new Error(json?.message || `Request failed (${res.status})`);
   }
@@ -18,8 +26,8 @@ async function parseJsonResponse(res) {
  */
 // Lấy tồn kho theo warehouse cho dashboard manager.
 export async function getInventoryByWarehouse(warehouseId) {
-  if (!warehouseId || Number(warehouseId) <= 0) {
-    throw new Error("warehouseId must be a positive number.");
+  if (warehouseId === undefined || warehouseId === null || warehouseId === "") {
+    throw new Error("warehouseId is required.");
   }
 
   const res = await fetchWithAuth(
@@ -83,8 +91,43 @@ export async function adjustInventory(payload) {
   return await parseJsonResponse(res);
 }
 
+// NEW: Xóa tồn kho của một vật phẩm trong kho bằng cách điều chỉnh số lượng về 0.
+export async function removeInventoryStock({
+  warehouseID,
+  reliefItemID,
+  inventoryID = null,
+  quantity = 0,
+}) {
+  if (warehouseID === undefined || warehouseID === null || warehouseID === "") {
+    throw new Error("warehouseID is required.");
+  }
+
+  if (reliefItemID === undefined || reliefItemID === null || reliefItemID === "") {
+    throw new Error("reliefItemID is required.");
+  }
+
+  const numericQuantity = Number(quantity);
+  if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) {
+    throw new Error("quantity must be greater than 0 to remove inventory.");
+  }
+
+  return await adjustInventory({
+    warehouseID,
+    items: [
+      {
+        inventoryID,
+        InventoryID: inventoryID,
+        reliefItemID,
+        ReliefItemID: reliefItemID,
+        adjustmentQuantity: -Math.abs(numericQuantity),
+      },
+    ],
+  });
+}
+
 export const inventoryService = {
   getInventoryByWarehouse,
   receiveInventory,
   adjustInventory,
+  removeInventoryStock,
 };

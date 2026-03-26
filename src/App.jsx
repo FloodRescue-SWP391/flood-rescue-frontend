@@ -26,9 +26,6 @@ import ManagerLayout from "./pages/manager/ManagerLayout";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import Warehouse from "./pages/manager/Warehouse";
 import Inventory from "./pages/manager/Inventory";
-import ReliefItems from "./pages/manager/ReliefItems";
-import PrepareOrders from "./pages/manager/PrepareOrders";
-import UsageReport from "./pages/manager/UsageReport";
 
 import RescueTeam from "./pages/rescueTeam/RescueTeam";
 import CoordinatorDashboard from "./pages/coordinator/Dashboard.jsx";
@@ -93,11 +90,9 @@ function App() {
 
           <Route path="inventory" element={<Inventory />} />
 
-          <Route path="items" element={<ReliefItems />} />
+          <Route path="items" element={<Navigate to="/manager/inventory" replace />} />
 
-          <Route path="orders" element={<PrepareOrders />} />
-
-          <Route path="report" element={<UsageReport />} />
+          <Route path="report" element={<Navigate to="/manager" replace />} />
         </Route>
 
         {/* ===== COORDINATOR (PROTECTED) ===== */}

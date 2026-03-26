@@ -3,6 +3,32 @@ import { fetchWithAuth } from "./apiClient";
 
 const BASE = "/RescueTeams";
 
+async function parseJsonSafe(res, debugLabel = "RescueTeams API") {
+    const raw = await res.text();
+    let json = null;
+
+    try {
+        json = raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        console.warn(`[${debugLabel}] Response is not valid JSON:`, error);
+        json = null;
+    }
+
+    if (!res.ok || json?.success === false) {
+        const error = new Error(
+            json?.message ||
+            json?.title ||
+            raw ||
+            `Request failed (${res.status})`,
+        );
+        error.status = res.status;
+        error.payload = json;
+        throw error;
+    }
+
+    return json ?? {};
+}
+
 
 // GET: ApiResponse<List<RescueTeamResponseDTO>>
 export async function getAllRescueTeams(options = {}) {
@@ -15,7 +41,7 @@ export async function getAllRescueTeams(options = {}) {
     }
 
     const res = await fetchWithAuth(url, { method: "GET" });
-    return res.json();
+    return await parseJsonSafe(res, "GET RescueTeams/filter");
 }
 
 // GET: ApiResponse<RescueTeamResponseDTO>
@@ -31,7 +57,7 @@ export async function createRescueTeam(payload) {
         body: JSON.stringify(payload),
     });
 
-    return res.json();
+    return await parseJsonSafe(res, "POST RescueTeams");
 }
 
 // PUT: ApiResponse<RescueTeamResponseDTO>
@@ -43,7 +69,7 @@ export async function updateRescueTeam(id, payload) {
         body: JSON.stringify(payload),
     });
 
-    return res.json();
+    return await parseJsonSafe(res, `PUT RescueTeams/${id}`);
 }
 
 // DELETE: ApiResponse<bool>
@@ -54,6 +80,6 @@ export async function deleteRescueTeam(id) {
         method: "DELETE",
     });
 
-    return res.json();
+    return await parseJsonSafe(res, `DELETE RescueTeams/${id}`);
 
 }

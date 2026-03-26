@@ -14,6 +14,7 @@ import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService.js";
+import { createReliefOrder } from "../../services/reliefOrdersService.js";
 import { incidentReportService } from "../../services/incidentReportService.js";
 import signalRService from "../../services/signalrService.js";
 import { useNavigate } from "react-router-dom";
@@ -1242,6 +1243,7 @@ const Dashboard = () => {
 
     try {
       setDispatching(true);
+      const isSupplyRequest = isSupplyDispatchRequest(selectedRequest);
 
       const res = await rescueMissionService.dispatch({
         rescueRequestID: selectedRequest.id,
@@ -1261,11 +1263,36 @@ const Dashboard = () => {
       const missionId = data.rescueMissionID ?? data.RescueMissionID ?? null;
 
       const assignedTeamName = findTeamLabelById(selectedTeamId);
+      let createdReliefOrderId = null;
+      let reliefOrderWarning = "";
+
+      if (isSupplyRequest) {
+        try {
+          const reliefOrder = await createReliefOrder({
+            rescueRequestID: selectedRequest.id,
+            rescueTeamID: selectedTeamId,
+          });
+
+          console.log("Create ReliefOrder API response:", reliefOrder);
+
+          createdReliefOrderId =
+            reliefOrder?.reliefOrderID ??
+            reliefOrder?.ReliefOrderID ??
+            reliefOrder?.id ??
+            null;
+        } catch (reliefOrderError) {
+          console.error("Create ReliefOrder after dispatch failed:", reliefOrderError);
+          reliefOrderWarning =
+            reliefOrderError?.message ||
+            "Đã phân công đội nhưng chưa tạo được Relief Order cho manager.";
+        }
+      }
 
       updateRequestAfterDispatch(selectedRequest.id, {
         assignedTeamId: selectedTeamId,
         assignedTeamName,
         rescueMissionId: missionId,
+        reliefOrderId: createdReliefOrderId,
       });
 
       setTeamRejectedRequests((prev) =>
@@ -1299,6 +1326,7 @@ const Dashboard = () => {
           assignedTeamId: payload.assignedTeamId,
           assignedTeamName: payload.assignedTeamName,
           rescueMissionId: payload.rescueMissionId,
+          reliefOrderId: payload.reliefOrderId,
         };
       }),
     );
@@ -1310,6 +1338,7 @@ const Dashboard = () => {
         assignedTeamId: payload.assignedTeamId,
         assignedTeamName: payload.assignedTeamName,
         rescueMissionId: payload.rescueMissionId,
+        reliefOrderId: payload.reliefOrderId,
       }));
     }
   };

@@ -38,12 +38,6 @@ export default function ManagerSidebar() {
 
         <NavLink to="/manager/inventory">Hàng tồn kho</NavLink>
 
-        <NavLink to="/manager/items">Vật phẩm cứu trợ</NavLink>
-
-        <NavLink to="/manager/orders">Chuẩn bị đơn đặt hàng</NavLink>
-
-        <NavLink to="/manager/report">Báo cáo sử dụng</NavLink>
-
         <button className="logout-btn" onClick={handleLogout}>
           Đăng xuất
         </button>
