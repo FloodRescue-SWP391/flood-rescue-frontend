@@ -1,4 +1,3 @@
-import AddressDisplay from "./RescueTeamLeader";
 import { useEffect, useState } from "react";
 import {
   FaTimes,
@@ -14,7 +13,7 @@ export default function RequestDetailModal({
   onClose,
   onReportIncident,
 }) {
-  const [activeTab, setActiveTab] = useState("details"); // details | people | timeline
+  const [activeTab, setActiveTab] = useState("details");
 
   if (!mission) return null;
 
@@ -24,7 +23,6 @@ export default function RequestDetailModal({
   const requestData = mission?.rescueRequest || mission?.request || {};
   const missionData = mission;
 
-  // REQUEST INFO
   const requestId = pick(
     requestData?.rescueRequestID,
     requestData?.requestID,
@@ -86,7 +84,6 @@ export default function RequestDetailModal({
     requestData?.location?.address,
     requestData?.location?.formattedAddress,
     requestData?.citizenAddress,
-
     missionData?.address,
     missionData?.locationAddress,
     missionData?.formattedAddress,
@@ -97,7 +94,6 @@ export default function RequestDetailModal({
     missionData?.location?.address,
     missionData?.location?.formattedAddress,
     missionData?.citizenAddress,
-
     "Chưa có địa chỉ",
   );
 
@@ -139,32 +135,39 @@ export default function RequestDetailModal({
     "N/A",
   );
 
-  // MISSION INFO
   const missionStatus = pick(
-    missionData?.status,
     missionData?.missionStatus,
+    missionData?.status,
     "Unknown",
+  );
+
+  const createdAt = pick(
+    missionData?.requestCreatedTime,
+    requestData?.requestCreatedTime,
+    requestData?.createdTime,
+    requestData?.createdAt,
+    missionData?.createdAt,
+    null,
   );
 
   const assignedAt = pick(
     missionData?.assignedAt,
-    missionData?.updatedAt,
-    "N/A",
+    missionData?.dispatchedAt,
+    missionData?.assignedTime,
+    null,
   );
 
-  const createdAt = pick(
-    requestData?.createdAt,
-    requestData?.createdTime,
-    missionData?.createdAt,
-    "N/A",
+  const startedAt = pick(
+    missionData?.startedAt,
+    missionData?.startTime,
+    missionData?.acceptedAt,
+    null,
   );
-
-  const startedAt = pick(missionData?.startTime, missionData?.startedAt, "N/A");
 
   const completedAt = pick(
-    missionData?.endTime,
     missionData?.completedAt,
-    "N/A",
+    missionData?.endTime,
+    null,
   );
 
   const rescueTeamId = pick(
@@ -179,25 +182,39 @@ export default function RequestDetailModal({
     "N/A",
   );
 
-  const getLatitude = (mission) => {
-    return mission?.locationLatitude ?? mission?.latitude ?? null;
+  const getLatitude = (missionItem) => {
+    return (
+      missionItem?.locationLatitude ??
+      missionItem?.latitude ??
+      missionItem?.rescueRequest?.locationLatitude ??
+      missionItem?.rescueRequest?.latitude ??
+      null
+    );
   };
-  const getLongitude = (mission) => {
-    return mission?.locationLongitude ?? mission?.longitude ?? null;
+
+  const getLongitude = (missionItem) => {
+    return (
+      missionItem?.locationLongitude ??
+      missionItem?.longitude ??
+      missionItem?.rescueRequest?.locationLongitude ??
+      missionItem?.rescueRequest?.longitude ??
+      null
+    );
   };
+
   const addressCache = new Map();
   const AddressDisplay = ({ lat, lng }) => {
-    const [address, setAddress] = useState("Đang tải vị trí...");
+    const [resolvedAddress, setResolvedAddress] = useState("Đang tải vị trí...");
 
     useEffect(() => {
       if (lat == null || lng == null) {
-        setAddress("Vị trí không hợp lệ");
+        setResolvedAddress("Vị trí không hợp lệ");
         return;
       }
 
       const key = `${lat},${lng}`;
       if (addressCache.has(key)) {
-        setAddress(addressCache.get(key));
+        setResolvedAddress(addressCache.get(key));
         return;
       }
 
@@ -205,7 +222,7 @@ export default function RequestDetailModal({
         try {
           await new Promise((r) => setTimeout(r, Math.random() * 1000 + 500));
           if (addressCache.has(key)) {
-            setAddress(addressCache.get(key));
+            setResolvedAddress(addressCache.get(key));
             return;
           }
 
@@ -215,22 +232,25 @@ export default function RequestDetailModal({
           const data = await res.json();
           const displayAddress = data.display_name || "Không tìm thấy địa chỉ";
           addressCache.set(key, displayAddress);
-          setAddress(displayAddress);
+          setResolvedAddress(displayAddress);
         } catch (err) {
-          setAddress(`Tọa độ: ${lat}, ${lng}`);
+          setResolvedAddress(`Tọa độ: ${lat}, ${lng}`);
         }
       };
+
       fetchAddress();
     }, [lat, lng]);
 
-    return <span>{address}</span>;
+    return <span>{resolvedAddress}</span>;
   };
 
   const formatVNTime = (dateString) => {
-    if (!dateString || dateString === "N/A") return "N/A";
+    if (!dateString) return "N/A";
 
     try {
       return new Date(dateString).toLocaleString("vi-VN", {
+        dateStyle: "medium",
+        timeStyle: "short",
         timeZone: "Asia/Ho_Chi_Minh",
       });
     } catch (e) {
@@ -244,7 +264,6 @@ export default function RequestDetailModal({
         className="modal-content request-detail-modal modern-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="modal-header modern-header">
           <div className="header-left">
             <div className="modal-icon">🚨</div>
@@ -261,7 +280,6 @@ export default function RequestDetailModal({
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="modal-tabs modern-tabs">
           <button
             className={`tab-btn ${activeTab === "details" ? "active" : ""}`}
@@ -283,9 +301,7 @@ export default function RequestDetailModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="modal-body modern-body">
-          {/* DETAILS */}
           {activeTab === "details" && (
             <div className="tab-content">
               <div className="detail-section modern-section">
@@ -305,6 +321,7 @@ export default function RequestDetailModal({
                       <FaTag /> {requestType}
                     </p>
                   </div>
+
                   <div className="detail-item card-style">
                     <label>Số người cần hỗ trợ</label>
                     <p className="value">{peopleCount}</p>
@@ -336,7 +353,7 @@ export default function RequestDetailModal({
                           lng={getLongitude(mission)}
                         />
                       ) : (
-                        <span>Chưa có vị trí</span>
+                        <span>{address}</span>
                       )}
                     </p>
                   </div>
@@ -365,25 +382,36 @@ export default function RequestDetailModal({
                 <div className="detail-grid">
                   <div className="detail-item card-style">
                     <label>
-                      <FaClock /> Thời gian gán
+                      <FaClock /> Thời gian tạo yêu cầu
                     </label>
-                    <p className="value">{formatVNTime(assignedAt) || "N/A"}</p>
+                    <p className="value">{formatVNTime(createdAt)}</p>
+                  </div>
+
+                  <div className="detail-item card-style">
+                    <label>
+                      <FaClock /> Thời gian gán đội
+                    </label>
+                    <p className="value">{formatVNTime(assignedAt)}</p>
                   </div>
 
                   <div className="detail-item card-style">
                     <label>Trạng thái nhiệm vụ</label>
                     <p
-                      className={`value status-badge status-${missionStatus?.toLowerCase()}`}
+                      className={`value status-badge status-${String(missionStatus).toLowerCase()}`}
                     >
                       {missionStatus}
                     </p>
+                  </div>
+
+                  <div className="detail-item card-style">
+                    <label>ID Nhiệm vụ</label>
+                    <p className="value">{rescueMissionId}</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* PEOPLE */}
           {activeTab === "people" && (
             <div className="tab-content">
               <div className="detail-section modern-section">
@@ -413,6 +441,11 @@ export default function RequestDetailModal({
                       )}
                     </p>
                   </div>
+
+                  <div className="detail-item card-style">
+                    <label>Email</label>
+                    <p className="value">{citizenEmail || "N/A"}</p>
+                  </div>
                 </div>
               </div>
 
@@ -424,63 +457,64 @@ export default function RequestDetailModal({
                 <div className="detail-grid">
                   <div className="detail-item card-style">
                     <label>ID Đội cứu hộ</label>
-                    <p className="value">{mission?.rescueTeamID || "N/A"}</p>
+                    <p className="value">{rescueTeamId}</p>
                   </div>
 
                   <div className="detail-item card-style">
                     <label>ID Nhiệm vụ</label>
-                    <p className="value">{mission?.rescueMissionID || "N/A"}</p>
+                    <p className="value">{rescueMissionId}</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TIMELINE */}
           {activeTab === "timeline" && (
             <div className="tab-content">
               <div className="timeline modern-timeline1">
                 <div className="timeline-item">
                   <div className="timeline-marker1">
-                    <div className="timeline-dot active"></div>
+                    <div className={`timeline-dot ${createdAt ? "active" : ""}`}></div>
                     <div className="timeline-line"></div>
                   </div>
                   <div className="timeline-content card-style">
                     <h4>Yêu cầu được tạo</h4>
-                    <p>{formatVNTime(createdAt) || "N/A"}</p>
+                    <p>{formatVNTime(createdAt)}</p>
                     <span className="timeline-label">
-                      Yêu cầu được khởi tạo
+                      Citizen gửi yêu cầu cứu hộ
                     </span>
                   </div>
                 </div>
 
                 <div className="timeline-item">
                   <div className="timeline-marker1">
-                    <div className="timeline-dot active"></div>
+                    <div className={`timeline-dot ${assignedAt ? "active" : ""}`}></div>
                     <div className="timeline-line"></div>
                   </div>
                   <div className="timeline-content card-style">
                     <h4>Gán cho đội</h4>
-                    <p>{formatVNTime(startedAt) || "N/A"}</p>
-                    <span className="timeline-label">Đội cứu hộ tiếp nhận</span>
+                    <p>{formatVNTime(assignedAt)}</p>
+                    <span className="timeline-label">
+                      Coordinator điều phối cho đội cứu hộ
+                    </span>
                   </div>
                 </div>
 
                 <div className="timeline-item">
                   <div className="timeline-marker1">
-                    <div className="timeline-dot"></div>
-                    {mission?.endTime && <div className="timeline-line"></div>}
+                    <div className={`timeline-dot ${startedAt ? "active" : ""}`}></div>
+                    {completedAt && <div className="timeline-line"></div>}
                   </div>
                   <div className="timeline-content card-style">
                     <h4>Đang thực hiện</h4>
-                    <p>{mission?.startTime || "N/A"}</p>
+                    <p>{formatVNTime(startedAt)}</p>
                     <span className="timeline-label">
-                      Đội bắt đầu thực hiện cứu hộ
+                      Đội bắt đầu thực hiện nhiệm vụ
                     </span>
                   </div>
                 </div>
 
-                {mission?.endTime && (
+                {completedAt && (
                   <div className="timeline-item">
                     <div className="timeline-marker1">
                       <div className="timeline-dot completed"></div>
@@ -499,7 +533,6 @@ export default function RequestDetailModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="modal-footer modern-footer">
           <button className="btn-secondary modern-btn" onClick={onClose}>
             Đóng
