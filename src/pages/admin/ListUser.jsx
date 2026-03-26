@@ -226,8 +226,6 @@ const ListUser = () => {
       );
       setEditingUserId(null);
       showToast("✅ Cập nhật người dùng thành công");
-
-     
     } catch (error) {
       console.error("Lỗi cập nhật người dùng:", error);
       showToast(error?.message || "❌ Không thể cập nhật người dùng");
@@ -514,17 +512,11 @@ const ListUser = () => {
 
                         <td>
                           <span
-                            className={
-                              user.isActive
-                                ? "status-active"
-                                : "status-inactive"
-                            }
-                            style={{
-                              padding: "8px 12px",
-                              borderRadius: "6px",
-                              fontSize: "14px",
-                            }}
+                            className={`status-badge ${
+                              user.isActive ? "active" : "inactive"
+                            }`}
                           >
+                            <span className="status-dot"></span>
                             {user.isActive ? "Hoạt động" : "Không hoạt động"}
                           </span>
                         </td>
@@ -581,7 +573,9 @@ const ListUser = () => {
       </div>
 
       {toast && (
-        <div className={`toast_container1 ${toast.includes("✅") ? "success" : "error"}`}>
+        <div
+          className={`toast_container1 ${toast.includes("✅") ? "success" : "error"}`}
+        >
           {toast}
         </div>
       )}
