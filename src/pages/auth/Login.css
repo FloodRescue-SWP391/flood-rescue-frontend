@@ -167,11 +167,10 @@
 
 .login-toast {
   position: fixed;
-  top: 24px;
+  top: 150px;
   right: 24px;
   z-index: 9999;
-  min-width: 280px;
-  max-width: 360px;
+  min-width: 200px;
   padding: 14px 18px;
   border-radius: 12px;
   color: #fff;
