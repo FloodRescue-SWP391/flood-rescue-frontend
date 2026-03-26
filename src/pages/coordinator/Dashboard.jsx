@@ -192,6 +192,30 @@ const ChangeView = ({ center, zoom }) => {
   return null;
 };
 
+const normalizeEmergencyText = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const isSupplyRequest = (request) => {
+  const text = normalizeEmergencyText(request?.emergencyType);
+
+  return (
+    request?.emergencyCategory === "supply" ||
+    text === "supply" ||
+    text.includes("food") ||
+    text.includes("water") ||
+    text.includes("medicine") ||
+    text.includes("thực phẩm") ||
+    text.includes("nước") ||
+    text.includes("thuốc") ||
+    text.includes("áo phao") ||
+    text.includes("thuyền")
+  );
+};
+
+const isRescueRequest = (request) => !isSupplyRequest(request);
+
 const Dashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -390,72 +414,97 @@ const Dashboard = () => {
 
     const uiStatus = mapStatusToUI(r.Status ?? r.status);
 
+    const requestType = r.RequestType ?? r.requestType ?? "Unknown";
+    const createdTimeRaw = r.CreatedTime ?? r.createdTime ?? null;
+
     return {
-      id: r.RescueRequestID ?? r.rescueRequestID,
-      requestId: r.ShortCode ?? r.shortCode,
-      fullName: r.CitizenName ?? r.citizenName ?? "Citizen",
-      phoneNumber: r.CitizenPhone ?? r.citizenPhone ?? "",
-      address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-      location: { lat, lng },
-      emergencyType: r.RequestType ?? r.requestType ?? "Unknown",
+      id: r.RescueRequestID ?? r.rescueRequestID ?? r.id ?? r.Id,
+      requestId: r.ShortCode ?? r.shortCode ?? "",
+
+      fullName:
+        r.CitizenName ?? r.citizenName ?? r.FullName ?? r.fullName ?? "Citizen",
+
+      phoneNumber:
+        r.CitizenPhone ??
+        r.citizenPhone ??
+        r.PhoneNumber ??
+        r.phoneNumber ??
+        "",
+
+      address:
+        r.Address ??
+        r.address ??
+        (Number.isFinite(lat) && Number.isFinite(lng)
+          ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+          : "Chưa có địa chỉ"),
+
+      location: {
+        lat,
+        lng,
+      },
+
+      emergencyType: requestType,
       emergencyCategory:
-        (r.RequestType ?? r.requestType)?.toLowerCase() === "supply"
+        String(requestType).trim().toLowerCase() === "supply"
           ? "supply"
           : "life_threatening",
-      description: r.Description ?? r.description ?? "",
-      status: uiStatus,
-      timestamp: r.CreatedTime
-        ? new Date(r.CreatedTime).toLocaleString("vi-VN")
-        : "",
-      imageUrl:
-        Array.isArray(r.ImageUrls) && r.ImageUrls.length > 0
-          ? r.ImageUrls[0]
-          : "",
-      isNew: uiStatus === "pending",
-      waterLevel: "0m",
-      peopleCount: 0,
 
-      rejectedTeamIds: [],
-      rejectedTeamNames: [],
+      description: r.Description ?? r.description ?? "",
+
+      status: uiStatus,
+
+      createdAtRaw: createdTimeRaw,
+      timestamp: createdTimeRaw
+        ? new Date(createdTimeRaw).toLocaleString("vi-VN")
+        : "",
+
+      imageUrl:
+        (Array.isArray(r.ImageUrls) && r.ImageUrls.length > 0
+          ? r.ImageUrls[0]
+          : null) ||
+        (Array.isArray(r.imageUrls) && r.imageUrls.length > 0
+          ? r.imageUrls[0]
+          : "") ||
+        "",
+
+      isNew: uiStatus === "pending",
+
+      waterLevel: r.WaterLevel ?? r.waterLevel ?? "0m",
+      peopleCount: Number(r.PeopleCount ?? r.peopleCount ?? 0),
+
+      priorityLevel:
+        r.PriorityLevel ??
+        r.priorityLevel ??
+        (String(requestType).trim().toLowerCase() === "supply"
+          ? "Medium"
+          : "Critical"),
+
+      assignedTeamId:
+        r.RescueTeamID ??
+        r.rescueTeamID ??
+        r.AssignedTeamId ??
+        r.assignedTeamId ??
+        "",
+
+      assignedTeamName:
+        r.TeamName ??
+        r.teamName ??
+        r.AssignedTeamName ??
+        r.assignedTeamName ??
+        "",
+
+      rescueMissionId: r.RescueMissionID ?? r.rescueMissionID ?? null,
+
+      rejectedTeamIds: Array.isArray(r.rejectedTeamIds)
+        ? r.rejectedTeamIds
+        : [],
+      rejectedTeamNames: Array.isArray(r.rejectedTeamNames)
+        ? r.rejectedTeamNames
+        : [],
     };
   };
 
   // Hàm phân loại Request
-  const normalizeEmergencyText = (value) =>
-    String(value || "")
-      .trim()
-      .toLowerCase();
-
-  const isSupplyRequest = (request) => {
-    const text = normalizeEmergencyText(request.emergencyType);
-
-    return (
-      request.emergencyCategory === "supply" ||
-      text.includes("food") ||
-      text.includes("water") ||
-      text.includes("medicine") ||
-      text.includes("thực phẩm") ||
-      text.includes("nước") ||
-      text.includes("thuốc")
-    );
-  };
-
-  const isMedicineOrFoodRequest = (request) => {
-    const text = normalizeEmergencyText(request.emergencyType);
-
-    return (
-      text.includes("food") ||
-      text.includes("water") ||
-      text.includes("medicine") ||
-      text.includes("thực phẩm") ||
-      text.includes("nước") ||
-      text.includes("thuốc")
-    );
-  };
-
-  const isRescueRequest = (request) => {
-    return !isMedicineOrFoodRequest(request);
-  };
 
   useEffect(() => {
     const loadSelectedAddress = async () => {
@@ -992,7 +1041,7 @@ const Dashboard = () => {
     }
 
     if (requestBoxType === "supply") {
-      source = source.filter(isMedicineOrFoodRequest);
+      source = source.filter(isSupplyRequest);
     }
 
     source = source.filter((request) =>
@@ -1128,13 +1177,19 @@ const Dashboard = () => {
         .map((item) => ({
           id: `req-${item.id}`,
           type: item.emergencyCategory === "supply" ? "supply" : "critical",
-          title: "New Rescue Request",
-          message: `New rescue request #${item.requestId}`,
+          title:
+            item.emergencyCategory === "supply"
+              ? "Yêu cầu cung ứng mới"
+              : "Yêu cầu cứu hộ mới",
+          message:
+            item.emergencyCategory === "supply"
+              ? `Có yêu cầu cung ứng #${item.requestId}`
+              : `Có yêu cầu cứu hộ #${item.requestId}`,
           requestId: String(item.requestId),
           rawRequestId: String(item.id),
           timestamp: item.timestamp || new Date().toLocaleString("vi-VN"),
-          createdAt: item.timestamp
-            ? new Date(item.timestamp).toISOString()
+          createdAt: item.createdAtRaw
+            ? new Date(item.createdAtRaw).toISOString()
             : new Date().toISOString(),
           read: false,
           status: item.status,
@@ -1243,7 +1298,8 @@ const Dashboard = () => {
 
     try {
       setDispatching(true);
-      const isSupplyRequest = isSupplyDispatchRequest(selectedRequest);
+
+      const isSupplyOrder = isSupplyRequest(selectedRequest);
 
       const res = await rescueMissionService.dispatch({
         rescueRequestID: selectedRequest.id,
@@ -1252,21 +1308,21 @@ const Dashboard = () => {
 
       console.log("Dispatch API response:", res);
 
-      // ✅ check success đúng
       if (res?.success === false) {
         setDispatchError(res?.message || "Không thể phân công nhiệm vụ.");
         return;
       }
 
-      const data = res?.content || {};
+      const data = res?.content || res?.data || {};
 
-      const missionId = data.rescueMissionID ?? data.RescueMissionID ?? null;
+      const missionId =
+        data.rescueMissionID ?? data.RescueMissionID ?? data.id ?? null;
 
       const assignedTeamName = findTeamLabelById(selectedTeamId);
       let createdReliefOrderId = null;
       let reliefOrderWarning = "";
 
-      if (isSupplyRequest) {
+      if (isSupplyOrder) {
         try {
           const reliefOrder = await createReliefOrder({
             rescueRequestID: selectedRequest.id,
@@ -1276,15 +1332,22 @@ const Dashboard = () => {
           console.log("Create ReliefOrder API response:", reliefOrder);
 
           createdReliefOrderId =
+            reliefOrder?.content?.reliefOrderID ??
+            reliefOrder?.content?.ReliefOrderID ??
+            reliefOrder?.data?.reliefOrderID ??
+            reliefOrder?.data?.ReliefOrderID ??
             reliefOrder?.reliefOrderID ??
             reliefOrder?.ReliefOrderID ??
             reliefOrder?.id ??
             null;
         } catch (reliefOrderError) {
-          console.error("Create ReliefOrder after dispatch failed:", reliefOrderError);
+          console.error(
+            "Create ReliefOrder after dispatch failed:",
+            reliefOrderError,
+          );
           reliefOrderWarning =
             reliefOrderError?.message ||
-            "Đã phân công đội nhưng chưa tạo được Relief Order cho manager.";
+            "Đã điều phối đội nhưng chưa tạo được đơn cung ứng cho manager.";
         }
       }
 
@@ -1303,8 +1366,14 @@ const Dashboard = () => {
       );
 
       setDispatchSuccess(
-        `Dispatched ${assignedTeamName} to request #${selectedRequest.requestId}`,
+        isSupplyOrder
+          ? `Đã điều phối ${assignedTeamName} cho yêu cầu cung ứng #${selectedRequest.requestId}`
+          : `Đã điều phối ${assignedTeamName} cho yêu cầu cứu hộ #${selectedRequest.requestId}`,
       );
+
+      if (reliefOrderWarning) {
+        setDispatchError(reliefOrderWarning);
+      }
 
       await loadRealRequests();
     } catch (e) {
@@ -1568,33 +1637,9 @@ const Dashboard = () => {
             req.status !== "completed",
         ) && (
           <div className="critical-alert-banner">
-            <div className="alert-content">
-              <span className="alert-icon">🚨</span>
-              <div>
-                <h3>CẢNH BÁO: Tình huống nguy hiểm đến tính mạng!</h3>
-                <p>
-                  Có{" "}
-                  {
-                    allRequests.filter(
-                      (req) => req.isNew && req.priorityLevel === "Critical",
-                    ).length
-                  }{" "}
-                  yêu cầu cứu hộ mức độ nghiêm trọng cần được xử lý ngay
-                </p>
-              </div>
-            </div>
+            
 
-            <button
-              className="alert-action"
-              onClick={() => {
-                const criticalRequest = allRequests.find(
-                  (req) => req.isNew && req.priorityLevel === "Critical",
-                );
-                if (criticalRequest) handleRequestClick(criticalRequest);
-              }}
-            >
-              Xử lý ngay →
-            </button>
+    
           </div>
         )}
 
@@ -1641,7 +1686,7 @@ const Dashboard = () => {
                     <h3>Cung ứng cứu hộ</h3>
 
                     <strong>
-                      {allRequests.filter(isMedicineOrFoodRequest).length}
+                      {allRequests.filter(isSupplyRequest).length}
                     </strong>
                   </div>
                 </button>
@@ -1737,7 +1782,11 @@ const Dashboard = () => {
                       <div className="request-details">
                         <div className="detail-row">
                           <span className="detail-label">🚑 Đội cứu hộ:</span>
-                          <span className="detail-value">{item.teamName}</span>
+                          <span className="detail-value">
+                            {item.rejectedByTeamName ||
+                              item.teamName ||
+                              "Đội cứu hộ"}
+                          </span>
                         </div>
 
                         <div className="detail-row">
@@ -1781,45 +1830,14 @@ const Dashboard = () => {
 
                     <div className="request-card-body">
                       <h4 className="request-title">
-                        {request.emergencyType === "People trapped in the water"
-                          ? "🌊"
-                          : request.emergencyType === "The house was flooded."
-                            ? "🏠"
-                            : request.emergencyType === "Food/water is needed."
-                              ? "📦"
-                              : request.emergencyType === "Medicine is needed."
-                                ? "💊"
-                                : request.emergencyType ===
-                                    "Life jackets/boat needed."
-                                  ? "🛟"
-                                  : request.emergencyType === "Landslide"
-                                    ? "⛰️"
-                                    : "🚨"}
-
-                        {/* 👉 hiển thị tiếng Việt */}
-                        {request.emergencyType === "People trapped in the water"
-                          ? "Người mắc kẹt trong nước"
-                          : request.emergencyType === "The house was flooded."
-                            ? "Nhà bị ngập"
-                            : request.emergencyType === "Food/water is needed."
-                              ? "Cần thực phẩm / nước uống"
-                              : request.emergencyType === "Medicine is needed."
-                                ? "Cần thuốc men"
-                                : request.emergencyType ===
-                                    "Life jackets/boat needed."
-                                  ? "Cần áo phao / thuyền"
-                                  : request.emergencyType === "Landslide"
-                                    ? "Sạt lở đất"
-                                    : request.emergencyType}
+                        {isSupplyRequest(request)
+                          ? "📦 Yêu cầu cung ứng cứu hộ"
+                          : "🚨 Yêu cầu cứu hộ"}
 
                         {request.emergencyCategory === "life_threatening" && (
                           <span className="category-tag critical">
                             KHẨN CẤP
                           </span>
-                        )}
-
-                        {request.emergencyCategory === "medical" && (
-                          <span className="category-tag medical">Y TẾ</span>
                         )}
 
                         {request.emergencyCategory === "supply" && (
@@ -2001,9 +2019,15 @@ const Dashboard = () => {
                         >
                           <Popup>
                             <div className="map-popup">
-                              <strong>{request.emergencyType}</strong>
+                              <strong>
+                                {isSupplyRequest(request)
+                                  ? "📦 Yêu cầu cung ứng cứu hộ"
+                                  : "🚨 Yêu cầu cứu hộ"}
+                              </strong>
                               <br />
                               <small>Mã: {request.requestId}</small>
+                              <br />
+                              <small>Loại: {request.emergencyType}</small>
                               <br />
                               <small>Số người: {request.peopleCount}</small>
                               <br />
@@ -2120,13 +2144,40 @@ const Dashboard = () => {
 
                             <div className="detail-item1">
                               <span className="detail-label1">
-                                Loại khẩn cấp:
+                                Loại yêu cầu:
                                 <span className="detail-value badge">
-                                  {selectedRequest.emergencyType}
+                                  {isSupplyRequest(selectedRequest)
+                                    ? "Cung ứng cứu hộ"
+                                    : "Cứu hộ khẩn cấp"}
+                                </span>
+                              </span>
+                            </div>
+
+                            <div className="detail-item1">
+                              <span className="detail-label1">
+                                Phân loại từ hệ thống:
+                                <span className="detail-value1">
+                                  {selectedRequest.emergencyType || "Không có"}
                                 </span>
                               </span>
                             </div>
                           </div>
+
+                          {isSupplyRequest(selectedRequest) && (
+                            <div className="detail-group1 full-width1">
+                              <h4>📦 Nội dung cung ứng</h4>
+
+                              <div className="detail-item1">
+                                <span className="detail-label1">
+                                  Mô tả chi tiết:
+                                  <span className="detail-value">
+                                    {selectedRequest.description ||
+                                      "Không có mô tả"}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="detail-group1 full-width1">
                             <h4>📍 Vị trí</h4>
@@ -2146,7 +2197,11 @@ const Dashboard = () => {
                         <div className="action-buttons1">
                           <div className="dispatch-box">
                             <div className="dispatch-header">
-                              <h4>🚑 Điều phối đội cứu hộ</h4>
+                              <h4>
+                                {isSupplyRequest(selectedRequest)
+                                  ? "📦 Điều phối cung ứng cứu hộ"
+                                  : "🚑 Điều phối đội cứu hộ"}
+                              </h4>
                             </div>
 
                             <div className="dispatch-form">
@@ -2167,7 +2222,9 @@ const Dashboard = () => {
                                     ? "Đang tải đội..."
                                     : dispatchableTeams.length === 0
                                       ? "Không còn đội phù hợp"
-                                      : "Chọn đội cứu hộ"}
+                                      : isSupplyRequest(selectedRequest)
+                                        ? "Chọn đội để cung ứng vật tư"
+                                        : "Chọn đội cứu hộ"}
                                 </option>
 
                                 {dispatchableTeams.map((team) => (
@@ -2257,11 +2314,13 @@ const Dashboard = () => {
 
                             <button
                               className="btn btn-emergency"
-                              onClick={() =>
+                              onClick={() => {
+                                if (!selectedRequest.phoneNumber) return;
                                 window.open(
                                   `tel:${selectedRequest.phoneNumber}`,
-                                )
-                              }
+                                );
+                              }}
+                              disabled={!selectedRequest.phoneNumber}
                             >
                               📞 Gọi
                             </button>

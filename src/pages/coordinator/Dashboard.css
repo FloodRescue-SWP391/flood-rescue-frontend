@@ -1,11 +1,11 @@
 .noti {
-   display: flex;
+  display: flex;
   align-items: center;
   gap: 100px;
  
   border-radius: 12px;
   position: relative;
-  top: -90px;
+  top: -70px;
 
 }
 
@@ -56,7 +56,7 @@
   align-items: center;
   background-color: rgb(255, 255, 255);
   padding: 9px;
-  margin-right: 10px;
+  margin-right: 15px;
   border-radius: 14px;
   border: 1px solid rgb(93, 93, 94);
   cursor: pointer;
@@ -64,6 +64,7 @@
   font-weight: 600;
   font-size: 14px;
   transition: all 0.25s ease;
+  margin-top: 14px;
 }
 
 /* hover */
@@ -86,6 +87,7 @@
 
 .notification-container {
   position: relative;
+   z-index: 9999;
 }
 
 .notification-bell {
@@ -172,7 +174,7 @@
 
 .notification-panel {
   position: absolute;
-  top: -65px;
+  top: -40px;
   
   width: 730px;
   max-height: 500px;

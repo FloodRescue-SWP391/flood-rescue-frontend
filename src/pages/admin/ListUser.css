@@ -495,3 +495,40 @@
     padding: 6px 12px;
   }
 }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* chấm tròn */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ACTIVE */
+.status-badge.active {
+  background: #e6f9f0;
+  color: #16a34a;
+}
+
+.status-badge.active .status-dot {
+  background: #16a34a;
+}
+
+/* INACTIVE */
+.status-badge.inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.inactive .status-dot {
+  background: #dc2626;
+}
