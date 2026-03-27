@@ -148,6 +148,32 @@ const isPreparationLockedStatus = (status) =>
     "done",
   ].some((value) => getOrderStatusToken(status).includes(value));
 
+const isSendCompletedStatus = (status) =>
+  ["sent", "dispatch", "delivered", "completed", "picked_up", "pickup", "done"].some(
+    (value) => getOrderStatusToken(status).includes(value),
+  );
+
+const isMissionAcceptedStatus = (status) =>
+  [
+    "accepted",
+    "confirmed",
+    "in_progress",
+    "inprogress",
+    "processing",
+    "prepared",
+    "pickup",
+    "picked_up",
+    "delivered",
+    "completed",
+    "done",
+  ].some((value) => getOrderStatusToken(status).includes(value));
+
+const isPreparedOrder = (order) =>
+  Boolean(order?.preparedAt) ||
+  ["prepared", "preparing", "ready", "confirmed"].some((value) =>
+    getOrderStatusToken(order?.orderStatus).includes(value),
+  );
+
 const getOrderItemKey = (item, index) =>
   item?.reliefItemID ||
   item?.reliefItemId ||
@@ -231,6 +257,64 @@ export default function ManagerReliefOrders() {
   });
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const hydrateReliefOrders = async (orderSummaries = []) => {
+    if (!Array.isArray(orderSummaries) || orderSummaries.length === 0) {
+      return {
+        items: [],
+        errors: [],
+      };
+    }
+
+    const detailResults = await Promise.allSettled(
+      orderSummaries.map(async (orderSummary) => {
+        const normalizedSummary = normalizeReliefOrder(orderSummary);
+        const orderId = normalizedSummary?.reliefOrderID;
+
+        if (!orderId) {
+          return normalizedSummary;
+        }
+
+        const detail = await reliefOrdersService.getById(orderId);
+        const normalizedDetail = normalizeReliefOrder(detail);
+
+        return {
+          ...orderSummary,
+          ...detail,
+          ...normalizedSummary,
+          ...normalizedDetail,
+          items:
+            normalizedDetail.items?.length > 0
+              ? normalizedDetail.items
+              : normalizedSummary.items,
+        };
+      }),
+    );
+
+    const nextOrders = [];
+    const detailErrors = [];
+
+    detailResults.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        nextOrders.push(result.value);
+        return;
+      }
+
+      const fallbackOrder = normalizeReliefOrder(orderSummaries[index]);
+      const fallbackOrderId = fallbackOrder?.reliefOrderID || `index-${index}`;
+
+      nextOrders.push(fallbackOrder);
+      detailErrors.push(
+        `Không thể tải chi tiết đơn ${formatDisplayValue(fallbackOrderId)}.`,
+      );
+      console.error("[ManagerReliefOrders] getById failed:", result.reason);
+    });
+
+    return {
+      items: nextOrders,
+      errors: detailErrors,
+    };
+  };
+
   const loadPageData = async (filtersToUse = appliedFilters) => {
     setLoading(true);
     setError("");
@@ -247,8 +331,13 @@ export default function ManagerReliefOrders() {
     const errors = [];
 
     if (ordersResult.status === "fulfilled") {
-      setOrders(ordersResult.value?.items || []);
+      const hydratedOrders = await hydrateReliefOrders(ordersResult.value?.items || []);
+
+      setOrders(hydratedOrders.items || []);
       setTotalCount(Number(ordersResult.value?.totalCount) || 0);
+      if (hydratedOrders.errors.length > 0) {
+        errors.push(hydratedOrders.errors.join(" "));
+      }
     } else {
       setOrders([]);
       setTotalCount(0);
@@ -377,14 +466,34 @@ export default function ManagerReliefOrders() {
         normalizedOrder?.orderStatus ||
         normalizedOrder?.missionStatus ||
         "Pending";
+      const missionStatus =
+        assignedMission?.missionStatus ||
+        normalizedOrder?.missionStatus ||
+        assignedMission?.status ||
+        "";
+      const hasValidItems = items.some((item) => item?.reliefItemID);
+      const teamAccepted =
+        isMissionAcceptedStatus(missionStatus) ||
+        isPreparationLockedStatus(orderStatus) ||
+        isSendCompletedStatus(orderStatus);
       const totalItemQuantity = items.reduce(
         (sum, item) => sum + (Number(item?.quantity) || 0),
         0,
       );
       const canPrepare =
         Boolean(normalizedOrder?.reliefOrderID) &&
-        items.some((item) => item?.reliefItemID) &&
+        hasValidItems &&
+        teamAccepted &&
         !isPreparationLockedStatus(orderStatus);
+      const prepareDisabledReason = !normalizedOrder?.reliefOrderID
+        ? "Don chua co ReliefOrderID hop le."
+        : !hasValidItems
+          ? "Don chua co vat pham hop le de soan."
+          : !teamAccepted
+            ? "Doi cuu ho chua xac nhan nhiem vu nen manager chua the soan hang."
+            : isPreparationLockedStatus(orderStatus)
+              ? "Don da qua buoc soan hoac da ban giao."
+              : "";
 
       return {
         ...normalizedOrder,
@@ -410,7 +519,10 @@ export default function ManagerReliefOrders() {
         totalItemQuantity,
         statusMeta: getOrderStatusMeta(orderStatus),
         orderStatus,
+        missionStatus,
+        teamAccepted,
         canPrepare,
+        prepareDisabledReason,
         disabledReason: !normalizedOrder?.reliefOrderID
           ? "Đơn chưa có ReliefOrderID hợp lệ."
           : !items.some((item) => item?.reliefItemID)
@@ -858,9 +970,7 @@ export default function ManagerReliefOrders() {
   const pendingCount = orderCards.filter((order) =>
     getOrderStatusToken(order.orderStatus).includes("pending"),
   ).length;
-  const preparedCount = orderCards.filter((order) =>
-    getOrderStatusToken(order.orderStatus).includes("prepared"),
-  ).length;
+  const preparedCount = orderCards.filter((order) => isPreparedOrder(order)).length;
   const pickedUpCount = orderCards.filter((order) =>
     ["picked_up", "pickup"].some((value) =>
       getOrderStatusToken(order.orderStatus).includes(value),
@@ -910,7 +1020,8 @@ export default function ManagerReliefOrders() {
                     <button className="mark-all-read" onClick={markAllAsRead}>
                       Đánh dấu đã đọc
                     </button>
-                  </div>
+
+                    </div>
 
                   <div className="notification-list">
                     {notifications.length === 0 ? (
@@ -1143,6 +1254,13 @@ export default function ManagerReliefOrders() {
                       <span>Yêu cầu cứu hộ</span>
                       <strong>{formatDisplayValue(order.requestDisplay)}</strong>
                       <small>ID: {formatDisplayValue(order.rescueRequestID)}</small>
+                      <small>
+                        Team:{" "}
+                        {formatDisplayValue(
+                          order?.missionStatus,
+                          order.teamAccepted ? "Da xac nhan" : "Cho xac nhan",
+                        )}
+                      </small>
                     </div>
 
                     <div className="relief-order-meta">
@@ -1250,7 +1368,7 @@ export default function ManagerReliefOrders() {
                           lý có thể sửa từng vật phẩm trước khi gửi.
                         </span>
                       ) : (
-                        <span>{order.disabledReason}</span>
+                        <span>{order.prepareDisabledReason}</span>
                       )}
                     </div>
 
@@ -1258,6 +1376,7 @@ export default function ManagerReliefOrders() {
                       className="btn btn-primary relief-order-action-btn"
                       onClick={() => handlePrepareOrder(order)}
                       disabled={!order.canPrepare || savingOrderIds[orderId]}
+                      title={order.prepareDisabledReason || ""}
                     >
                       {savingOrderIds[orderId] ? "Đang cập nhật..." : "Cập nhật chuẩn bị"}
                     </button>

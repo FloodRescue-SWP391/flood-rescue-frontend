@@ -975,7 +975,6 @@ async function requestReliefOrder(url, options = {}) {
 
 export async function getAllReliefOrders() {
   const endpoints = [
-    `${BASE}`,
     `${BASE}/pending`,
     `${BASE}/filter?pageNumber=1&pageSize=200`,
     `${BASE}/filter?PageNumber=1&PageSize=200`,
@@ -1021,7 +1020,6 @@ export async function getManagerReliefOrders() {
     `${BASE}/pending`,
     `${BASE}/filter?pageNumber=1&pageSize=200`,
     `${BASE}/filter?PageNumber=1&PageSize=200`,
-    `${BASE}`,
   ];
   const attemptedEndpoints = [];
   let lastError = null;
@@ -1070,7 +1068,6 @@ export async function filterReliefOrders(params = {}) {
         `${BASE}/pending`,
         `${BASE}/filter?${pascalQuery}`,
         `${BASE}/filter?${camelQuery}`,
-        `${BASE}`,
       ];
 
   const attemptedEndpoints = [];
