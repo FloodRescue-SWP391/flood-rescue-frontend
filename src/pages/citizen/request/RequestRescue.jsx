@@ -531,8 +531,8 @@ const RequestRescue = () => {
         <div className="success-toast show">
           <div className="toast-content">
             
-            <div className="toast-text2">
-              <h4> ✅ Gửi yêu cầu cứu hộ thành công! <br /> Đội cứu hộ đã được thông báo. Sự hỗ trợ đang đến.</h4>
+            <div className="toastcontent">
+              <p> ✅ Gửi yêu cầu cứu hộ thành công! <br /> Đội cứu hộ đã được thông báo. Sự hỗ trợ đang đến.</p>
              
             </div>
           </div>

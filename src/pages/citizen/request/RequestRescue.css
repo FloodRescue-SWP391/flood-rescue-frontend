@@ -5,12 +5,12 @@
   background: linear-gradient(180deg, #e1f4f8 0%, #fffafa 100%);
 }
 
-.toast-text2 {
+.toastcontent {
   position: fixed;
   right: 24px;
   z-index: 9999;
   top: 20px;
-  padding: 15px 20px;
+  padding: 14px 18px;
   border-radius: 6px;
   color: rgb(0, 0, 0);
   font-weight: 500;
