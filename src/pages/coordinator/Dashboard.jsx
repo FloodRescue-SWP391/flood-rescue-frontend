@@ -15,6 +15,7 @@ import {
   completeMission,
 } from "../../services/rescueMissionService.js";
 import { incidentReportService } from "../../services/incidentReportService.js";
+import { reliefOrdersService } from "../../services/reliefOrdersService.js";
 import signalRService from "../../services/signalrService.js";
 import { useNavigate } from "react-router-dom";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
@@ -1318,6 +1319,55 @@ const Dashboard = () => {
       setDispatching(true);
 
       const isSupplyOrder = isSupplyRequest(selectedRequest);
+      const assignedTeamName = findTeamLabelById(selectedTeamId);
+
+      if (isSupplyOrder) {
+        const createdOrder = await reliefOrdersService.createReliefOrder({
+          rescueRequestID: selectedRequest.id,
+          rescueTeamID: selectedTeamId,
+        });
+
+        console.log("Create supply ReliefOrder response:", createdOrder);
+
+        const createdOrderData = Array.isArray(createdOrder)
+          ? createdOrder[0]
+          : createdOrder;
+
+        const createdReliefOrderId = pickFirstValue(
+          createdOrderData?.reliefOrderID,
+          createdOrderData?.ReliefOrderID,
+          createdOrderData?.reliefOrderId,
+          createdOrderData?.ReliefOrderId,
+          createdOrderData?.id,
+          createdOrderData?.ID,
+          null,
+        );
+
+        if (!createdReliefOrderId) {
+          throw new Error(
+            "Tạo đơn supply thành công nhưng không nhận được ReliefOrderID.",
+          );
+        }
+
+        updateRequestAfterDispatch(selectedRequest.id, {
+          assignedTeamId: selectedTeamId,
+          assignedTeamName,
+          rescueMissionId: null,
+          reliefOrderId: createdReliefOrderId,
+        });
+
+        setTeamRejectedRequests((prev) =>
+          prev.filter(
+            (item) =>
+              String(item.shortCode) !== String(selectedRequest.requestId),
+          ),
+        );
+
+        setDispatchSuccess(
+          `Đã tạo đơn supply #${createdReliefOrderId} cho yêu cầu #${selectedRequest.requestId} và gán cho ${assignedTeamName}.`,
+        );
+        return;
+      }
 
       const res = await rescueMissionService.dispatch({
         rescueRequestID: selectedRequest.id,
@@ -1331,18 +1381,31 @@ const Dashboard = () => {
         return;
       }
 
-      const data = res?.content || res?.data || {};
+      const data = res?.content || res?.data || res || {};
 
-      const missionId =
-        data.rescueMissionID ?? data.RescueMissionID ?? data.id ?? null;
+      const missionId = pickFirstValue(
+        data?.rescueMissionID,
+        data?.RescueMissionID,
+        data?.id,
+        data?.ID,
+        res?.rescueMissionID,
+        res?.RescueMissionID,
+        res?.id,
+        res?.ID,
+        null,
+      );
 
-      const assignedTeamName = findTeamLabelById(selectedTeamId);
-      const createdReliefOrderId =
-        data?.reliefOrderID ??
-        data?.ReliefOrderID ??
-        data?.reliefOrderId ??
-        data?.ReliefOrderId ??
-        null;
+      let createdReliefOrderId = pickFirstValue(
+        data?.reliefOrderID,
+        data?.ReliefOrderID,
+        data?.reliefOrderId,
+        data?.ReliefOrderId,
+        res?.reliefOrderID,
+        res?.ReliefOrderID,
+        res?.reliefOrderId,
+        res?.ReliefOrderId,
+        null,
+      );
 
       updateRequestAfterDispatch(selectedRequest.id, {
         assignedTeamId: selectedTeamId,
@@ -1358,11 +1421,15 @@ const Dashboard = () => {
         ),
       );
 
-      setDispatchSuccess(
-        isSupplyOrder
-          ? `Đã điều phối ${assignedTeamName} cho yêu cầu cung ứng #${selectedRequest.requestId} và chuyển phần supply cho manager xử lý.`
-          : `Đã điều phối ${assignedTeamName} cho yêu cầu cứu hộ #${selectedRequest.requestId}`,
-      );
+      if (createdReliefOrderId) {
+        setDispatchSuccess(
+          `Đã điều phối ${assignedTeamName} cho yêu cầu cứu hộ #${selectedRequest.requestId} và tạo đơn #${createdReliefOrderId}.`,
+        );
+      } else {
+        setDispatchSuccess(
+          `Đã điều phối ${assignedTeamName} cho yêu cầu cứu hộ #${selectedRequest.requestId}`,
+        );
+      }
 
       await loadRealRequests();
     } catch (e) {

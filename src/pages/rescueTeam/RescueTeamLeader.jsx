@@ -7,6 +7,7 @@ import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService";
+import { toast } from "react-hot-toast";
 import {
   FaClipboardList,
   FaCheckCircle,
@@ -394,9 +395,28 @@ export default function RescueTeamLeader({ teamId }) {
     const handleMissionNotification = () => loadMissions();
 
     const handleOrderPrepared = (data) => {
+      const reliefOrderId =
+        data?.reliefOrderID ||
+        data?.ReliefOrderID ||
+        data?.reliefOrderId ||
+        data?.ReliefOrderId ||
+        data?.id ||
+        data?.ID ||
+        "";
+      const managerName =
+        data?.managerName ||
+        data?.ManagerName ||
+        data?.preparedBy ||
+        data?.PreparedBy ||
+        "Manager";
+
       console.log("OrderPrepared:", data);
       loadMissions();
-      window.alert("Manager đã chuẩn bị xong hàng cho team leader.");
+      toast.success(
+        reliefOrderId
+          ? `${managerName} đã chuẩn bị xong đơn supply #${reliefOrderId}.`
+          : `${managerName} đã chuẩn bị xong đơn supply cho đội của bạn.`,
+      );
     };
 
     const handleIncidentResolved = (data) => {

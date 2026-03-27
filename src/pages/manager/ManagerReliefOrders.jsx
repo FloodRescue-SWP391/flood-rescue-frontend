@@ -7,12 +7,15 @@ import { getAllRescueRequests } from "../../services/rescueRequestService";
 import { rescueMissionService } from "../../services/rescueMissionService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
+import { inventoryService } from "../../services/inventoryService";
+import { getWarehouses } from "../../services/warehouseService";
 import {
   extractOrderItems,
   findAssignedMissionForOrder,
   findAssignedTeamForOrder,
   findRelatedRequestForOrder,
   normalizeReliefOrder,
+  normalizeReliefOrders,
   normalizeRescueMissions,
   normalizeRescueRequests,
   reliefOrdersService,
@@ -32,6 +35,7 @@ const DEFAULT_FILTERS = {
 
 const NOTI_STORAGE_KEY = "manager_notifications";
 const MANAGER_RELIEF_ORDERS_ROUTE = "/manager/relief-orders";
+const MANAGER_WAREHOUSE_STORAGE_KEY = "manager_dashboard_warehouse_id";
 
 const extractList = (res) => {
   if (Array.isArray(res)) return res;
@@ -70,6 +74,195 @@ const toComparable = (value) => String(value ?? "").trim().toLowerCase();
 
 const formatDisplayValue = (value, fallback = "Không rõ") =>
   value !== undefined && value !== null && value !== "" ? String(value) : fallback;
+
+const normalizeLooseToken = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+const STATUS_FILTER_OPTIONS = [
+  {
+    apiValue: "Pending",
+    tokens: ["pending", "cho_xu_ly", "new", "created", "awaiting"],
+  },
+  {
+    apiValue: "Prepared",
+    tokens: ["prepared", "da_chuan_bi", "ready"],
+  },
+  {
+    apiValue: "PickedUp",
+    tokens: ["picked_up", "pickup", "da_nhan", "nhan_hang"],
+  },
+  {
+    apiValue: "Completed",
+    tokens: ["completed", "done", "hoan_thanh"],
+  },
+  {
+    apiValue: "Cancelled",
+    tokens: ["cancelled", "canceled", "rejected", "failed", "da_huy", "huy"],
+  },
+  {
+    apiValue: "InProgress",
+    tokens: ["in_progress", "inprogress", "processing", "preparing", "dang_xu_ly"],
+  },
+];
+
+const normalizeStatusFilterValues = (value) => {
+  const rawValues = Array.isArray(value)
+    ? value
+    : String(value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  return Array.from(
+    new Set(
+      rawValues.map((entry) => {
+        const token = normalizeLooseToken(entry);
+        const matchedStatus = STATUS_FILTER_OPTIONS.find((option) =>
+          option.tokens.some(
+            (candidate) => token === candidate || token.includes(candidate),
+          ),
+        );
+
+        return matchedStatus?.apiValue || entry;
+      }),
+    ),
+  );
+};
+
+const matchesStatusFilters = (order, statuses = []) => {
+  if (!Array.isArray(statuses) || statuses.length === 0) {
+    return true;
+  }
+
+  const orderToken = normalizeLooseToken(
+    order?.status || order?.orderStatus || order?.missionStatus,
+  );
+
+  return statuses.some((status) => {
+    const token = normalizeLooseToken(status);
+    const matchedStatus = STATUS_FILTER_OPTIONS.find(
+      (option) => normalizeLooseToken(option.apiValue) === token,
+    );
+
+    if (matchedStatus) {
+      return matchedStatus.tokens.some((candidate) => orderToken.includes(candidate));
+    }
+
+    return orderToken.includes(token);
+  });
+};
+
+const toTimestamp = (value) => {
+  if (!value) return null;
+
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const isWithinOptionalRange = (value, from, to) => {
+  const targetTimestamp = toTimestamp(value);
+  const fromTimestamp = toTimestamp(from);
+  const toTimestampValue = toTimestamp(to);
+
+  if (fromTimestamp === null && toTimestampValue === null) {
+    return true;
+  }
+
+  if (targetTimestamp === null) {
+    return false;
+  }
+
+  if (fromTimestamp !== null && targetTimestamp < fromTimestamp) {
+    return false;
+  }
+
+  if (toTimestampValue !== null && targetTimestamp > toTimestampValue) {
+    return false;
+  }
+
+  return true;
+};
+
+const filterOrdersLocally = (orders, filters = {}) =>
+  normalizeReliefOrders(orders).filter((order) => {
+    if (!matchesStatusFilters(order, filters?.statuses)) {
+      return false;
+    }
+
+    if (
+      !isWithinOptionalRange(
+        order?.createdAt,
+        filters?.createdFromDate,
+        filters?.createdToDate,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      !isWithinOptionalRange(
+        order?.preparedAt,
+        filters?.preparedFromDate,
+        filters?.preparedToDate,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      !isWithinOptionalRange(
+        order?.pickedUpAt,
+        filters?.pickedUpFromDate,
+        filters?.pickedUpToDate,
+      )
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+const paginateOrders = (orders, pageNumber = 1, pageSize = 12) => {
+  const safePageNumber = Math.max(1, Number(pageNumber) || 1);
+  const safePageSize = Math.max(1, Number(pageSize) || 12);
+  const startIndex = (safePageNumber - 1) * safePageSize;
+
+  return orders.slice(startIndex, startIndex + safePageSize);
+};
+
+const normalizeInventoryOption = (item = {}, index = 0) => {
+  const reliefItemID = pickFirst(
+    item,
+    ["reliefItemID", "ReliefItemID", "reliefItemId", "ReliefItemId", "id", "ID"],
+    "",
+  );
+  const reliefItemName = pickFirst(
+    item,
+    ["reliefItemName", "ReliefItemName", "itemName", "ItemName", "name", "Name"],
+    `Vật phẩm ${index + 1}`,
+  );
+  const availableStock = Number(
+    pickFirst(item, ["quantity", "Quantity", "availableStock", "AvailableStock"], 0),
+  );
+
+  return {
+    ...item,
+    reliefItemID: reliefItemID || "",
+    reliefItemId: reliefItemID || "",
+    reliefItemName,
+    availableStock: Number.isFinite(availableStock) ? availableStock : 0,
+  };
+};
+
+const createEmptyManualItem = () => ({
+  reliefItemID: "",
+  quantity: "",
+});
 
 const formatDateTime = (value) => {
   if (!value) return "Chưa có";
@@ -181,11 +374,76 @@ const getOrderItemKey = (item, index) =>
   item?.itemId ||
   `${item?.itemName || item?.reliefItemName || "item"}-${index}`;
 
+const isSupplyLikeValue = (value) =>
+  normalizeLooseToken(value).includes("supply");
+
+const isSupplyReliefOrder = (order, relatedRequest = null) =>
+  [
+    relatedRequest?.emergencyCategory,
+    relatedRequest?.EmergencyCategory,
+    relatedRequest?.requestType,
+    relatedRequest?.RequestType,
+    relatedRequest?.rescueType,
+    relatedRequest?.RescueType,
+    relatedRequest?.emergencyType,
+    relatedRequest?.EmergencyType,
+    order?.requestType,
+    order?.RequestType,
+    order?.rescueType,
+    order?.RescueType,
+    order?.orderType,
+    order?.OrderType,
+  ].some((value) => isSupplyLikeValue(value));
+
+const buildPreparedItemsSnapshot = (order, draft = {}) =>
+  extractOrderItems(order).map((item, index) => {
+    const itemId = String(item?.reliefItemID || getOrderItemKey(item, index));
+    const quantity = Number(draft[itemId] ?? item?.quantity ?? 0);
+
+    return {
+      ...item,
+      quantity: Number.isFinite(quantity) ? quantity : Number(item?.quantity) || 0,
+    };
+  });
+
+const mergePreparedOrderLocally = (
+  sourceOrder,
+  preparedItems = [],
+  responseOrder = null,
+) => {
+  const normalizedSource = normalizeReliefOrder(sourceOrder);
+  const normalizedResponse =
+    responseOrder && typeof responseOrder === "object"
+      ? normalizeReliefOrder(responseOrder)
+      : {};
+  const preparedAt =
+    normalizedResponse?.preparedAt ||
+    normalizedResponse?.updatedAt ||
+    new Date().toISOString();
+  const nextStatus =
+    normalizedResponse?.orderStatus ||
+    normalizedResponse?.status ||
+    normalizedSource?.orderStatus ||
+    normalizedSource?.status ||
+    "Prepared";
+
+  return {
+    ...sourceOrder,
+    ...(responseOrder && typeof responseOrder === "object" ? responseOrder : {}),
+    reliefOrderID:
+      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+    reliefOrderId:
+      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+    status: nextStatus,
+    orderStatus: nextStatus,
+    preparedAt,
+    updatedAt: preparedAt,
+    items: preparedItems.length > 0 ? preparedItems : extractOrderItems(normalizedSource),
+  };
+};
+
 const buildFilterParams = (filters) => ({
-  statuses: String(filters?.statusesText || "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean),
+  statuses: normalizeStatusFilterValues(filters?.statusesText),
   createdFromDate: filters?.createdFromDate || "",
   createdToDate: filters?.createdToDate || "",
   preparedFromDate: filters?.preparedFromDate || "",
@@ -240,10 +498,14 @@ export default function ManagerReliefOrders() {
   const [orders, setOrders] = useState([]);
   const [rescueRequests, setRescueRequests] = useState([]);
   const [rescueMissions, setRescueMissions] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [activeWarehouseId, setActiveWarehouseId] = useState("");
+  const [inventoryOptions, setInventoryOptions] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [prepareDrafts, setPrepareDrafts] = useState({});
+  const [manualItemDrafts, setManualItemDrafts] = useState({});
   const [savingOrderIds, setSavingOrderIds] = useState({});
   const [highlightedOrderId, setHighlightedOrderId] = useState("");
   const [notifications, setNotifications] = useState(() => {
@@ -318,9 +580,10 @@ export default function ManagerReliefOrders() {
   const loadPageData = async (filtersToUse = appliedFilters) => {
     setLoading(true);
     setError("");
+    const filterParams = buildFilterParams(filtersToUse);
 
     const [ordersResult, requestsResult, missionsResult] = await Promise.allSettled([
-      reliefOrdersService.filterReliefOrders(buildFilterParams(filtersToUse)),
+      reliefOrdersService.filterReliefOrders(filterParams),
       getAllRescueRequests(),
       rescueMissionService.filter({
         pageNumber: 1,
@@ -331,10 +594,45 @@ export default function ManagerReliefOrders() {
     const errors = [];
 
     if (ordersResult.status === "fulfilled") {
-      const hydratedOrders = await hydrateReliefOrders(ordersResult.value?.items || []);
+      let orderSummaries = ordersResult.value?.items || [];
+      let resolvedTotalCount = Number(ordersResult.value?.totalCount) || orderSummaries.length;
+
+      if (orderSummaries.length === 0) {
+        try {
+          const fallbackOrdersResponse =
+            await reliefOrdersService.getManagerReliefOrders();
+          const fallbackOrders = normalizeReliefOrders(
+            extractList(fallbackOrdersResponse),
+          );
+          const locallyFilteredOrders = filterOrdersLocally(
+            fallbackOrders,
+            filterParams,
+          );
+
+          orderSummaries = paginateOrders(
+            locallyFilteredOrders,
+            filterParams.pageNumber,
+            filterParams.pageSize,
+          );
+          resolvedTotalCount = locallyFilteredOrders.length;
+
+          console.log("[ManagerReliefOrders] Fallback local orders:", {
+            totalCount: resolvedTotalCount,
+            pageCount: orderSummaries.length,
+            filterParams,
+          });
+        } catch (fallbackError) {
+          console.error(
+            "[ManagerReliefOrders] Fallback getManagerReliefOrders failed:",
+            fallbackError,
+          );
+        }
+      }
+
+      const hydratedOrders = await hydrateReliefOrders(orderSummaries);
 
       setOrders(hydratedOrders.items || []);
-      setTotalCount(Number(ordersResult.value?.totalCount) || 0);
+      setTotalCount(resolvedTotalCount);
       if (hydratedOrders.errors.length > 0) {
         errors.push(hydratedOrders.errors.join(" "));
       }
@@ -378,6 +676,57 @@ export default function ManagerReliefOrders() {
       setLoading(false);
     });
   }, [appliedFilters]);
+
+  useEffect(() => {
+    const loadWarehouses = async () => {
+      try {
+        const warehouseList = await getWarehouses();
+        setWarehouses(Array.isArray(warehouseList) ? warehouseList : []);
+
+        const savedWarehouseId = localStorage.getItem(MANAGER_WAREHOUSE_STORAGE_KEY) || "";
+        const resolvedWarehouseId =
+          savedWarehouseId ||
+          pickFirst(
+            warehouseList?.[0],
+            ["warehouseId", "WarehouseId", "warehouseID", "WarehouseID", "id", "ID"],
+            "",
+          );
+
+        setActiveWarehouseId(resolvedWarehouseId ? String(resolvedWarehouseId) : "");
+      } catch (warehouseError) {
+        console.error("[ManagerReliefOrders] loadWarehouses failed:", warehouseError);
+        setWarehouses([]);
+        setActiveWarehouseId("");
+      }
+    };
+
+    loadWarehouses();
+  }, []);
+
+  useEffect(() => {
+    const loadInventoryOptions = async () => {
+      if (!activeWarehouseId) {
+        setInventoryOptions([]);
+        return;
+      }
+
+      try {
+        const inventoryResponse = await inventoryService.getInventoryByWarehouse(
+          activeWarehouseId,
+        );
+        const nextInventoryOptions = extractList(inventoryResponse)
+          .map((item, index) => normalizeInventoryOption(item, index))
+          .filter((item) => item?.reliefItemID);
+
+        setInventoryOptions(nextInventoryOptions);
+      } catch (inventoryError) {
+        console.error("[ManagerReliefOrders] loadInventoryOptions failed:", inventoryError);
+        setInventoryOptions([]);
+      }
+    };
+
+    loadInventoryOptions();
+  }, [activeWarehouseId]);
 
   useEffect(() => {
     try {
@@ -472,7 +821,9 @@ export default function ManagerReliefOrders() {
         assignedMission?.status ||
         "";
       const hasValidItems = items.some((item) => item?.reliefItemID);
+      const isSupplyOrder = isSupplyReliefOrder(normalizedOrder, relatedRequest);
       const teamAccepted =
+        isSupplyOrder ||
         isMissionAcceptedStatus(missionStatus) ||
         isPreparationLockedStatus(orderStatus) ||
         isSendCompletedStatus(orderStatus);
@@ -480,16 +831,23 @@ export default function ManagerReliefOrders() {
         (sum, item) => sum + (Number(item?.quantity) || 0),
         0,
       );
+      const descriptionText = formatDisplayValue(
+        normalizedOrder?.description || relatedRequest?.description,
+        "Chưa có mô tả cung ứng.",
+      );
+      const descriptionLines = descriptionText
+        .split(/\r?\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
       const canPrepare =
         Boolean(normalizedOrder?.reliefOrderID) &&
-        hasValidItems &&
         teamAccepted &&
         !isPreparationLockedStatus(orderStatus);
       const prepareDisabledReason = !normalizedOrder?.reliefOrderID
         ? "Don chua co ReliefOrderID hop le."
-        : !hasValidItems
+        : !hasValidItems && !isSupplyOrder
           ? "Don chua co vat pham hop le de soan."
-          : !teamAccepted
+        : !teamAccepted
             ? "Doi cuu ho chua xac nhan nhiem vu nen manager chua the soan hang."
             : isPreparationLockedStatus(orderStatus)
               ? "Don da qua buoc soan hoac da ban giao."
@@ -516,6 +874,9 @@ export default function ManagerReliefOrders() {
           relatedRequest?.shortCode ||
           normalizedOrder?.rescueRequestID ||
           "",
+        descriptionText,
+        descriptionLines,
+        isSupplyOrder,
         totalItemQuantity,
         statusMeta: getOrderStatusMeta(orderStatus),
         orderStatus,
@@ -525,9 +886,9 @@ export default function ManagerReliefOrders() {
         prepareDisabledReason,
         disabledReason: !normalizedOrder?.reliefOrderID
           ? "Đơn chưa có ReliefOrderID hợp lệ."
-          : !items.some((item) => item?.reliefItemID)
+          : !items.some((item) => item?.reliefItemID) && !isSupplyOrder
             ? "Đơn chưa có vật phẩm hợp lệ để chuẩn bị."
-            : isPreparationLockedStatus(orderStatus)
+          : isPreparationLockedStatus(orderStatus)
               ? "Đơn đã qua bước chuẩn bị hoặc bàn giao."
               : "",
       };
@@ -824,7 +1185,22 @@ export default function ManagerReliefOrders() {
         ]),
       );
 
-      await loadPageData(appliedFilters);
+      if (reliefOrderId) {
+        setOrders((prev) =>
+          prev.map((entry) => {
+            const currentOrderId = String(normalizeReliefOrder(entry)?.reliefOrderID || "");
+            if (currentOrderId !== String(reliefOrderId)) {
+              return entry;
+            }
+
+            return mergePreparedOrderLocally(
+              entry,
+              extractOrderItems(entry),
+              data,
+            );
+          }),
+        );
+      }
     };
 
     const init = async () => {
@@ -916,6 +1292,45 @@ export default function ManagerReliefOrders() {
     }));
   };
 
+  const getManualItemsForOrder = (orderId) =>
+    manualItemDrafts[orderId]?.length > 0
+      ? manualItemDrafts[orderId]
+      : [createEmptyManualItem()];
+
+  const updateManualItemField = (orderId, index, field, value) => {
+    setManualItemDrafts((prev) => {
+      const nextItems = [...getManualItemsForOrder(orderId)];
+      nextItems[index] = {
+        ...(nextItems[index] || createEmptyManualItem()),
+        [field]: field === "quantity" ? String(Math.max(0, Number(value) || 0)) : value,
+      };
+
+      return {
+        ...prev,
+        [orderId]: nextItems,
+      };
+    });
+  };
+
+  const addManualItemRow = (orderId) => {
+    setManualItemDrafts((prev) => ({
+      ...prev,
+      [orderId]: [...getManualItemsForOrder(orderId), createEmptyManualItem()],
+    }));
+  };
+
+  const removeManualItemRow = (orderId, index) => {
+    setManualItemDrafts((prev) => {
+      const currentItems = [...getManualItemsForOrder(orderId)];
+      currentItems.splice(index, 1);
+
+      return {
+        ...prev,
+        [orderId]: currentItems.length > 0 ? currentItems : [createEmptyManualItem()],
+      };
+    });
+  };
+
   const handlePrepareOrder = async (order) => {
     const orderId = String(order?.reliefOrderID || "");
     if (!orderId) {
@@ -924,19 +1339,17 @@ export default function ManagerReliefOrders() {
     }
 
     const draft = prepareDrafts[orderId] || {};
-    const items = order.items
-      .map((item, index) => {
-        const itemId = String(item?.reliefItemID || getOrderItemKey(item, index));
-        return {
-          reliefItemID: item?.reliefItemID,
-          quantity: Number(draft[itemId] ?? item?.quantity ?? 0),
-        };
-      })
+    const preparedItemsSnapshot = buildPreparedItemsSnapshot(order, draft);
+    const items = preparedItemsSnapshot
+      .map((item) => ({
+        reliefItemID: item?.reliefItemID,
+        quantity: Number(item?.quantity ?? 0),
+      }))
       .filter(
         (item) => item?.reliefItemID && Number.isFinite(item.quantity) && item.quantity > 0,
       );
 
-    if (items.length === 0) {
+    if (items.length === 0 && !order?.isSupplyOrder) {
       toast.error("Cần ít nhất 1 vật phẩm hợp lệ để chuẩn bị.");
       return;
     }
@@ -947,15 +1360,29 @@ export default function ManagerReliefOrders() {
     }));
 
     try {
-      await reliefOrdersService.prepareOrder({
+      const preparedOrderResponse = await reliefOrdersService.prepareOrder({
         reliefOrderID: order.reliefOrderID,
         items,
       });
 
-      toast.success(
-        `Đã cập nhật chuẩn bị cho đơn ${formatDisplayValue(order.reliefOrderID)}.`,
+      setOrders((prev) =>
+        prev.map((entry) => {
+          const currentOrderId = String(normalizeReliefOrder(entry)?.reliefOrderID || "");
+          if (currentOrderId !== orderId) {
+            return entry;
+          }
+
+          return mergePreparedOrderLocally(
+            entry,
+            preparedItemsSnapshot,
+            preparedOrderResponse,
+          );
+        }),
       );
-      await loadPageData(appliedFilters);
+
+      toast.success(
+        `Đã hoàn thành chuẩn bị cho đơn ${formatDisplayValue(order.reliefOrderID)}.`,
+      );
     } catch (prepareError) {
       console.error("[ManagerReliefOrders] prepareOrder failed:", prepareError);
       toast.error(prepareError?.message || "Không thể cập nhật chuẩn bị cho đơn cứu trợ.");
@@ -1296,76 +1723,103 @@ export default function ManagerReliefOrders() {
                     </div>
                   </div>
 
-                  <div className="relief-order-items-box manager-relief-order-items-box">
-                    <div className="relief-order-items-head">
-                      <span>
-                        Vật phẩm ({order.totalItems || order.items.length})
-                      </span>
-                      <strong>Số lượng yêu cầu: {order.totalItemQuantity}</strong>
+                  <div
+                    className={`relief-order-desc-box manager-relief-order-desc-box ${
+                      order.isSupplyOrder ? "is-supply" : ""
+                    }`}
+                  >
+                    <div className="manager-relief-order-desc-head">
+                      <span>Nội dung cần chuẩn bị</span>
+                      {order.isSupplyOrder && (
+                        <small>Dựa vào mô tả này để kiểm hàng và soạn thủ công.</small>
+                      )}
                     </div>
 
-                    {order.items.length > 0 ? (
-                      <div className="manager-relief-order-item-editor">
-                        {order.items.map((item, index) => {
-                          const itemId = String(
-                            item?.reliefItemID || getOrderItemKey(item, index),
-                          );
-
-                          return (
-                            <div
-                              className="manager-relief-order-item-row"
-                              key={getOrderItemKey(item, index)}
-                            >
-                              <div className="manager-relief-order-item-copy">
-                                <strong>
-                                  {formatDisplayValue(
-                                    item?.reliefItemName || item?.itemName,
-                                    "Không rõ vật phẩm",
-                                  )}
-                                </strong>
-                                <span>Yêu cầu: x{Number(item?.quantity) || 0}</span>
-                                {item?.availableStock !== null &&
-                                  item?.availableStock !== undefined && (
-                                    <span>Tồn hiện tại: {item.availableStock}</span>
-                                  )}
-                              </div>
-
-                              <label className="manager-relief-order-prepare-field">
-                                <span>Soạn</span>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="1"
-                                  value={draft[itemId] ?? String(Number(item?.quantity) || 0)}
-                                  onChange={(event) =>
-                                    updateDraftQuantity(
-                                      orderId,
-                                      itemId,
-                                      event.target.value,
-                                    )
-                                  }
-                                  disabled={
-                                    !order.canPrepare ||
-                                    !item?.reliefItemID ||
-                                    savingOrderIds[orderId]
-                                  }
-                                />
-                              </label>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="relief-order-empty-items">Không có vật phẩm hợp lệ.</div>
-                    )}
+                    <div className="manager-relief-order-desc-body">
+                      {order.descriptionLines.map((line, index) => (
+                        <p
+                          className="manager-relief-order-desc-line"
+                          key={`${orderId}-desc-${index}`}
+                        >
+                          {line}
+                        </p>
+                      ))}
+                    </div>
                   </div>
+
+                  {!order.isSupplyOrder && (
+                    <div className="relief-order-items-box manager-relief-order-items-box">
+                      <div className="relief-order-items-head">
+                        <span>
+                          Vật phẩm ({order.totalItems || order.items.length})
+                        </span>
+                        <strong>Số lượng yêu cầu: {order.totalItemQuantity}</strong>
+                      </div>
+
+                      {order.items.length > 0 ? (
+                        <div className="manager-relief-order-item-editor">
+                          {order.items.map((item, index) => {
+                            const itemId = String(
+                              item?.reliefItemID || getOrderItemKey(item, index),
+                            );
+
+                            return (
+                              <div
+                                className="manager-relief-order-item-row"
+                                key={getOrderItemKey(item, index)}
+                              >
+                                <div className="manager-relief-order-item-copy">
+                                  <strong>
+                                    {formatDisplayValue(
+                                      item?.reliefItemName || item?.itemName,
+                                      "Không rõ vật phẩm",
+                                    )}
+                                  </strong>
+                                  <span>Yêu cầu: x{Number(item?.quantity) || 0}</span>
+                                  {item?.availableStock !== null &&
+                                    item?.availableStock !== undefined && (
+                                      <span>Tồn hiện tại: {item.availableStock}</span>
+                                    )}
+                                </div>
+
+                                <label className="manager-relief-order-prepare-field">
+                                  <span>Soạn</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={draft[itemId] ?? String(Number(item?.quantity) || 0)}
+                                    onChange={(event) =>
+                                      updateDraftQuantity(
+                                        orderId,
+                                        itemId,
+                                        event.target.value,
+                                      )
+                                    }
+                                    disabled={
+                                      !order.canPrepare ||
+                                      !item?.reliefItemID ||
+                                      savingOrderIds[orderId]
+                                    }
+                                  />
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="relief-order-empty-items">Không có vật phẩm hợp lệ.</div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="relief-order-footer">
                     <div className="relief-order-footer-copy">
                       {order.canPrepare ? (
                         <span>
-                          Payload chuẩn bị hiện tại có tổng số lượng {preparedDraftQuantity}. Quản
-                          lý có thể sửa từng vật phẩm trước khi gửi.
+                          {order.isSupplyOrder && order.items.length === 0
+                            ? "Đơn supply này chưa có danh sách vật phẩm. Quản lý có thể xem mô tả, tự điều chỉnh tồn kho bằng +/- ở màn Hàng tồn kho, rồi bấm Hoàn thành."
+                            : `Payload chuẩn bị hiện tại có tổng số lượng ${preparedDraftQuantity}. Quản lý có thể sửa từng vật phẩm trước khi gửi.`}
                         </span>
                       ) : (
                         <span>{order.prepareDisabledReason}</span>
@@ -1378,7 +1832,7 @@ export default function ManagerReliefOrders() {
                       disabled={!order.canPrepare || savingOrderIds[orderId]}
                       title={order.prepareDisabledReason || ""}
                     >
-                      {savingOrderIds[orderId] ? "Đang cập nhật..." : "Cập nhật chuẩn bị"}
+                      {savingOrderIds[orderId] ? "Đang hoàn thành..." : "Hoàn thành"}
                     </button>
                   </div>
                 </article>
