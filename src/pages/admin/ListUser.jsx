@@ -6,6 +6,8 @@ import {
   deactivateUser,
   updateUser,
 } from "../../services/userService";
+import { fetchWithAuth } from "../../services/apiClient";
+import { getAllRescueTeams } from "../../services/rescueTeamService";
 
 const ROLE_OPTIONS = [
   { value: "IM", label: "Quản lý kho" },
@@ -18,6 +20,18 @@ const ROLE_LABEL_BY_ID = ROLE_OPTIONS.reduce((acc, item) => {
   return acc;
 }, {});
 
+// Lấy Rolr leader and TeamId
+const getTeamId = (team) =>
+  team?.rescueTeamID || team?.teamId || team?.id || team?.rescueTeamId || null;
+
+const getTeamName = (team) =>
+  team?.teamName || team?.name || team?.rescueTeamName || "Đội cứu hộ";
+
+const normalizeText = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
 const ListUser = () => {
   const location = useLocation();
   const { handleLogout } = useOutletContext();
@@ -29,6 +43,8 @@ const ListUser = () => {
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [teamMetaByUserId, setTeamMetaByUserId] = useState({});
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const [pageNumber] = useState(1);
   const [pageSize] = useState(100);
@@ -57,6 +73,47 @@ const ListUser = () => {
       setToast("");
     }, 3000);
   }, []);
+
+  // const loadUsers = useCallback(async () => {
+  //   try {
+  //     setLoading(true);
+
+  //     console.log("Loading users with params:", {
+  //       searchKeyword: "",
+  //       roleId: "",
+  //       isActive: "",
+  //       pageNumber,
+  //       pageSize,
+  //     });
+
+  //     const res = await getUsers({
+  //       searchKeyword: "",
+  //       roleId: "",
+  //       isActive: "",
+  //       pageNumber,
+  //       pageSize,
+  //     });
+
+  //     console.log("GetUsers API Response:", res);
+
+  //     if (res?.success) {
+  //       const apiUsers = res?.content?.data || [];
+  //       setUsers(apiUsers);
+  //     } else {
+  //       showToast("❌ Không thể tải danh sách người dùng");
+  //     }
+  //   } catch (error) {
+  //     console.error("Không thể tải danh sách người dùng:", error);
+
+  //     if (String(error?.message || "").includes("401")) {
+  //       handleLogout?.();
+  //     }
+
+  //     showToast("❌ Không thể tải danh sách người dùng");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [handleLogout, pageNumber, pageSize, showToast]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -98,10 +155,80 @@ const ListUser = () => {
       setLoading(false);
     }
   }, [handleLogout, pageNumber, pageSize, showToast]);
+  const loadRescueTeamMeta = useCallback(async () => {
+    try {
+      const teamRes = await getAllRescueTeams({ noCache: true });
+
+      const teams =
+        teamRes?.content?.data || teamRes?.content || teamRes?.data || [];
+
+      const rescueTeams = Array.isArray(teams) ? teams : [];
+
+      const allMembersByTeam = await Promise.all(
+        rescueTeams.map(async (team) => {
+          const teamId = getTeamId(team);
+          const teamName = getTeamName(team);
+
+          if (!teamId) return [];
+
+          try {
+            const res = await fetchWithAuth(
+              `/RescueTeams/rescue-team-member-${teamId}`,
+              { method: "GET" },
+            );
+
+            const raw = await res.text();
+            const json = raw ? JSON.parse(raw) : null;
+
+            if (!res.ok || json?.success === false) {
+              console.error("Load rescue team members failed:", {
+                teamId,
+                teamName,
+                status: res.status,
+                body: json || raw,
+              });
+              return [];
+            }
+
+            const members = json?.content?.teamMember || [];
+
+            return members.map((member) => ({
+              userID: member.userID,
+              isLeader: member.isLeader === true,
+              teamName,
+            }));
+          } catch (error) {
+            console.error("Load rescue team members error:", teamId, error);
+            return [];
+          }
+        }),
+      );
+
+      const mergedMap = allMembersByTeam.flat().reduce((acc, item) => {
+        if (!item?.userID) return acc;
+
+        acc[item.userID] = {
+          isLeader: item.isLeader,
+          teamName: item.teamName,
+        };
+
+        return acc;
+      }, {});
+
+      setTeamMetaByUserId(mergedMap);
+    } catch (error) {
+      console.error("Không thể tải metadata đội cứu hộ:", error);
+    }
+  }, []);
+
+  // useEffect(() => {
+  //   loadUsers();
+  // }, [location.pathname, loadUsers]);
 
   useEffect(() => {
     loadUsers();
-  }, [location.pathname, loadUsers]);
+    loadRescueTeamMeta();
+  }, [location.pathname, loadUsers, loadRescueTeamMeta]);
 
   const handleDelete = async (userId, username) => {
     const confirmed = window.confirm(`Vô hiệu hóa tài khoản "${username}"?`);
@@ -234,30 +361,109 @@ const ListUser = () => {
     }
   };
 
-  const filteredUsers = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+  const enrichedUsers = useMemo(() => {
+    return users.map((user) => {
+      const teamMeta = teamMetaByUserId[user.userID] || {};
 
-    return users.filter((user) => {
-      const fullName = String(user.fullName || "").toLowerCase();
-      const username = String(user.username || "").toLowerCase();
+      return {
+        ...user,
+        isLeader: teamMeta.isLeader === true,
+        teamName: teamMeta.teamName || "",
+      };
+    });
+  }, [users, teamMetaByUserId]);
+
+  // const filteredUsers = useMemo(() => {
+  //   const keyword = search.trim().toLowerCase();
+
+  //   return users.filter((user) => {
+  //     const fullName = String(user.fullName || "").toLowerCase();
+  //     const username = String(user.username || "").toLowerCase();
+
+  //     const matchesSearch =
+  //       !keyword || fullName.includes(keyword) || username.includes(keyword);
+
+  //     const matchesRole =
+  //       roleFilter === "All" ||
+  //       String(user.roleName || "")
+  //         .trim()
+  //         .toLowerCase() ===
+  //         String(roleFilter || "")
+  //           .trim()
+  //           .toLowerCase();
+
+  //     return matchesSearch && matchesRole;
+  //   });
+  // }, [users, search, roleFilter]);
+
+  const filteredUsers = useMemo(() => {
+    const keyword = normalizeText(search);
+
+    const result = enrichedUsers.filter((user) => {
+      const fullName = normalizeText(user.fullName);
+      const username = normalizeText(user.username);
+      const roleName = normalizeText(user.roleName);
+      const teamName = normalizeText(user.teamName);
+
+      const roleSearchText = user.isLeader
+        ? "truong nhom leader doi truong"
+        : "thanh vien member";
 
       const matchesSearch =
-        !keyword || fullName.includes(keyword) || username.includes(keyword);
+        !keyword ||
+        fullName.includes(keyword) ||
+        username.includes(keyword) ||
+        roleName.includes(keyword) ||
+        teamName.includes(keyword) ||
+        roleSearchText.includes(keyword);
 
       const matchesRole =
         roleFilter === "All" ||
-        String(user.roleName || "")
-          .trim()
-          .toLowerCase() ===
-          String(roleFilter || "")
-            .trim()
-            .toLowerCase();
+        normalizeText(user.roleName) === normalizeText(roleFilter);
 
-      return matchesSearch && matchesRole;
+      const matchesStatus =
+        statusFilter === "All" ||
+        (statusFilter === "Active" && user.isActive) ||
+        (statusFilter === "Inactive" && !user.isActive);
+
+      return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [users, search, roleFilter]);
 
-  const isSearchingOrFiltering = search.trim() !== "" || roleFilter !== "All";
+    return result.sort((a, b) => {
+      if (a.isActive === b.isActive) {
+        return normalizeText(a.fullName).localeCompare(
+          normalizeText(b.fullName),
+        );
+      }
+      return a.isActive ? -1 : 1; // active lên trên, inactive xuống dưới
+    });
+  }, [enrichedUsers, search, roleFilter, statusFilter]);
+
+  const isSearchingOrFiltering =
+    search.trim() !== "" || roleFilter !== "All" || statusFilter !== "All";
+
+  const renderUserSubInfo = (user) => {
+    const isSearchMode =
+      search.trim() !== "" || statusFilter !== "All" || roleFilter !== "All";
+
+    return (
+      <>
+        {user.isLeader && (
+          <div style={{ fontSize: "12px", color: "#f59e0b", marginTop: "4px" }}>
+            👑 Trưởng nhóm
+          </div>
+        )}
+
+        {isSearchMode && user.teamName && (
+          <div style={{ fontSize: "12px", color: "#2563eb", marginTop: "4px" }}>
+            {user.isLeader
+              ? `Thuộc đội: ${user.teamName}`
+              : `Thành viên đội: ${user.teamName}`}
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <>
@@ -268,7 +474,7 @@ const ListUser = () => {
           <div className="search-container">
             <input
               className="search"
-              placeholder="Tìm kiếm theo tên hoặc tên đăng nhập..."
+              placeholder="Tìm theo tên, tên đăng nhập, trưởng nhóm hoặc tên đội..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -285,6 +491,18 @@ const ListUser = () => {
                   {role}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="filter-container">
+            <select
+              className="role-filter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="All">Tất cả trạng thái</option>
+              <option value="Active">Hoạt động</option>
+              <option value="Inactive">Không hoạt động</option>
             </select>
           </div>
 
@@ -343,7 +561,10 @@ const ListUser = () => {
                             }
                           />
                         ) : (
-                          <span className="value">{user.fullName}</span>
+                          <div className="value">
+                            <div>{user.fullName}</div>
+                            {renderUserSubInfo(user)}
+                          </div>
                         )}
                       </div>
 
@@ -415,7 +636,7 @@ const ListUser = () => {
                             Sửa
                           </button>
                           <button
-                            className="delete-btn"
+                            className="delete-btn1"
                             onClick={() =>
                               handleDelete(user.userID, user.username)
                             }
@@ -469,7 +690,10 @@ const ListUser = () => {
                               }
                             />
                           ) : (
-                            user.fullName
+                            <div>
+                              <div>{user.fullName}</div>
+                              {renderUserSubInfo(user)}
+                            </div>
                           )}
                         </td>
 
