@@ -281,6 +281,13 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
+  const refreshRequestsInBackground = () => {
+    loadRealRequests();
+    setTimeout(() => loadRealRequests(), 800);
+    setTimeout(() => loadRealRequests(), 2000);
+    setTimeout(() => loadRealRequests(), 3500);
+  };
+
   // Lưu tên user hệ thống
   const [userFullName, setUserFullName] = useState("");
 
@@ -389,11 +396,33 @@ const Dashboard = () => {
     localStorage.removeItem("userFullName");
     navigate("/login");
   };
-  const mapStatusToUI = (status) => {
-    const s = (status || "").toLowerCase();
+  const mapStatusToUI = (status, missionStatus) => {
+    const s = String(status || "")
+      .trim()
+      .toLowerCase();
+    const m = String(missionStatus || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
+    if (m === "completed" || s === "completed") return "completed";
+    if (m === "delivered" || s === "delivered") return "completed";
+
+    if (
+      m === "inprogress" ||
+      m === "in_progress" ||
+      m === "processing" ||
+      m === "accepted" ||
+      s === "processing" ||
+      s === "in_progress" ||
+      s === "inprogress" ||
+      s === "accepted"
+    ) {
+      return "in_progress";
+    }
+
     if (s === "pending") return "pending";
-    if (s === "processing" || s === "in_progress") return "in_progress";
-    if (s === "completed") return "completed";
+
     return "pending";
   };
   const getAddressFromCoordinates = async (lat, lng) => {
@@ -424,7 +453,14 @@ const Dashboard = () => {
     const lat = Number(r.LocationLatitude ?? r.locationLatitude ?? 0);
     const lng = Number(r.LocationLongitude ?? r.locationLongitude ?? 0);
 
-    const uiStatus = mapStatusToUI(r.Status ?? r.status);
+    const rawStatus = r.Status ?? r.status;
+    const rawMissionStatus =
+      r.MissionStatus ??
+      r.missionStatus ??
+      r.RescueMissionStatus ??
+      r.rescueMissionStatus;
+
+    const uiStatus = mapStatusToUI(rawStatus, rawMissionStatus);
 
     const requestType =
       r.RescueType ??
@@ -471,6 +507,9 @@ const Dashboard = () => {
       description: r.Description ?? r.description ?? "",
 
       status: uiStatus,
+
+      rawStatus: rawStatus || "",
+      missionStatus: rawMissionStatus || "",
 
       createdAtRaw: createdTimeRaw,
       timestamp: createdTimeRaw
@@ -752,6 +791,56 @@ const Dashboard = () => {
         }),
       );
 
+      setSelectedRequest((prev) => {
+        if (!prev) return prev;
+
+        const code =
+          data.requestShortCode ||
+          data.RequestShortCode ||
+          data.ShortCode ||
+          "";
+
+        if (String(prev.requestId) !== String(code)) return prev;
+
+        if (!rejected) {
+          return {
+            ...prev,
+            status: "in_progress",
+            assignedTeamName: teamName,
+            assignedTeamId: teamId ? String(teamId) : prev.assignedTeamId,
+            rescueMissionId: missionId,
+          };
+        }
+
+        const nextRejectedTeamIds = Array.from(
+          new Set([
+            ...(Array.isArray(prev.rejectedTeamIds)
+              ? prev.rejectedTeamIds
+              : []),
+            ...(teamId ? [String(teamId)] : []),
+          ]),
+        );
+
+        const nextRejectedTeamNames = Array.from(
+          new Set([
+            ...(Array.isArray(prev.rejectedTeamNames)
+              ? prev.rejectedTeamNames
+              : []),
+            teamName,
+          ]),
+        );
+
+        return {
+          ...prev,
+          status: "pending",
+          assignedTeamName: "",
+          assignedTeamId: "",
+          rescueMissionId: null,
+          rejectedTeamIds: nextRejectedTeamIds,
+          rejectedTeamNames: nextRejectedTeamNames,
+        };
+      });
+
       if (rejected) {
         const rejectedItem = {
           ...(rejectedRequestSnapshot || {}),
@@ -791,24 +880,76 @@ const Dashboard = () => {
         );
       }
 
-      await loadRealRequests();
+      refreshRequestsInBackground();
     };
 
     // Mission hoàn thành -> coordinator cập nhật thông báo và reload danh sách.
     const handleMissionCompleted = async (data) => {
       console.log("MissionCompletedNotification:", data);
 
+      const code = String(
+        data?.requestShortCode ||
+          data?.RequestShortCode ||
+          data?.shortCode ||
+          data?.ShortCode ||
+          "",
+      ).trim();
+
+      const requestId = String(
+        data?.rescueRequestID ||
+          data?.RescueRequestID ||
+          data?.requestId ||
+          data?.RequestId ||
+          "",
+      ).trim();
+
+      const missionId = String(
+        data?.rescueMissionID ||
+          data?.RescueMissionID ||
+          data?.missionId ||
+          data?.MissionId ||
+          "",
+      ).trim();
+
       setAllRequests((prev) =>
-        prev.map((r) =>
-          r.requestId === (data.requestShortCode || data.RequestShortCode)
-            ? { ...r, status: "completed" }
-            : r,
-        ),
+        prev.map((r) => {
+          const matched =
+            (code && String(r.requestId || "").trim() === code) ||
+            (requestId && String(r.id || "").trim() === requestId) ||
+            (missionId && String(r.rescueMissionId || "").trim() === missionId);
+
+          if (!matched) return r;
+
+          return {
+            ...r,
+            status: "completed",
+            rawStatus: "Completed",
+            missionStatus: "Completed",
+          };
+        }),
       );
 
-      await loadRealRequests();
-    };
+      setSelectedRequest((prev) => {
+        if (!prev) return prev;
 
+        const matched =
+          (code && String(prev.requestId || "").trim() === code) ||
+          (requestId && String(prev.id || "").trim() === requestId) ||
+          (missionId &&
+            String(prev.rescueMissionId || "").trim() === missionId);
+
+        if (!matched) return prev;
+
+        return {
+          ...prev,
+          status: "completed",
+          rawStatus: "Completed",
+          missionStatus: "Completed",
+        };
+      });
+
+      refreshRequestsInBackground();
+    };
     // const handleIncidentReported = (data) => {
     //   console.log("IncidentReportedNotification:", data);
 
@@ -1239,6 +1380,13 @@ const Dashboard = () => {
     loadRealRequests();
   }, []);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadRealRequests();
+    }, 4000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
   // Các hàm xử lý
   const handleRequestClick = (request) => {
     setSelectedRequest(request);
@@ -1431,7 +1579,7 @@ const Dashboard = () => {
         );
       }
 
-      await loadRealRequests();
+      refreshRequestsInBackground();
     } catch (e) {
       console.error(e);
       setDispatchError(e?.message || "Dispatch mission failed.");
@@ -1448,6 +1596,8 @@ const Dashboard = () => {
         return {
           ...req,
           status: "in_progress",
+          rawStatus: "Processing",
+          missionStatus: isSupplyRequest(req) ? "Processing" : "InProgress",
           assignedTeamId: payload.assignedTeamId,
           assignedTeamName: payload.assignedTeamName,
           rescueMissionId: payload.rescueMissionId,
@@ -1537,6 +1687,56 @@ const Dashboard = () => {
 
     return !isRejectedBefore;
   });
+
+  const getCardStatus = (request) => {
+    const missionStatus = String(request?.missionStatus || "")
+      .trim()
+      .toLowerCase();
+
+    const rawStatus = String(request?.rawStatus || request?.status || "")
+      .trim()
+      .toLowerCase();
+
+    if (
+      missionStatus === "completed" ||
+      missionStatus === "delivered" ||
+      rawStatus === "completed" ||
+      rawStatus === "delivered" ||
+      rawStatus === "done"
+    ) {
+      return "completed";
+    }
+
+    if (
+      missionStatus === "inprogress" ||
+      missionStatus === "in_progress" ||
+      missionStatus === "processing" ||
+      missionStatus === "accepted" ||
+      rawStatus === "in_progress" ||
+      rawStatus === "inprogress" ||
+      rawStatus === "processing" ||
+      rawStatus === "accepted"
+    ) {
+      return "in_progress";
+    }
+
+    return "pending";
+  };
+
+  const getCardStatusLabel = (request) => {
+    const status = getCardStatus(request);
+    const supply = isSupplyRequest(request);
+
+    if (status === "completed") {
+      return supply ? "📦 Đã giao hàng cứu trợ" : "✅ Hoàn thành";
+    }
+
+    if (status === "in_progress") {
+      return supply ? "📦 Đang cung ứng cứu hộ" : "🚤 Đang thực hiện cứu hộ";
+    }
+
+    return "⏳ Chờ xử lý";
+  };
 
   return (
     <div className="dashboard-container">
@@ -1691,13 +1891,7 @@ const Dashboard = () => {
             req.isNew &&
             req.priorityLevel === "Critical" &&
             req.status !== "completed",
-        ) && (
-          <div className="critical-alert-banner">
-            
-
-    
-          </div>
-        )}
+        ) && <div className="critical-alert-banner"></div>}
 
         {/* Main Content */}
         <div className="main-content">
@@ -1875,12 +2069,8 @@ const Dashboard = () => {
                     <div className="request-card-header">
                       <div className="request-id">#{request.requestId}</div>
 
-                      <div className={`status-badge ${request.status}`}>
-                        {request.status === "pending"
-                          ? "⏳ Chờ xử lý"
-                          : request.status === "in_progress"
-                            ? "🚤 Đang thực hiện cứu hộ"
-                            : "✅ Hoàn thành"}
+                      <div className={`status-badge ${getCardStatus(request)}`}>
+                        {getCardStatusLabel(request)}
                       </div>
                     </div>
 
@@ -2345,13 +2535,9 @@ const Dashboard = () => {
                             </span>
 
                             <span
-                              className={`status-badge ${selectedRequest.status}`}
+                              className={`status-badge ${getCardStatus(selectedRequest)}`}
                             >
-                              {selectedRequest.status === "pending"
-                                ? "⏳ Đang chờ"
-                                : selectedRequest.status === "in_progress"
-                                  ? "🚤 Đang xử lý"
-                                  : "✅ Hoàn thành"}
+                              {getCardStatusLabel(selectedRequest)}
                             </span>
                           </div>
 
