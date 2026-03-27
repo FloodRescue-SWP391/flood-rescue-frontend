@@ -78,7 +78,15 @@ function MapClickHandler({ onMapClick }) {
 
 export default function Warehouse() {
   const currentRole = (localStorage.getItem("role") || "").trim();
-  const canMutateWarehouses = currentRole === "Inventory Manager";
+  const canMutateWarehouses = [
+    "Manager",
+    "Inventory Manager",
+    "Administrator",
+  ].includes(currentRole);
+  const readonlyMessage =
+    "Tài khoản hiện tại không có quyền thêm, sửa hoặc xóa kho.";
+  const missingWarehouseIdMessage =
+    "Kho này chưa có ID hợp lệ (`id/warehouseID`) từ API nên frontend chưa thể sửa hoặc xóa.";
 
   const [warehouses, setWarehouses] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -100,6 +108,24 @@ export default function Warehouse() {
   const [isSuggestLoading, setIsSuggestLoading] = useState(false);
   const [miniMapCenter, setMiniMapCenter] = useState(null); // null = chưa chọn
   const searchTimerRef = useRef(null);
+
+  const getWarehouseId = (warehouse) =>
+    warehouse?.warehouseId ??
+    warehouse?.WarehouseId ??
+    warehouse?.warehouseID ??
+    warehouse?.WarehouseID ??
+    warehouse?.id ??
+    warehouse?.Id ??
+    warehouse?.ID ??
+    null;
+
+  const hasWarehouseId = (warehouse) => {
+    const id = getWarehouseId(warehouse);
+    return id !== null && id !== undefined && id !== "";
+  };
+
+  const getWarehouseName = (warehouse) =>
+    warehouse?.name || warehouse?.warehouseName || "Không tên";
 
   const buildWarehousePayload = () => ({
     name: form.name.trim(),
@@ -198,9 +224,14 @@ export default function Warehouse() {
     setSaving(true);
     const t = toast.loading("Đang cập nhật...");
     try {
+      const warehouseId = getWarehouseId(editing);
+      if (!warehouseId) {
+        throw new Error("Không tìm thấy mã kho để cập nhật.");
+      }
+
       const payload = buildWarehousePayload();
       console.log("SENDING UPDATE PAYLOAD:", payload);
-      await updateWarehouse(editing.warehouseId, payload);
+      await updateWarehouse(warehouseId, payload);
       toast.success("Cập nhật kho thành công!", { id: t });
       setShowModal(false);
       loadWarehouses(true);
@@ -223,6 +254,10 @@ export default function Warehouse() {
     if (!window.confirm("Bạn có chắc muốn xóa kho này?")) return;
     const t = toast.loading("Đang xóa...");
     try {
+      if (id === null || id === undefined || id === "") {
+        throw new Error("Không tìm thấy mã kho để xóa.");
+      }
+
       await deleteWarehouse(id);
       toast.success("Đã xóa kho.", { id: t });
       loadWarehouses(true);
@@ -256,6 +291,11 @@ export default function Warehouse() {
   const openEdit = (warehouse) => {
     if (!canMutateWarehouses) {
       toast.error(readonlyMessage);
+      return;
+    }
+
+    if (!hasWarehouseId(warehouse)) {
+      toast.error(missingWarehouseIdMessage);
       return;
     }
 
@@ -418,12 +458,12 @@ export default function Warehouse() {
 
             const isSelected =
               selectedWarehouse &&
-              (selectedWarehouse.warehouseId === w.warehouseId ||
-                selectedWarehouse.id === w.id);
+              String(getWarehouseId(selectedWarehouse)) ===
+                String(getWarehouseId(w));
 
             return (
               <Marker
-                key={w.warehouseId || w.id || idx}
+                key={getWarehouseId(w) || idx}
                 position={[lat, lng]}
                 icon={isSelected ? selectedIcon : defaultIcon}
                 eventHandlers={{ click: () => setSelectedWarehouse(w) }}
@@ -431,7 +471,7 @@ export default function Warehouse() {
                 <Popup>
                   <div style={{ minWidth: 160 }}>
                     <strong style={{ fontSize: 14 }}>
-                      🏭 {w.name || "Không tên"}
+                      🏭 {getWarehouseName(w)}
                     </strong>
                     <br />
                     <span style={{ color: "#64748b", fontSize: 12 }}>
@@ -454,8 +494,14 @@ export default function Warehouse() {
                         fontSize: 12,
                         opacity: canMutateWarehouses ? 1 : 0.55,
                       }}
-                      disabled={!canMutateWarehouses}
-                      title={!canMutateWarehouses ? readonlyMessage : ""}
+                      disabled={!canMutateWarehouses || !hasWarehouseId(w)}
+                      title={
+                        !canMutateWarehouses
+                          ? readonlyMessage
+                          : !hasWarehouseId(w)
+                            ? missingWarehouseIdMessage
+                            : ""
+                      }
                       onClick={() => openEdit(w)}
                     >
                       Chỉnh sửa
@@ -499,31 +545,48 @@ export default function Warehouse() {
             {warehouses.map((w, index) => {
               const isSelected =
                 selectedWarehouse &&
-                (selectedWarehouse.warehouseId === w.warehouseId ||
-                  selectedWarehouse.id === w.id);
+                String(getWarehouseId(selectedWarehouse)) ===
+                  String(getWarehouseId(w));
               return (
                 <tr
-                  key={w.warehouseId || w.id || w.warehouseID || index}
+                  key={getWarehouseId(w) || index}
                   className={isSelected ? "row-selected" : ""}
                   style={{ cursor: "pointer" }}
                   onClick={() => focusWarehouse(w)}
                 >
                   <td>
                     <span style={{ marginRight: 6 }}>🏭</span>
-                    {w.name}
+                    {getWarehouseName(w)}
                   </td>
                   <td>{w.address}</td>
                   <td>{w.locationLong}</td>
                   <td>{w.locationLat}</td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    <button className="btn-icon" onClick={() => openEdit(w)} disabled={!canMutateWarehouses} title={!canMutateWarehouses ? readonlyMessage : ""}>
+                    <button
+                      className="btn-icon"
+                      onClick={() => openEdit(w)}
+                      disabled={!canMutateWarehouses || !hasWarehouseId(w)}
+                      title={
+                        !canMutateWarehouses
+                          ? readonlyMessage
+                          : !hasWarehouseId(w)
+                            ? missingWarehouseIdMessage
+                            : ""
+                      }
+                    >
                       Chỉnh sửa
                     </button>
                     <button
                       className="btn-icon btn-delete"
-                      disabled={!canMutateWarehouses}
-                      title={!canMutateWarehouses ? readonlyMessage : ""}
-                      onClick={() => handleDelete(w.warehouseId)}
+                      disabled={!canMutateWarehouses || !hasWarehouseId(w)}
+                      title={
+                        !canMutateWarehouses
+                          ? readonlyMessage
+                          : !hasWarehouseId(w)
+                            ? missingWarehouseIdMessage
+                            : ""
+                      }
+                      onClick={() => handleDelete(getWarehouseId(w))}
                     >
                       Xóa
                     </button>
