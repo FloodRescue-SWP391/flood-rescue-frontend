@@ -302,7 +302,7 @@ const CreateRescueTeam = () => {
       )}
 
       <div className="create-rescue-team-container">
-        <h2>Tạo Đội cứu hộ</h2>
+        <h2>Tạo đội cứu hộ</h2>
 
         <form onSubmit={handleSubmit} className="create-form">
           <div className="form-group">
