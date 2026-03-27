@@ -14,7 +14,6 @@ import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService.js";
-import { createReliefOrder } from "../../services/reliefOrdersService.js";
 import { incidentReportService } from "../../services/incidentReportService.js";
 import signalRService from "../../services/signalrService.js";
 import { useNavigate } from "react-router-dom";
@@ -197,8 +196,20 @@ const normalizeEmergencyText = (value) =>
     .trim()
     .toLowerCase();
 
+const readRequestType = (request) =>
+  pickFirstValue(
+    request?.rescueType,
+    request?.RescueType,
+    request?.requestType,
+    request?.RequestType,
+    request?.emergencyType,
+    request?.EmergencyType,
+    request?.type,
+    request?.Type,
+  );
+
 const isSupplyRequest = (request) => {
-  const text = normalizeEmergencyText(request?.emergencyType);
+  const text = normalizeEmergencyText(readRequestType(request));
 
   return (
     request?.emergencyCategory === "supply" ||
@@ -414,7 +425,12 @@ const Dashboard = () => {
 
     const uiStatus = mapStatusToUI(r.Status ?? r.status);
 
-    const requestType = r.RequestType ?? r.requestType ?? "Unknown";
+    const requestType =
+      r.RescueType ??
+      r.rescueType ??
+      r.RequestType ??
+      r.requestType ??
+      "Unknown";
     const createdTimeRaw = r.CreatedTime ?? r.createdTime ?? null;
 
     return {
@@ -444,6 +460,8 @@ const Dashboard = () => {
       },
 
       emergencyType: requestType,
+      rescueType: requestType,
+      requestType,
       emergencyCategory:
         String(requestType).trim().toLowerCase() === "supply"
           ? "supply"
@@ -1319,37 +1337,12 @@ const Dashboard = () => {
         data.rescueMissionID ?? data.RescueMissionID ?? data.id ?? null;
 
       const assignedTeamName = findTeamLabelById(selectedTeamId);
-      let createdReliefOrderId = null;
-      let reliefOrderWarning = "";
-
-      if (isSupplyOrder) {
-        try {
-          const reliefOrder = await createReliefOrder({
-            rescueRequestID: selectedRequest.id,
-            rescueTeamID: selectedTeamId,
-          });
-
-          console.log("Create ReliefOrder API response:", reliefOrder);
-
-          createdReliefOrderId =
-            reliefOrder?.content?.reliefOrderID ??
-            reliefOrder?.content?.ReliefOrderID ??
-            reliefOrder?.data?.reliefOrderID ??
-            reliefOrder?.data?.ReliefOrderID ??
-            reliefOrder?.reliefOrderID ??
-            reliefOrder?.ReliefOrderID ??
-            reliefOrder?.id ??
-            null;
-        } catch (reliefOrderError) {
-          console.error(
-            "Create ReliefOrder after dispatch failed:",
-            reliefOrderError,
-          );
-          reliefOrderWarning =
-            reliefOrderError?.message ||
-            "Đã điều phối đội nhưng chưa tạo được đơn cung ứng cho manager.";
-        }
-      }
+      const createdReliefOrderId =
+        data?.reliefOrderID ??
+        data?.ReliefOrderID ??
+        data?.reliefOrderId ??
+        data?.ReliefOrderId ??
+        null;
 
       updateRequestAfterDispatch(selectedRequest.id, {
         assignedTeamId: selectedTeamId,
@@ -1367,13 +1360,9 @@ const Dashboard = () => {
 
       setDispatchSuccess(
         isSupplyOrder
-          ? `Đã điều phối ${assignedTeamName} cho yêu cầu cung ứng #${selectedRequest.requestId}`
+          ? `Đã điều phối ${assignedTeamName} cho yêu cầu cung ứng #${selectedRequest.requestId} và chuyển phần supply cho manager xử lý.`
           : `Đã điều phối ${assignedTeamName} cho yêu cầu cứu hộ #${selectedRequest.requestId}`,
       );
-
-      if (reliefOrderWarning) {
-        setDispatchError(reliefOrderWarning);
-      }
 
       await loadRealRequests();
     } catch (e) {
