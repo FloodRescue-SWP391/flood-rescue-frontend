@@ -76,9 +76,25 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
+const MANAGER_MUTATION_ROLES = new Set(["Manager", "Inventory Manager"]);
+const READONLY_MESSAGE =
+  "Tài khoản hiện tại chỉ có quyền xem danh sách kho. Bạn không thể thêm, sửa hoặc xóa kho.";
+
+const getWarehouseId = (warehouse) =>
+  warehouse?.warehouseId ??
+  warehouse?.warehouseID ??
+  warehouse?.WarehouseId ??
+  warehouse?.WarehouseID ??
+  warehouse?.id ??
+  warehouse?.ID ??
+  null;
+
 export default function Warehouse() {
   const currentRole = (localStorage.getItem("role") || "").trim();
-  const canMutateWarehouses = currentRole === "Inventory Manager";
+  const canMutateWarehouses = MANAGER_MUTATION_ROLES.has(currentRole);
+  const readonlyMessage = READONLY_MESSAGE.startsWith("Tai ")
+    ? READONLY_MESSAGE
+    : "Tai khoan hien tai chi co quyen xem danh sach kho. Ban khong the them, sua hoac xoa kho.";
 
   const [warehouses, setWarehouses] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -199,8 +215,15 @@ export default function Warehouse() {
     const t = toast.loading("Đang cập nhật...");
     try {
       const payload = buildWarehousePayload();
+      const warehouseId = getWarehouseId(editing);
+      if (!warehouseId) {
+        throw new Error("Khong xac dinh duoc ma kho de cap nhat.");
+      }
+      if (!warehouseId) {
+        throw new Error("KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c mÃ£ kho Ä‘á»ƒ cáº­p nháº­t.");
+      }
       console.log("SENDING UPDATE PAYLOAD:", payload);
-      await updateWarehouse(editing.warehouseId, payload);
+      await updateWarehouse(warehouseId, payload);
       toast.success("Cập nhật kho thành công!", { id: t });
       setShowModal(false);
       loadWarehouses(true);
@@ -216,6 +239,10 @@ export default function Warehouse() {
   ========================= */
 
   const handleDelete = async (id) => {
+    if (!id) {
+      toast.error("Khong xac dinh duoc ma kho de xoa.");
+      return;
+    }
     if (!canMutateWarehouses) {
       toast.error(readonlyMessage);
       return;
@@ -523,7 +550,7 @@ export default function Warehouse() {
                       className="btn-icon btn-delete"
                       disabled={!canMutateWarehouses}
                       title={!canMutateWarehouses ? readonlyMessage : ""}
-                      onClick={() => handleDelete(w.warehouseId)}
+                      onClick={() => handleDelete(getWarehouseId(w))}
                     >
                       Xóa
                     </button>
