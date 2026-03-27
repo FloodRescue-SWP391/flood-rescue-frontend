@@ -1,4 +1,3 @@
-import "./ManagerDashboard.css";
 import "./Warehouse.css";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState, useRef } from "react";
@@ -6,11 +5,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import {
   getWarehouses,
-  filterWarehouses,
   createWarehouse,
   updateWarehouse,
   deleteWarehouse,
-  normalizeWarehouses,
 } from "../../services/warehouseService";
 import { toast } from "react-hot-toast";
 
@@ -79,29 +76,11 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-const DEFAULT_WAREHOUSE_FILTERS = {
-  name: "",
-  address: "",
-  isActive: "",
-  pageNumber: 1,
-  pageSize: 50,
-};
-
 export default function Warehouse() {
   const currentRole = (localStorage.getItem("role") || "").trim();
-  const canMutateWarehouses = [
-    "Manager",
-    "Inventory Manager",
-    "Administrator",
-  ].includes(currentRole);
-  const readonlyMessage =
-    "Tài khoản hiện tại không có quyền thêm, sửa hoặc xóa kho.";
-
-  const missingWarehouseIdMessage =
-    "Kho này chưa có ID hợp lệ (`id/warehouseID`) từ API nên frontend chưa thể sửa hoặc xóa.";
+  const canMutateWarehouses = currentRole === "Inventory Manager";
 
   const [warehouses, setWarehouses] = useState([]);
-  const [filters, setFilters] = useState(DEFAULT_WAREHOUSE_FILTERS);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
@@ -122,41 +101,6 @@ export default function Warehouse() {
   const [miniMapCenter, setMiniMapCenter] = useState(null); // null = chưa chọn
   const searchTimerRef = useRef(null);
 
-  const getWarehouseId = (warehouse) =>
-    warehouse?.id ??
-    warehouse?.Id ??
-    warehouse?.warehouseId ??
-    warehouse?.WarehouseId ??
-    warehouse?.warehouseID ??
-    warehouse?.WarehouseID ??
-    warehouse?.ID ??
-    null;
-
-  const hasWarehouseId = (warehouse) => {
-    const id = getWarehouseId(warehouse);
-    return id !== null && id !== undefined && id !== "";
-  };
-
-  const getWarehouseName = (warehouse) =>
-    warehouse?.name || warehouse?.warehouseName || "Không tên";
-
-  const extractWarehouseList = (data) => {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.content?.data)) return data.content.data;
-    if (Array.isArray(data?.data?.content?.data)) return data.data.content.data;
-    if (Array.isArray(data?.content)) return data.content;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.items)) return data.items;
-    if (Array.isArray(data?.data?.content)) return data.data.content;
-
-    if (typeof data === "object" && data !== null) {
-      const potentialArray = Object.values(data).find(Array.isArray);
-      if (potentialArray) return potentialArray;
-    }
-
-    return [];
-  };
-
   const buildWarehousePayload = () => ({
     name: form.name.trim(),
     address: form.address.trim(),
@@ -168,25 +112,22 @@ export default function Warehouse() {
       LOAD DATA
   ========================= */
 
-  const loadWarehouses = async (silent = false, nextFilters = filters) => {
+  const loadWarehouses = async (silent = false) => {
     try {
-      const hasFilterValues = Boolean(
-        nextFilters?.name?.trim() ||
-        nextFilters?.address?.trim() ||
-        nextFilters?.isActive !== "",
-      );
-
-      const filterResponse = await filterWarehouses(nextFilters);
+      const res = await getWarehouses();
       // Service parseResponse đã bóc tách JSON, nhưng we handle variants if any
-      const data = filterResponse;
-      console.log("WAREHOUSE FILTER API:", data);
+      const data = res;
+      console.log("WAREHOUSE API:", data);
 
-      let list = normalizeWarehouses(extractWarehouseList(data));
-
-      if (!hasFilterValues && list.length === 0) {
-        const fallbackResponse = await getWarehouses();
-        console.log("WAREHOUSE API FALLBACK:", fallbackResponse);
-        list = normalizeWarehouses(extractWarehouseList(fallbackResponse));
+      let list = [];
+      if (Array.isArray(data)) list = data;
+      else if (Array.isArray(data?.data)) list = data.data;
+      else if (Array.isArray(data?.content)) list = data.content;
+      else if (Array.isArray(data?.items)) list = data.items;
+      else if (Array.isArray(data?.data?.content)) list = data.data.content;
+      else if (typeof data === "object" && data !== null) {
+        const potentialArray = Object.values(data).find(Array.isArray);
+        if (potentialArray) list = potentialArray;
       }
 
       setWarehouses(list);
@@ -257,15 +198,9 @@ export default function Warehouse() {
     setSaving(true);
     const t = toast.loading("Đang cập nhật...");
     try {
-      if (!hasWarehouseId(editing)) {
-        throw new Error("Không tìm thấy mã kho để cập nhật.");
-      }
-      const payload = {
-        ...buildWarehousePayload(),
-        isDeleted: Boolean(editing?.isDeleted ?? false),
-      };
+      const payload = buildWarehousePayload();
       console.log("SENDING UPDATE PAYLOAD:", payload);
-      await updateWarehouse(getWarehouseId(editing), payload);
+      await updateWarehouse(editing.warehouseId, payload);
       toast.success("Cập nhật kho thành công!", { id: t });
       setShowModal(false);
       loadWarehouses(true);
@@ -288,9 +223,6 @@ export default function Warehouse() {
     if (!window.confirm("Bạn có chắc muốn xóa kho này?")) return;
     const t = toast.loading("Đang xóa...");
     try {
-      if (id === null || id === undefined || id === "") {
-        throw new Error("Không tìm thấy mã kho để xóa.");
-      }
       await deleteWarehouse(id);
       toast.success("Đã xóa kho.", { id: t });
       loadWarehouses(true);
@@ -324,11 +256,6 @@ export default function Warehouse() {
   const openEdit = (warehouse) => {
     if (!canMutateWarehouses) {
       toast.error(readonlyMessage);
-      return;
-    }
-
-    if (!hasWarehouseId(warehouse)) {
-      toast.error(missingWarehouseIdMessage);
       return;
     }
 
@@ -442,30 +369,9 @@ export default function Warehouse() {
     }
   };
 
-  const handleFilterSubmit = () => {
-    loadWarehouses(false, {
-      ...filters,
-      pageNumber: 1,
-    });
-  };
-
-  const handleFilterReset = () => {
-    setFilters(DEFAULT_WAREHOUSE_FILTERS);
-    loadWarehouses(false, DEFAULT_WAREHOUSE_FILTERS);
-  };
-
-  const hasMissingWarehouseIds = warehouses.some((warehouse) => !hasWarehouseId(warehouse));
-
   return (
     <div className="warehouse-page">
-      <div className="mp-wrap">
-      <div className="warehouse-header panel-card manager-page-hero warehouse-hero">
-        <div className="warehouse-hero-copy">
-          <div className="dashboardManager-title warehouse-page-title">Quản lý kho</div>
-          <div className="panel-sub warehouse-page-subtitle">
-            Theo dõi vị trí, lọc và cập nhật thông tin các kho trong hệ thống.
-          </div>
-        </div>
+      <div className="warehouse-header">
         <h2>Quản lý kho</h2>
         <button className="btn-add" onClick={openCreate} disabled={!canMutateWarehouses} title={!canMutateWarehouses ? readonlyMessage : ""}>
           + Thêm kho
@@ -473,57 +379,11 @@ export default function Warehouse() {
       </div>
 
       {/* BẢN ĐỒ VỊ TRÍ KHO */}
-      <div className="warehouse-filter-bar panel-card warehouse-filter-card">
-        <input
-          placeholder="Lọc theo tên kho"
-          value={filters.name}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, name: e.target.value }))
-          }
-        />
-
-        <input
-          placeholder="Lọc theo địa chỉ"
-          value={filters.address}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, address: e.target.value }))
-          }
-        />
-
-        <select
-          value={filters.isActive}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, isActive: e.target.value }))
-          }
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="true">Đang hoạt động</option>
-          <option value="false">Ngưng hoạt động</option>
-        </select>
-
-        <button className="btn-filter" onClick={handleFilterSubmit}>
-          Lọc
-        </button>
-
-        <button
-          className="btn-filter btn-filter-secondary"
-          onClick={handleFilterReset}
-        >
-          Đặt lại
-        </button>
-      </div>
-
       {!canMutateWarehouses && (
         <div className="warehouse-permission-note">{readonlyMessage}</div>
       )}
 
-      {canMutateWarehouses && hasMissingWarehouseIds && (
-        <div className="warehouse-permission-note">
-          Danh sách kho hiện đang thiếu `id/warehouseID` từ API, nên một số dòng chỉ xem được chứ chưa thể sửa hoặc xóa.
-        </div>
-      )}
-
-      <div className="warehouse-map-card panel-card">
+      <div className="warehouse-map-card">
         <div className="warehouse-map-title">
           <span>📍</span>
           <span>Bản đồ vị trí kho</span>
@@ -558,12 +418,12 @@ export default function Warehouse() {
 
             const isSelected =
               selectedWarehouse &&
-              String(getWarehouseId(selectedWarehouse)) ===
-                String(getWarehouseId(w));
+              (selectedWarehouse.warehouseId === w.warehouseId ||
+                selectedWarehouse.id === w.id);
 
             return (
               <Marker
-                key={getWarehouseId(w) || idx}
+                key={w.warehouseId || w.id || idx}
                 position={[lat, lng]}
                 icon={isSelected ? selectedIcon : defaultIcon}
                 eventHandlers={{ click: () => setSelectedWarehouse(w) }}
@@ -594,8 +454,8 @@ export default function Warehouse() {
                         fontSize: 12,
                         opacity: canMutateWarehouses ? 1 : 0.55,
                       }}
-                      disabled={!canMutateWarehouses || !hasWarehouseId(w)}
-                      title={!canMutateWarehouses ? readonlyMessage : !hasWarehouseId(w) ? missingWarehouseIdMessage : ""}
+                      disabled={!canMutateWarehouses}
+                      title={!canMutateWarehouses ? readonlyMessage : ""}
                       onClick={() => openEdit(w)}
                     >
                       Chỉnh sửa
@@ -615,7 +475,7 @@ export default function Warehouse() {
       </div>
 
       {/* BẢNG DANH SÁCH KHO */}
-      <div className="warehouse-table-container panel-card">
+      <div className="warehouse-table-container">
         <table className="warehouse-table">
           <thead>
             <tr>
@@ -639,31 +499,31 @@ export default function Warehouse() {
             {warehouses.map((w, index) => {
               const isSelected =
                 selectedWarehouse &&
-                String(getWarehouseId(selectedWarehouse)) ===
-                  String(getWarehouseId(w));
+                (selectedWarehouse.warehouseId === w.warehouseId ||
+                  selectedWarehouse.id === w.id);
               return (
                 <tr
-                  key={getWarehouseId(w) || index}
+                  key={w.warehouseId || w.id || w.warehouseID || index}
                   className={isSelected ? "row-selected" : ""}
                   style={{ cursor: "pointer" }}
                   onClick={() => focusWarehouse(w)}
                 >
                   <td>
                     <span style={{ marginRight: 6 }}>🏭</span>
-                    {getWarehouseName(w)}
+                    {w.name}
                   </td>
                   <td>{w.address}</td>
                   <td>{w.locationLong}</td>
                   <td>{w.locationLat}</td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    <button className="btn-icon" onClick={() => openEdit(w)} disabled={!canMutateWarehouses || !hasWarehouseId(w)} title={!canMutateWarehouses ? readonlyMessage : !hasWarehouseId(w) ? missingWarehouseIdMessage : ""}>
+                    <button className="btn-icon" onClick={() => openEdit(w)} disabled={!canMutateWarehouses} title={!canMutateWarehouses ? readonlyMessage : ""}>
                       Chỉnh sửa
                     </button>
                     <button
                       className="btn-icon btn-delete"
                       disabled={!canMutateWarehouses}
                       title={!canMutateWarehouses ? readonlyMessage : ""}
-                      onClick={() => handleDelete(getWarehouseId(w))}
+                      onClick={() => handleDelete(w.warehouseId)}
                     >
                       Xóa
                     </button>
@@ -787,7 +647,6 @@ export default function Warehouse() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
