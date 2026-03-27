@@ -210,106 +210,106 @@ const RequestStatus = () => {
   // }, [shortCode]);
 
   useEffect(() => {
-  if (!shortCode) return;
+    if (!shortCode) return;
 
-  const handleMissionUpdate = (eventName) => (data) => {
-    console.log("Citizen realtime update:", eventName, data);
+    const handleMissionUpdate = (eventName) => (data) => {
+      console.log("Citizen realtime update:", eventName, data);
 
-    const code =
-      data?.requestShortCode ??
-      data?.RequestShortCode ??
-      data?.shortCode ??
-      "";
+      const code =
+        data?.requestShortCode ??
+        data?.RequestShortCode ??
+        data?.shortCode ??
+        "";
 
-    if (code.trim().toUpperCase() !== shortCode.trim().toUpperCase()) {
-      return;
-    }
+      if (code.trim().toUpperCase() !== shortCode.trim().toUpperCase()) {
+        return;
+      }
 
-    // Vá UI ngay lập tức cho demo
-    if (
-      eventName === "ReceiveTeamAcceptedNotification" ||
-      eventName === "ReceiveTeamResponse"
-    ) {
-      setForcedStatus("processing");
+      // Vá UI ngay lập tức cho demo
+      if (
+        eventName === "ReceiveTeamAcceptedNotification" ||
+        eventName === "ReceiveTeamResponse"
+      ) {
+        setForcedStatus("processing");
 
-      setRequest((prev) =>
-        prev
-          ? {
-              ...prev,
-              missionStatus: prev?.missionStatus || "InProgress",
-              status:
-                prev?.status?.toLowerCase() === "pending"
-                  ? "Processing"
-                  : prev?.status,
-            }
-          : prev,
-      );
-    }
+        setRequest((prev) =>
+          prev
+            ? {
+                ...prev,
+                missionStatus: prev?.missionStatus || "InProgress",
+                status:
+                  prev?.status?.toLowerCase() === "pending"
+                    ? "Processing"
+                    : prev?.status,
+              }
+            : prev,
+        );
+      }
 
-    if (
-      eventName === "MissionCompleted" ||
-      eventName === "ReceiveMissionCompletedNotification"
-    ) {
-      setForcedStatus("completed");
+      if (
+        eventName === "MissionCompleted" ||
+        eventName === "ReceiveMissionCompletedNotification"
+      ) {
+        setForcedStatus("completed");
 
-      setRequest((prev) =>
-        prev
-          ? {
-              ...prev,
-              missionStatus: "Completed",
-              status: "Completed",
-            }
-          : prev,
-      );
-    }
+        setRequest((prev) =>
+          prev
+            ? {
+                ...prev,
+                missionStatus: "Completed",
+                status: "Completed",
+              }
+            : prev,
+        );
+      }
 
-    loadRequestByShortCode(shortCode);
-    setTimeout(() => loadRequestByShortCode(shortCode), 1200);
-    setTimeout(() => loadRequestByShortCode(shortCode), 2500);
-  };
+      loadRequestByShortCode(shortCode);
+      setTimeout(() => loadRequestByShortCode(shortCode), 1200);
+      setTimeout(() => loadRequestByShortCode(shortCode), 2500);
+    };
 
-  const onMissionCompleted = handleMissionUpdate("MissionCompleted");
-  const onReceiveTeamResponse = handleMissionUpdate("ReceiveTeamResponse");
-  const onMissionCompletedOld = handleMissionUpdate(
-    "ReceiveMissionCompletedNotification",
-  );
-  const onTeamAccepted = handleMissionUpdate(
-    "ReceiveTeamAcceptedNotification",
-  );
-  const onTeamRejected = handleMissionUpdate(
-    "ReceiveTeamRejectedNotification",
-  );
+    const onMissionCompleted = handleMissionUpdate("MissionCompleted");
+    const onReceiveTeamResponse = handleMissionUpdate("ReceiveTeamResponse");
+    const onMissionCompletedOld = handleMissionUpdate(
+      "ReceiveMissionCompletedNotification",
+    );
+    const onTeamAccepted = handleMissionUpdate(
+      "ReceiveTeamAcceptedNotification",
+    );
+    const onTeamRejected = handleMissionUpdate(
+      "ReceiveTeamRejectedNotification",
+    );
 
-  const initSignalR = async () => {
-    try {
-      await signalRService.startConnection();
+    const initSignalR = async () => {
+      try {
+        await signalRService.startConnection();
 
-      signalRService.on("MissionCompleted", onMissionCompleted);
-      signalRService.on("ReceiveTeamResponse", onReceiveTeamResponse);
-      signalRService.on(
+        signalRService.on("MissionCompleted", onMissionCompleted);
+        signalRService.on("ReceiveTeamResponse", onReceiveTeamResponse);
+        signalRService.on(
+          "ReceiveMissionCompletedNotification",
+          onMissionCompletedOld,
+        );
+        signalRService.on("ReceiveTeamAcceptedNotification", onTeamAccepted);
+        signalRService.on("ReceiveTeamRejectedNotification", onTeamRejected);
+      } catch (err) {
+        console.error("Citizen SignalR init error:", err);
+      }
+    };
+
+    initSignalR();
+
+    return () => {
+      signalRService.off("MissionCompleted", onMissionCompleted);
+      signalRService.off("ReceiveTeamResponse", onReceiveTeamResponse);
+      signalRService.off(
         "ReceiveMissionCompletedNotification",
         onMissionCompletedOld,
       );
-      signalRService.on("ReceiveTeamAcceptedNotification", onTeamAccepted);
-      signalRService.on("ReceiveTeamRejectedNotification", onTeamRejected);
-    } catch (err) {
-      console.error("Citizen SignalR init error:", err);
-    }
-  };
-
-  initSignalR();
-
-  return () => {
-    signalRService.off("MissionCompleted", onMissionCompleted);
-    signalRService.off("ReceiveTeamResponse", onReceiveTeamResponse);
-    signalRService.off(
-      "ReceiveMissionCompletedNotification",
-      onMissionCompletedOld,
-    );
-    signalRService.off("ReceiveTeamAcceptedNotification", onTeamAccepted);
-    signalRService.off("ReceiveTeamRejectedNotification", onTeamRejected);
-  };
-}, [shortCode]);
+      signalRService.off("ReceiveTeamAcceptedNotification", onTeamAccepted);
+      signalRService.off("ReceiveTeamRejectedNotification", onTeamRejected);
+    };
+  }, [shortCode]);
 
   // AUTO REFRESH REQUEST STATUS
   // Citizen sẽ tự động cập nhật trạng thái mỗi 10 giây
@@ -332,16 +332,16 @@ const RequestStatus = () => {
 
     if (type === "rescue") {
       return [
-        { status: "Pending", label: "Pending", icon: "🕒" },
-        { status: "Processing", label: "Processing", icon: "⚙️" },
-        { status: "Completed", label: "Completed", icon: "✅" },
+        { status: "Pending", label: "Chờ xử lý", icon: "🕒" },
+        { status: "Processing", label: "Đang xử lý", icon: "⚙️" },
+        { status: "Completed", label: "Đã hoàn thành", icon: "✅" },
       ];
     }
 
     return [
-      { status: "Pending", label: "Pending", icon: "🕒" },
-      { status: "Processing", label: "Processing", icon: "⚙️" },
-      { status: "Delivered", label: "Delivered", icon: "📦" },
+      { status: "Pending", label: "Chờ xử lý", icon: "🕒" },
+      { status: "Processing", label: "Đang xử lý", icon: "⚙️" },
+      { status: "Delivered", label: "Đã giao", icon: "📦" },
     ];
   };
 
@@ -456,27 +456,6 @@ const RequestStatus = () => {
     }
   };
 
-  // const startCountdown = () => {
-  //   if (countdownRef.current) {
-  //     clearInterval(countdownRef.current);
-  //   }
-
-  //   countdownRef.current = setInterval(() => {
-  //     setEta((prev) => {
-  //       if (prev === "Arriving") return prev;
-
-  //       const [min, max] = prev.split("-").map(Number);
-  //       if (min > 1) {
-  //         return `${min - 1}-${max - 1}`;
-  //       } else {
-  //         clearInterval(countdownRef.current);
-  //         countdownRef.current = null;
-  //         return "Arriving";
-  //       }
-  //     });
-  //   }, 30000);
-  // };
-
   useEffect(() => {
     if (shortCode) return; // nếu URL đã có code thì không hỏi nữa
 
@@ -502,14 +481,6 @@ const RequestStatus = () => {
     return () => clearTimeout(timer);
   }, [shortCode]);
 
-  // useEffect(() => {
-  //   return () => {
-  //     if (countdownRef.current) {
-  //       clearInterval(countdownRef.current);
-  //     }
-  //   };
-  // }, []);
-
   const handleSearchShortCode = () => {
     const code = inputCode.trim();
     if (!code) {
@@ -533,32 +504,6 @@ const RequestStatus = () => {
       `Calling rescue team: ${rescueTeam ? rescueTeam.name : "Emergency Services"}`,
     );
   };
-
-  // const getStatusColor = (status) => {
-  //   switch ((status || "").toLowerCase()) {
-  //     case "pending":
-  //       return "#f59e0b";
-
-  //     case "accepted":
-  //     case "inprogress":
-  //     case "in_progress":
-  //     case "processing":
-  //       return "#3b82f6";
-
-  //     case "completed":
-  //       return "#22c55e";
-
-  //     case "delivered":
-  //       return "#10b981";
-
-  //     case "rejected":
-  //     case "cancelled":
-  //       return "#ef4444";
-
-  //     default:
-  //       return "#94a3b8";
-  //   }
-  // };
 
   const normalizeTimelineStatus = (request, forcedStatus) => {
     const forced = (forcedStatus || "").toLowerCase();
@@ -714,6 +659,10 @@ const RequestStatus = () => {
     ),
     0,
   );
+
+  const isFinished =
+    normalizedTimelineStatus === "completed" ||
+    normalizedTimelineStatus === "delivered";
   return (
     <>
       <Header />
@@ -742,6 +691,22 @@ const RequestStatus = () => {
             </p>
           </div>
         </div>
+
+        {isFinished && (
+          <div className="completion-banner">
+            <div className="completion-content">
+              <h3>🎉 Yêu cầu của bạn đã hoàn thành</h3>
+              <p>
+                Cảm ơn bạn đã kiên nhẫn chờ đợi. Đội cứu hộ đã hoàn tất nhiệm
+                vụ.
+              </p>
+              <p>
+                💙 Chúc bạn luôn giữ vững tinh thần, an toàn và tràn đầy sức
+                khỏe.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Request Status */}
         <div className="status-timeline">
