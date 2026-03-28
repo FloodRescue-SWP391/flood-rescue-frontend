@@ -228,6 +228,41 @@ const isSupplyRequest = (request) => {
 
 const isRescueRequest = (request) => !isSupplyRequest(request);
 
+const normalizeKey = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+const isSameKey = (a, b) =>
+  normalizeKey(a) && normalizeKey(b) && normalizeKey(a) === normalizeKey(b);
+
+const readRequestShortCodeFromEvent = (data) =>
+  data?.requestShortCode ??
+  data?.RequestShortCode ??
+  data?.shortCode ??
+  data?.ShortCode ??
+  data?.code ??
+  data?.Code ??
+  "";
+
+const readRequestIdFromEvent = (data) =>
+  data?.rescueRequestID ??
+  data?.RescueRequestID ??
+  data?.requestId ??
+  data?.RequestId ??
+  data?.rescueRequestId ??
+  data?.RescueRequestId ??
+  "";
+
+const readMissionIdFromEvent = (data) =>
+  data?.rescueMissionID ??
+  data?.RescueMissionID ??
+  data?.missionId ??
+  data?.MissionId ??
+  data?.rescueMissionId ??
+  data?.RescueMissionId ??
+  "";
+
 const Dashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -266,6 +301,8 @@ const Dashboard = () => {
 
   const [requestStatusTab, setRequestStatusTab] = useState("new");
   // new | processing | completed
+
+  const completedRequestKeysRef = useRef(new Set());
 
   const [notifications, setNotifications] = useState(() => {
     try {
@@ -887,44 +924,35 @@ const Dashboard = () => {
     const handleMissionCompleted = async (data) => {
       console.log("MissionCompletedNotification:", data);
 
-      const code = String(
-        data?.requestShortCode ||
-          data?.RequestShortCode ||
-          data?.shortCode ||
-          data?.ShortCode ||
-          "",
-      ).trim();
+      const code = readRequestShortCodeFromEvent(data);
+      const requestId = readRequestIdFromEvent(data);
+      const missionId = readMissionIdFromEvent(data);
 
-      const requestId = String(
-        data?.rescueRequestID ||
-          data?.RescueRequestID ||
-          data?.requestId ||
-          data?.RequestId ||
-          "",
-      ).trim();
+      if (code) completedRequestKeysRef.current.add(normalizeKey(code));
+      if (requestId)
+        completedRequestKeysRef.current.add(normalizeKey(requestId));
+      if (missionId)
+        completedRequestKeysRef.current.add(normalizeKey(missionId));
 
-      const missionId = String(
-        data?.rescueMissionID ||
-          data?.RescueMissionID ||
-          data?.missionId ||
-          data?.MissionId ||
-          "",
-      ).trim();
+      let hasMatched = false;
 
       setAllRequests((prev) =>
         prev.map((r) => {
           const matched =
-            (code && String(r.requestId || "").trim() === code) ||
-            (requestId && String(r.id || "").trim() === requestId) ||
-            (missionId && String(r.rescueMissionId || "").trim() === missionId);
+            isSameKey(r.requestId, code) ||
+            isSameKey(r.id, requestId) ||
+            isSameKey(r.rescueMissionId, missionId);
 
           if (!matched) return r;
+
+          hasMatched = true;
 
           return {
             ...r,
             status: "completed",
             rawStatus: "Completed",
             missionStatus: "Completed",
+            isNew: false,
           };
         }),
       );
@@ -933,10 +961,9 @@ const Dashboard = () => {
         if (!prev) return prev;
 
         const matched =
-          (code && String(prev.requestId || "").trim() === code) ||
-          (requestId && String(prev.id || "").trim() === requestId) ||
-          (missionId &&
-            String(prev.rescueMissionId || "").trim() === missionId);
+          isSameKey(prev.requestId, code) ||
+          isSameKey(prev.id, requestId) ||
+          isSameKey(prev.rescueMissionId, missionId);
 
         if (!matched) return prev;
 
@@ -945,26 +972,23 @@ const Dashboard = () => {
           status: "completed",
           rawStatus: "Completed",
           missionStatus: "Completed",
+          isNew: false,
         };
       });
 
+      // Nếu event có về nhưng chưa match được item nào trong list hiện tại
+      // thì vẫn gọi refresh dày hơn để kéo dữ liệu mới về sớm nhất.
+      if (!hasMatched) {
+        loadRealRequests();
+        setTimeout(loadRealRequests, 500);
+        setTimeout(loadRealRequests, 1200);
+        setTimeout(loadRealRequests, 2500);
+        setTimeout(loadRealRequests, 4000);
+        return;
+      }
+
       refreshRequestsInBackground();
     };
-    // const handleIncidentReported = (data) => {
-    //   console.log("IncidentReportedNotification:", data);
-
-    //   setPendingIncidents((prev) => [
-    //     {
-    //       incidentReportID: data.incidentReportID,
-    //       rescueMissionID: data.rescueMissionID,
-    //       teamName: data.teamName,
-    //       title: data.title,
-    //       description: data.description,
-    //       createdTime: new Date(data.createdTime),
-    //     },
-    //     ...prev,
-    //   ]);
-    // };
 
     const handleIncidentReported = async (data) => {
       console.log("IncidentReportedNotification:", data);
@@ -1040,11 +1064,6 @@ const Dashboard = () => {
         await signalRService.startConnection();
 
         console.log("✅ SignalR connected");
-
-        // signalRService.on("ReceiveTeamResponse", handleTeamAccepted);
-        // signalRService.on("MissionCompleted", handleMissionCompleted);
-        // signalRService.on("IncidentReported", handleIncidentReported);
-        // signalRService.on("NewRescueRequest", handleNewRescueRequest);
 
         signalRService.on(
           CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
@@ -1321,6 +1340,24 @@ const Dashboard = () => {
 
       const mapped = data
         .map(mapRequestToUI)
+        .map((item) => {
+          const isForcedCompleted =
+            completedRequestKeysRef.current.has(normalizeKey(item.requestId)) ||
+            completedRequestKeysRef.current.has(normalizeKey(item.id)) ||
+            completedRequestKeysRef.current.has(
+              normalizeKey(item.rescueMissionId),
+            );
+
+          if (!isForcedCompleted) return item;
+
+          return {
+            ...item,
+            status: "completed",
+            rawStatus: "Completed",
+            missionStatus: "Completed",
+            isNew: false,
+          };
+        })
         .filter(
           (item) =>
             item?.id &&
@@ -1691,31 +1728,28 @@ const Dashboard = () => {
   const getCardStatus = (request) => {
     const missionStatus = String(request?.missionStatus || "")
       .trim()
-      .toLowerCase();
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
 
     const rawStatus = String(request?.rawStatus || request?.status || "")
       .trim()
-      .toLowerCase();
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
 
     if (
-      missionStatus === "completed" ||
-      missionStatus === "delivered" ||
-      rawStatus === "completed" ||
-      rawStatus === "delivered" ||
-      rawStatus === "done"
+      ["completed", "delivered", "done"].includes(missionStatus) ||
+      ["completed", "delivered", "done"].includes(rawStatus)
     ) {
       return "completed";
     }
 
     if (
-      missionStatus === "inprogress" ||
-      missionStatus === "in_progress" ||
-      missionStatus === "processing" ||
-      missionStatus === "accepted" ||
-      rawStatus === "in_progress" ||
-      rawStatus === "inprogress" ||
-      rawStatus === "processing" ||
-      rawStatus === "accepted"
+      ["inprogress", "in_progress", "processing", "accepted"].includes(
+        missionStatus,
+      ) ||
+      ["inprogress", "in_progress", "processing", "accepted"].includes(
+        rawStatus,
+      )
     ) {
       return "in_progress";
     }
