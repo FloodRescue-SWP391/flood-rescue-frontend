@@ -8,11 +8,7 @@ import {
   completeMission,
 } from "../../services/rescueMissionService";
 import { toast } from "react-hot-toast";
-import {
-  FaClipboardList,
-  FaCheckCircle,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
+import { FaClipboardList, FaCheckCircle, FaMapMarkerAlt } from "react-icons/fa";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
@@ -45,47 +41,6 @@ const formatVNTime = (dateString) => {
   }
 };
 
-const addressCache = new Map();
-const AddressDisplay = ({ lat, lng }) => {
-  const [address, setAddress] = useState("Đang tải vị trí...");
-
-  useEffect(() => {
-    if (lat == null || lng == null) {
-      setAddress("Vị trí không hợp lệ");
-      return;
-    }
-
-    const key = `${lat},${lng}`;
-    if (addressCache.has(key)) {
-      setAddress(addressCache.get(key));
-      return;
-    }
-
-    const fetchAddress = async () => {
-      try {
-        await new Promise((r) => setTimeout(r, Math.random() * 1000 + 500));
-        if (addressCache.has(key)) {
-          setAddress(addressCache.get(key));
-          return;
-        }
-
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-        );
-        const data = await res.json();
-        const displayAddress = data.display_name || "Không tìm thấy địa chỉ";
-        addressCache.set(key, displayAddress);
-        setAddress(displayAddress);
-      } catch (err) {
-        setAddress(`Tọa độ: ${lat}, ${lng}`);
-      }
-    };
-    fetchAddress();
-  }, [lat, lng]);
-
-  return <span>{address}</span>;
-};
-
 export default function RescueTeamLeader({ teamId }) {
   const [assigned, setAssigned] = useState([]);
   const [inProgress, setInProgress] = useState([]);
@@ -96,6 +51,8 @@ export default function RescueTeamLeader({ teamId }) {
   const [selectedMission, setSelectedMission] = useState(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [userFullName, setUserFullName] = useState("");
+
+  const [incidentReports, setIncidentReports] = useState([]);
 
   useEffect(() => {
     try {
@@ -151,6 +108,8 @@ export default function RescueTeamLeader({ teamId }) {
       null
     );
   };
+
+  
 
   const normalizeStatus = (status) => {
     const s = String(status || "")
@@ -334,6 +293,34 @@ export default function RescueTeamLeader({ teamId }) {
       return mission;
     }
   };
+  const loadIncidentReports = async () => {
+    try {
+      const res = await fetchWithAuth(
+        `/IncidentReports/filter?pageNumber=1&pageSize=20`,
+      );
+
+      if (!res.ok) {
+        console.error("Load incident reports failed:", res.status);
+        setIncidentReports([]);
+        return;
+      }
+
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : null;
+
+      let list = json?.content?.data || json?.content || [];
+      if (!Array.isArray(list)) list = [];
+
+      list.sort(
+        (a, b) => new Date(b?.createdTime || 0) - new Date(a?.createdTime || 0),
+      );
+
+      setIncidentReports(list);
+    } catch (err) {
+      console.error("Load incident reports failed:", err);
+      setIncidentReports([]);
+    }
+  };
 
   const loadMissions = async () => {
     if (!teamId || loading) return;
@@ -370,9 +357,13 @@ export default function RescueTeamLeader({ teamId }) {
       const inProgressList = enrichedMissions.filter(
         (m) => getMissionStatus(m) === "InProgress",
       );
-      const completedList = enrichedMissions.filter(
-        (m) => getMissionStatus(m) === "Completed",
-      );
+      const completedList = enrichedMissions
+        .filter((m) => getMissionStatus(m) === "Completed")
+        .sort(
+          (a, b) =>
+            new Date(b?.completedAt || b?.endTime || 0) -
+            new Date(a?.completedAt || a?.endTime || 0),
+        );
 
       setMissions(enrichedMissions);
       setAssigned(assignedList);
@@ -388,6 +379,7 @@ export default function RescueTeamLeader({ teamId }) {
   useEffect(() => {
     if (teamId) {
       loadMissions();
+      loadIncidentReports();
     }
   }, [teamId]);
 
@@ -485,6 +477,10 @@ export default function RescueTeamLeader({ teamId }) {
     try {
       await incidentReportService.reportIncident(formData);
       await loadMissions();
+      await loadIncidentReports();
+      setShowIncidentModal(false);
+      setSelectedMission(null);
+      toast.success("Đã gửi báo cáo sự cố.");
     } catch (err) {
       console.error("Failed to submit incident:", err);
       window.alert("Lỗi khi báo cáo sự cố.");
@@ -692,9 +688,9 @@ export default function RescueTeamLeader({ teamId }) {
 
                   <p>
                     <small>
-                      📝 Tạo lúc:{" "}
-                      {mission?.requestCreatedTime
-                        ? formatVNTime(mission.requestCreatedTime)
+                      📝 Nhận nhiệm vụ:{" "}
+                      {mission?.assignedAt
+                        ? formatVNTime(mission.assignedAt)
                         : "Không có thời gian"}
                     </small>
                   </p>
@@ -710,15 +706,13 @@ export default function RescueTeamLeader({ teamId }) {
 
                   <p>
                     <FaMapMarkerAlt />{" "}
-                    {getLatitude(mission) != null &&
-                    getLongitude(mission) != null ? (
-                      <AddressDisplay
-                        lat={getLatitude(mission)}
-                        lng={getLongitude(mission)}
-                      />
-                    ) : (
-                      <span>Chưa có vị trí</span>
-                    )}
+                    <span>
+                      {mission?.address ||
+                        mission?.rescueRequest?.address ||
+                        mission?.rescueRequest?.locationAddress ||
+                        mission?.rescueRequest?.formattedAddress ||
+                        "Chưa có địa chỉ"}
+                    </span>
                   </p>
 
                   <div className="btn-group">
@@ -789,15 +783,13 @@ export default function RescueTeamLeader({ teamId }) {
 
                   <p>
                     <FaMapMarkerAlt />{" "}
-                    {getLatitude(mission) != null &&
-                    getLongitude(mission) != null ? (
-                      <AddressDisplay
-                        lat={getLatitude(mission)}
-                        lng={getLongitude(mission)}
-                      />
-                    ) : (
-                      <span>Chưa có vị trí</span>
-                    )}
+                    <span>
+                      {mission?.address ||
+                        mission?.rescueRequest?.address ||
+                        mission?.rescueRequest?.locationAddress ||
+                        mission?.rescueRequest?.formattedAddress ||
+                        "Chưa có địa chỉ"}
+                    </span>
                   </p>
 
                   {(mission.reliefOrderID || mission.reliefOrderId) && (
@@ -861,78 +853,134 @@ export default function RescueTeamLeader({ teamId }) {
             </MapContainer>
           </div>
 
-          <div style={{ marginTop: 30 }}>
-            <div
-              className="panel-title"
-              style={{
-                marginBottom: "15px",
-                fontSize: "1.2rem",
-                fontWeight: "bold",
-              }}
-            >
-              Lịch sử cứu hộ
+          <div
+            style={{
+              marginTop: 50,
+              display: "flex",
+              gap: "20px",
+              alignItems: "stretch",
+            }}
+          >
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <div
+                className="panel-title"
+                style={{
+                  marginBottom: "15px",
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                }}
+              >
+                Lịch sử cứu hộ
+              </div>
+
+              <div
+                className="panels"
+                style={{ display: "flex", flexDirection: "column" }}
+              >
+                <div
+                  className="panel"
+                  style={{ width: "100%", height: "500px", overflowY: "auto" }}
+                >
+                  {completed.length === 0 && (
+                    <p>Chưa có nhiệm vụ nào hoàn thành</p>
+                  )}
+
+                  {completed.map((mission) => (
+                    <div className="request-card" key={getMissionId(mission)}>
+                      <p>
+                        <b>{getCitizenName(mission)}</b>
+                      </p>
+
+                      <p>{getDescription(mission)}</p>
+
+                      <p>
+                        <small>
+                          📝 Nhận nhiệm vụ:{" "}
+                          {mission?.assignedAt
+                            ? formatVNTime(mission.assignedAt)
+                            : "Không có thời gian"}
+                        </small>
+                      </p>
+
+                      <p>
+                        <small>
+                          ✅ Hoàn thành lúc:{" "}
+                          {mission?.completedAt || mission?.endTime
+                            ? formatVNTime(
+                                mission?.completedAt || mission?.endTime,
+                              )
+                            : "Không có thời gian"}
+                        </small>
+                      </p>
+
+                      <div className="btn-group">
+                        <button
+                          className="btn-info"
+                          onClick={() => handleShowDetail(mission)}
+                        >
+                          Xem chi tiết
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div
-              className="panels"
-              style={{ display: "flex", flexDirection: "column" }}
-            >
-              <div className="panel" style={{ width: "100%" }}>
-                {completed.length === 0 && (
-                  <p>Chưa có nhiệm vụ nào hoàn thành</p>
-                )}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <div
+                className="panel-title"
+                style={{
+                  marginBottom: "15px",
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                }}
+              >
+                Lịch sử báo cáo sự cố
+              </div>
 
-                {completed.map((mission) => (
-                  <div className="request-card" key={getMissionId(mission)}>
-                    <p>
-                      <b>{getCitizenName(mission)}</b>
-                    </p>
+              <div
+                className="panels"
+                style={{ display: "flex", flexDirection: "column" }}
+              >
+                <div
+                  className="panel"
+                  style={{
+                    width: "100%",
+                    height: "500px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {incidentReports.length === 0 && <p>Chưa có báo cáo sự cố</p>}
 
-                    <p>{getDescription(mission)}</p>
+                  {incidentReports.map((r) => (
+                    <div
+                      className="request-card"
+                      key={r?.incidentReportID || r?.incidentReportId || r?.id}
+                    >
+                      <p>
+                        <b>{r?.teamName || "Đội cứu hộ"}</b>
+                      </p>
 
-                    <p>
-                      <small>
-                        📝 Tạo lúc:{" "}
-                        {mission?.requestCreatedTime
-                          ? formatVNTime(mission.requestCreatedTime)
-                          : "Không có thời gian"}
-                      </small>
-                    </p>
+                      <p>👤 Người báo cáo: {r?.reporterName || "Không rõ"}</p>
 
-                    <p>
-                      <small>
-                        ✅ Hoàn thành lúc:{" "}
-                        {mission?.completedAt || mission?.endTime
-                          ? formatVNTime(
-                              mission?.completedAt || mission?.endTime,
-                            )
-                          : "Không có thời gian"}
-                      </small>
-                    </p>
+                      <p>📄 {r?.title || "Không có tiêu đề"}</p>
 
-                    <p>
-                      <FaMapMarkerAlt />{" "}
-                      {getLatitude(mission) != null &&
-                      getLongitude(mission) != null ? (
-                        <AddressDisplay
-                          lat={getLatitude(mission)}
-                          lng={getLongitude(mission)}
-                        />
-                      ) : (
-                        <span>Chưa có vị trí</span>
-                      )}
-                    </p>
+                      <p>
+                        <small>
+                          📝 Nhận nhiệm vụ:{" "}
+                          {mission?.assignedAt
+                            ? formatVNTime(mission.assignedAt)
+                            : "Không có thời gian"}
+                        </small>
+                      </p>
 
-                    <div className="btn-group">
-                      <button
-                        className="btn-info"
-                        onClick={() => handleShowDetail(mission)}
-                      >
-                        Xem chi tiết
-                      </button>
+                      <p>
+                        <small>📌 Trạng thái: {r?.status || "Không rõ"}</small>
+                      </p>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
