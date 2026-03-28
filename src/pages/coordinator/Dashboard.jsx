@@ -1097,6 +1097,10 @@ const Dashboard = () => {
           CLIENT_EVENTS.NEW_RESCUE_REQUEST,
           handleNewRescueRequest,
         );
+        signalRService.on(
+        CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
+        handleTeamResponse,
+      )
       } catch (err) {
         console.error("❌ SignalR init error:", err);
       }
@@ -1126,6 +1130,10 @@ const Dashboard = () => {
       signalRService.off(
         CLIENT_EVENTS.NEW_RESCUE_REQUEST,
         handleNewRescueRequest,
+      );
+      signalRService.off(
+        CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
+        handleTeamResponse,
       );
     };
   }, []);

@@ -19,6 +19,8 @@ export const CLIENT_EVENTS = {
   DELIVERY_STARTED: "DeliveryStarted",
   MISSION_COMPLETED: "MissionCompleted",
   DAILY_SUMMARY_REPORT: "DailySummaryReport",
+  RECEIVE_TEAM_RESPONSE : "ReceiveTeamResponse",
+  RECEIVE_ORDER_RESPONSE : "ReceiveOrderResponse",
 };
 
 // Tên Group
