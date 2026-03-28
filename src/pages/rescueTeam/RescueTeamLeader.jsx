@@ -414,7 +414,7 @@ export default function RescueTeamLeader({ teamId }) {
     const handleIncidentResolved = (data) => {
       console.log("IncidentResolved:", data);
       loadMissions();
-      window.alert("Coordinator đã xử lý incident của đội bạn.");
+      window.alert("Điều phối viên đã xử lý sự cố. Nhiệm vụ này sẽ được thu hồi để điều phối lại.");
     };
 
     const init = async () => {
