@@ -4,19 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { getAllRescueRequests } from "../../services/rescueRequestService";
-import { rescueMissionService } from "../../services/rescueMissionService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
-import { inventoryService } from "../../services/inventoryService";
-import { getWarehouses } from "../../services/warehouseService";
 import {
   extractOrderItems,
-  findAssignedMissionForOrder,
   findAssignedTeamForOrder,
   findRelatedRequestForOrder,
   normalizeReliefOrder,
   normalizeReliefOrders,
-  normalizeRescueMissions,
   normalizeRescueRequests,
   reliefOrdersService,
 } from "../../services/reliefOrdersService";
@@ -35,7 +30,6 @@ const DEFAULT_FILTERS = {
 
 const NOTI_STORAGE_KEY = "manager_notifications";
 const MANAGER_RELIEF_ORDERS_ROUTE = "/manager/relief-orders";
-const MANAGER_WAREHOUSE_STORAGE_KEY = "manager_dashboard_warehouse_id";
 
 const extractList = (res) => {
   if (Array.isArray(res)) return res;
@@ -70,10 +64,140 @@ const pickFirst = (source, keys, fallback = "") => {
   return fallback;
 };
 
-const toComparable = (value) => String(value ?? "").trim().toLowerCase();
-
 const formatDisplayValue = (value, fallback = "Không rõ") =>
   value !== undefined && value !== null && value !== "" ? String(value) : fallback;
+
+const toComparable = (value) => String(value ?? "").trim().toLowerCase();
+
+const valuesMatch = (left, right) =>
+  Boolean(toComparable(left)) && toComparable(left) === toComparable(right);
+
+const ACCEPTED_AT_KEYS = [
+  "acceptedAt",
+  "AcceptedAt",
+  "acceptAt",
+  "AcceptAt",
+  "acceptedTime",
+  "AcceptedTime",
+];
+
+const RELIEF_ORDER_EVENT_ID_KEYS = [
+  "reliefOrderID",
+  "ReliefOrderID",
+  "reliefOrderId",
+  "ReliefOrderId",
+  "id",
+  "ID",
+];
+
+const REQUEST_EVENT_ID_KEYS = [
+  "rescueRequestID",
+  "RescueRequestID",
+  "rescueRequestId",
+  "RescueRequestId",
+  "requestID",
+  "RequestID",
+  "requestId",
+  "RequestId",
+];
+
+const REQUEST_EVENT_CODE_KEYS = [
+  "requestShortCode",
+  "RequestShortCode",
+  "shortCode",
+  "ShortCode",
+  "rescueRequestCode",
+  "RescueRequestCode",
+];
+
+const MISSION_EVENT_ID_KEYS = [
+  "rescueMissionID",
+  "RescueMissionID",
+  "rescueMissionId",
+  "RescueMissionId",
+  "missionID",
+  "MissionID",
+  "missionId",
+  "MissionId",
+];
+
+const TEAM_EVENT_ID_KEYS = [
+  "rescueTeamID",
+  "RescueTeamID",
+  "rescueTeamId",
+  "RescueTeamId",
+  "teamID",
+  "TeamID",
+  "teamId",
+  "TeamId",
+];
+
+const TEAM_EVENT_NAME_KEYS = [
+  "teamName",
+  "TeamName",
+  "rescueTeamName",
+  "RescueTeamName",
+];
+
+const TEAM_RESPONSE_TYPE_KEYS = [
+  "notificationType",
+  "NotificationType",
+  "responseType",
+  "ResponseType",
+  "type",
+  "Type",
+];
+
+const resolveAcceptedReliefOrderId = (data, currentOrders = []) => {
+  const directReliefOrderId = pickFirst(data, RELIEF_ORDER_EVENT_ID_KEYS, "");
+  if (directReliefOrderId) {
+    return String(directReliefOrderId);
+  }
+
+  const requestId = pickFirst(data, REQUEST_EVENT_ID_KEYS, "");
+  const requestCode = pickFirst(data, REQUEST_EVENT_CODE_KEYS, "");
+  const missionId = pickFirst(data, MISSION_EVENT_ID_KEYS, "");
+  const teamId = pickFirst(data, TEAM_EVENT_ID_KEYS, "");
+  const teamName = pickFirst(data, TEAM_EVENT_NAME_KEYS, "");
+  const normalizedOrders = Array.isArray(currentOrders)
+    ? currentOrders.map((order) => normalizeReliefOrder(order))
+    : [];
+
+  const teamMatches = (order) =>
+    (teamId &&
+      [
+        order?.assignedTeamID,
+        order?.assignedTeamId,
+        order?.rescueTeamID,
+        order?.rescueTeamId,
+        order?.teamID,
+        order?.teamId,
+      ].some((value) => valuesMatch(value, teamId))) ||
+    (teamName && valuesMatch(order?.teamName, teamName));
+
+  const matchers = [
+    (order) => missionId && valuesMatch(order?.rescueMissionID, missionId),
+    (order) =>
+      requestId &&
+      valuesMatch(order?.rescueRequestID, requestId) &&
+      (!teamId && !teamName ? true : teamMatches(order)),
+    (order) =>
+      requestCode &&
+      valuesMatch(order?.requestShortCode, requestCode) &&
+      (!teamId && !teamName ? true : teamMatches(order)),
+    (order) => requestId && valuesMatch(order?.rescueRequestID, requestId),
+    (order) => requestCode && valuesMatch(order?.requestShortCode, requestCode),
+  ];
+
+  for (const matcher of matchers) {
+    const matchedOrder = normalizedOrders.find(matcher);
+    if (matchedOrder?.reliefOrderID) {
+      return String(matchedOrder.reliefOrderID);
+    }
+  }
+
+  return "";
+};
 
 const normalizeLooseToken = (value) =>
   String(value || "")
@@ -186,6 +310,13 @@ const isWithinOptionalRange = (value, from, to) => {
   }
 
   return true;
+};
+
+const isPermissionLikeError = (error) => {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || "");
+
+  return status === 403 || /\b403\b/.test(message) || /forbidden/i.test(message);
 };
 
 const filterOrdersLocally = (orders, filters = {}) =>
@@ -492,22 +623,19 @@ export default function ManagerReliefOrders() {
   const navigate = useNavigate();
   const location = useLocation();
   const orderCardRefs = useRef({});
+  const ordersSnapshotRef = useRef([]);
 
   const [formFilters, setFormFilters] = useState(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
   const [orders, setOrders] = useState([]);
   const [rescueRequests, setRescueRequests] = useState([]);
-  const [rescueMissions, setRescueMissions] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
-  const [activeWarehouseId, setActiveWarehouseId] = useState("");
-  const [inventoryOptions, setInventoryOptions] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [prepareDrafts, setPrepareDrafts] = useState({});
-  const [manualItemDrafts, setManualItemDrafts] = useState({});
   const [savingOrderIds, setSavingOrderIds] = useState({});
   const [highlightedOrderId, setHighlightedOrderId] = useState("");
+  const [detailOrderId, setDetailOrderId] = useState("");
+  const [acceptedAtByOrderId, setAcceptedAtByOrderId] = useState({});
   const [notifications, setNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem(NOTI_STORAGE_KEY);
@@ -582,13 +710,9 @@ export default function ManagerReliefOrders() {
     setError("");
     const filterParams = buildFilterParams(filtersToUse);
 
-    const [ordersResult, requestsResult, missionsResult] = await Promise.allSettled([
+    const [ordersResult, requestsResult] = await Promise.allSettled([
       reliefOrdersService.filterReliefOrders(filterParams),
       getAllRescueRequests(),
-      rescueMissionService.filter({
-        pageNumber: 1,
-        pageSize: 200,
-      }),
     ]);
 
     const errors = [];
@@ -653,17 +777,20 @@ export default function ManagerReliefOrders() {
       );
     }
 
-    if (missionsResult.status === "fulfilled") {
-      setRescueMissions(normalizeRescueMissions(extractList(missionsResult.value)));
-    } else {
-      setRescueMissions([]);
-      errors.push(
-        missionsResult.reason?.message || "Không thể tải danh sách nhiệm vụ cứu hộ.",
-      );
-    }
+    // RescueMission route is not available for manager, so this screen skips it.
 
     if (errors.length > 0) {
-      setError(errors.join(" | "));
+      const nextError = errors.join(" | ");
+
+      if (
+        ordersResult.status === "fulfilled" &&
+        errors.every((errorMessage) => isPermissionLikeError({ message: errorMessage }))
+      ) {
+        console.warn("[ManagerReliefOrders] Ignore non-blocking permission error:", nextError);
+        setError("");
+      } else {
+        setError(nextError);
+      }
     }
 
     setLoading(false);
@@ -678,55 +805,8 @@ export default function ManagerReliefOrders() {
   }, [appliedFilters]);
 
   useEffect(() => {
-    const loadWarehouses = async () => {
-      try {
-        const warehouseList = await getWarehouses();
-        setWarehouses(Array.isArray(warehouseList) ? warehouseList : []);
-
-        const savedWarehouseId = localStorage.getItem(MANAGER_WAREHOUSE_STORAGE_KEY) || "";
-        const resolvedWarehouseId =
-          savedWarehouseId ||
-          pickFirst(
-            warehouseList?.[0],
-            ["warehouseId", "WarehouseId", "warehouseID", "WarehouseID", "id", "ID"],
-            "",
-          );
-
-        setActiveWarehouseId(resolvedWarehouseId ? String(resolvedWarehouseId) : "");
-      } catch (warehouseError) {
-        console.error("[ManagerReliefOrders] loadWarehouses failed:", warehouseError);
-        setWarehouses([]);
-        setActiveWarehouseId("");
-      }
-    };
-
-    loadWarehouses();
-  }, []);
-
-  useEffect(() => {
-    const loadInventoryOptions = async () => {
-      if (!activeWarehouseId) {
-        setInventoryOptions([]);
-        return;
-      }
-
-      try {
-        const inventoryResponse = await inventoryService.getInventoryByWarehouse(
-          activeWarehouseId,
-        );
-        const nextInventoryOptions = extractList(inventoryResponse)
-          .map((item, index) => normalizeInventoryOption(item, index))
-          .filter((item) => item?.reliefItemID);
-
-        setInventoryOptions(nextInventoryOptions);
-      } catch (inventoryError) {
-        console.error("[ManagerReliefOrders] loadInventoryOptions failed:", inventoryError);
-        setInventoryOptions([]);
-      }
-    };
-
-    loadInventoryOptions();
-  }, [activeWarehouseId]);
+    ordersSnapshotRef.current = orders;
+  }, [orders]);
 
   useEffect(() => {
     try {
@@ -735,6 +815,27 @@ export default function ManagerReliefOrders() {
       console.error("Save manager notifications failed:", saveError);
     }
   }, [notifications]);
+
+  useEffect(() => {
+    if (!detailOrderId) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setDetailOrderId("");
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [detailOrderId]);
 
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
@@ -799,14 +900,9 @@ export default function ManagerReliefOrders() {
         normalizedOrder,
         rescueRequests,
       );
-      const assignedMission = findAssignedMissionForOrder(
-        normalizedOrder,
-        rescueMissions,
-        rescueRequests,
-      );
       const assignedTeam = findAssignedTeamForOrder(
         normalizedOrder,
-        rescueMissions,
+        [],
         rescueRequests,
         [],
       );
@@ -815,43 +911,40 @@ export default function ManagerReliefOrders() {
         normalizedOrder?.orderStatus ||
         normalizedOrder?.missionStatus ||
         "Pending";
-      const missionStatus =
-        assignedMission?.missionStatus ||
-        normalizedOrder?.missionStatus ||
-        assignedMission?.status ||
-        "";
       const hasValidItems = items.some((item) => item?.reliefItemID);
       const isSupplyOrder = isSupplyReliefOrder(normalizedOrder, relatedRequest);
-      const teamAccepted =
-        isSupplyOrder ||
-        isMissionAcceptedStatus(missionStatus) ||
-        isPreparationLockedStatus(orderStatus) ||
-        isSendCompletedStatus(orderStatus);
-      const totalItemQuantity = items.reduce(
-        (sum, item) => sum + (Number(item?.quantity) || 0),
-        0,
+      const orderId = String(normalizedOrder?.reliefOrderID || "");
+      const acceptedAt =
+        normalizedOrder?.acceptedAt || acceptedAtByOrderId[orderId] || "";
+      const hasLeaderAccepted = Boolean(acceptedAt);
+      const hasAssignedTeam = Boolean(
+        assignedTeam?.rescueTeamID ||
+          normalizedOrder?.teamID ||
+          normalizedOrder?.teamId ||
+          normalizedOrder?.teamName ||
+          relatedRequest?.assignedTeamName,
       );
       const descriptionText = formatDisplayValue(
         normalizedOrder?.description || relatedRequest?.description,
         "Chưa có mô tả cung ứng.",
       );
-      const descriptionLines = descriptionText
-        .split(/\r?\n+/)
-        .map((line) => line.trim())
-        .filter(Boolean);
       const canPrepare =
         Boolean(normalizedOrder?.reliefOrderID) &&
-        teamAccepted &&
+        hasAssignedTeam &&
+        hasLeaderAccepted &&
+        (hasValidItems || isSupplyOrder) &&
         !isPreparationLockedStatus(orderStatus);
       const prepareDisabledReason = !normalizedOrder?.reliefOrderID
         ? "Don chua co ReliefOrderID hop le."
+        : !hasAssignedTeam
+          ? "Don chua co doi duoc phan cong."
+        : isPreparationLockedStatus(orderStatus)
+          ? "Don da qua buoc soan hoac da ban giao."
+        : !hasLeaderAccepted
+          ? "Doi truong chua chap nhan nhiem vu."
         : !hasValidItems && !isSupplyOrder
-          ? "Don chua co vat pham hop le de soan."
-        : !teamAccepted
-            ? "Doi cuu ho chua xac nhan nhiem vu nen manager chua the soan hang."
-            : isPreparationLockedStatus(orderStatus)
-              ? "Don da qua buoc soan hoac da ban giao."
-              : "";
+          ? ""
+          : "";
 
       return {
         ...normalizedOrder,
@@ -862,26 +955,19 @@ export default function ManagerReliefOrders() {
           `${Math.random()}`,
         items,
         relatedRequest,
-        assignedMission,
         assignedTeam,
         assignedTeamName:
           assignedTeam?.teamName ||
           normalizedOrder?.teamName ||
           relatedRequest?.assignedTeamName ||
           "",
-        requestDisplay:
-          normalizedOrder?.requestShortCode ||
-          relatedRequest?.shortCode ||
-          normalizedOrder?.rescueRequestID ||
-          "",
         descriptionText,
-        descriptionLines,
+        acceptedAt,
         isSupplyOrder,
-        totalItemQuantity,
         statusMeta: getOrderStatusMeta(orderStatus),
         orderStatus,
-        missionStatus,
-        teamAccepted,
+        hasAssignedTeam,
+        hasLeaderAccepted,
         canPrepare,
         prepareDisabledReason,
         disabledReason: !normalizedOrder?.reliefOrderID
@@ -903,35 +989,6 @@ export default function ManagerReliefOrders() {
 
       return rightDate - leftDate;
     });
-
-  useEffect(() => {
-    setPrepareDrafts((prev) => {
-      const nextDrafts = {};
-
-      orderCards.forEach((order) => {
-        const orderId = String(order?.reliefOrderID || order?.orderKey || "");
-        if (!orderId) return;
-
-        nextDrafts[orderId] = {};
-        order.items.forEach((item, index) => {
-          const itemId = String(item?.reliefItemID || getOrderItemKey(item, index));
-          nextDrafts[orderId][itemId] = String(Number(item?.quantity) || 0);
-        });
-      });
-
-      const previousKeys = Object.keys(prev);
-      const nextKeys = Object.keys(nextDrafts);
-      const hasSameKeys =
-        previousKeys.length === nextKeys.length &&
-        previousKeys.every((key) => key in nextDrafts);
-
-      if (!hasSameKeys) {
-        return nextDrafts;
-      }
-
-      return nextDrafts;
-    });
-  }, [orders]);
 
   useEffect(() => {
     const focusedOrderId =
@@ -961,6 +1018,79 @@ export default function ManagerReliefOrders() {
   }, [highlightedOrderId]);
 
   useEffect(() => {
+    const handleTeamResponse = async (data) => {
+      const responseType = String(
+        pickFirst(data, TEAM_RESPONSE_TYPE_KEYS, ""),
+      ).toLowerCase();
+      const acceptedAtValue = pickFirst(data, ACCEPTED_AT_KEYS, "");
+      const isRejected = ["reject", "decline", "refuse"].some((value) =>
+        responseType.includes(value),
+      );
+      const isAccepted =
+        Boolean(acceptedAtValue) ||
+        ["accept", "accepted", "confirm"].some((value) =>
+          responseType.includes(value),
+        );
+
+      if (isRejected || !isAccepted) {
+        return;
+      }
+
+      const reliefOrderId = resolveAcceptedReliefOrderId(
+        data,
+        ordersSnapshotRef.current,
+      );
+
+      if (!reliefOrderId) {
+        console.warn(
+          "[ManagerReliefOrders] Could not resolve relief order from team response:",
+          data,
+        );
+        return;
+      }
+
+      const teamName = pickFirst(data, TEAM_EVENT_NAME_KEYS, "");
+      const resolvedAcceptedAt = acceptedAtValue || new Date().toISOString();
+
+      setAcceptedAtByOrderId((prev) => ({
+        ...prev,
+        [reliefOrderId]: resolvedAcceptedAt,
+      }));
+      setOrders((prev) =>
+        prev.map((entry) => {
+          const normalizedEntry = normalizeReliefOrder(entry);
+          const currentOrderId = String(normalizedEntry?.reliefOrderID || "");
+
+          if (currentOrderId !== String(reliefOrderId)) {
+            return entry;
+          }
+
+          return {
+            ...entry,
+            acceptedAt: normalizedEntry?.acceptedAt || resolvedAcceptedAt,
+          };
+        }),
+      );
+      setNotifications((prev) =>
+        mergeNotifications(prev, [
+          {
+            id: `team-accepted-${reliefOrderId}`,
+            type: "order",
+            title: "Đội cứu hộ đã chấp nhận nhiệm vụ",
+            message: teamName
+              ? `${teamName} đã chấp nhận nhiệm vụ cho đơn ${reliefOrderId}.`
+              : `Đơn ${reliefOrderId} đã được đội cứu hộ chấp nhận.`,
+            referenceId: reliefOrderId,
+            targetRoute: buildManagerReliefOrdersRoute(reliefOrderId),
+            timestamp: createTimestamp(),
+            createdAt: new Date().toISOString(),
+            read: false,
+          },
+        ]),
+      );
+      setHighlightedOrderId(reliefOrderId);
+    };
+
     const handleReliefOrderCreated = async (data) => {
       const reliefOrderId = pickFirst(
         data,
@@ -1207,6 +1337,10 @@ export default function ManagerReliefOrders() {
       try {
         await signalRService.startConnection();
         await signalRService.on(
+          CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
+          handleTeamResponse,
+        );
+        await signalRService.on(
           CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR,
           handleReliefOrderCreated,
         );
@@ -1234,6 +1368,10 @@ export default function ManagerReliefOrders() {
     init();
 
     return () => {
+      signalRService.off(
+        CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
+        handleTeamResponse,
+      );
       signalRService.off(
         CLIENT_EVENTS.RELIEF_ORDER_CREATED_COORDINATOR,
         handleReliefOrderCreated,
@@ -1280,57 +1418,6 @@ export default function ManagerReliefOrders() {
     setAppliedFilters(DEFAULT_FILTERS);
   };
 
-  const updateDraftQuantity = (orderId, itemId, value) => {
-    const nextValue = value === "" ? "" : String(Math.max(0, Number(value) || 0));
-
-    setPrepareDrafts((prev) => ({
-      ...prev,
-      [orderId]: {
-        ...(prev[orderId] || {}),
-        [itemId]: nextValue,
-      },
-    }));
-  };
-
-  const getManualItemsForOrder = (orderId) =>
-    manualItemDrafts[orderId]?.length > 0
-      ? manualItemDrafts[orderId]
-      : [createEmptyManualItem()];
-
-  const updateManualItemField = (orderId, index, field, value) => {
-    setManualItemDrafts((prev) => {
-      const nextItems = [...getManualItemsForOrder(orderId)];
-      nextItems[index] = {
-        ...(nextItems[index] || createEmptyManualItem()),
-        [field]: field === "quantity" ? String(Math.max(0, Number(value) || 0)) : value,
-      };
-
-      return {
-        ...prev,
-        [orderId]: nextItems,
-      };
-    });
-  };
-
-  const addManualItemRow = (orderId) => {
-    setManualItemDrafts((prev) => ({
-      ...prev,
-      [orderId]: [...getManualItemsForOrder(orderId), createEmptyManualItem()],
-    }));
-  };
-
-  const removeManualItemRow = (orderId, index) => {
-    setManualItemDrafts((prev) => {
-      const currentItems = [...getManualItemsForOrder(orderId)];
-      currentItems.splice(index, 1);
-
-      return {
-        ...prev,
-        [orderId]: currentItems.length > 0 ? currentItems : [createEmptyManualItem()],
-      };
-    });
-  };
-
   const handlePrepareOrder = async (order) => {
     const orderId = String(order?.reliefOrderID || "");
     if (!orderId) {
@@ -1338,8 +1425,7 @@ export default function ManagerReliefOrders() {
       return;
     }
 
-    const draft = prepareDrafts[orderId] || {};
-    const preparedItemsSnapshot = buildPreparedItemsSnapshot(order, draft);
+    const preparedItemsSnapshot = buildPreparedItemsSnapshot(order);
     const items = preparedItemsSnapshot
       .map((item) => ({
         reliefItemID: item?.reliefItemID,
@@ -1409,6 +1495,11 @@ export default function ManagerReliefOrders() {
     totalCount > appliedFilters.pageNumber * appliedFilters.pageSize ||
     orderCards.length === appliedFilters.pageSize;
   const bellCount = notifications.length;
+  const detailModalOrder = orderCards.find(
+    (order) =>
+      String(order?.reliefOrderID || order?.orderKey || "").toLowerCase() ===
+      String(detailOrderId || "").toLowerCase(),
+  );
 
   return (
     <div className="manager-relief-orders-page">
@@ -1639,11 +1730,6 @@ export default function ManagerReliefOrders() {
           <div className="manager-relief-orders-grid">
             {orderCards.map((order) => {
               const orderId = String(order?.reliefOrderID || order?.orderKey || "");
-              const draft = prepareDrafts[orderId] || {};
-              const preparedDraftQuantity = order.items.reduce((sum, item, index) => {
-                const itemId = String(item?.reliefItemID || getOrderItemKey(item, index));
-                return sum + (Number(draft[itemId] ?? item?.quantity ?? 0) || 0);
-              }, 0);
 
               return (
                 <article
@@ -1676,46 +1762,18 @@ export default function ManagerReliefOrders() {
                     </div>
                   </div>
 
-                  <div className="relief-order-meta-grid">
-                    <div className="relief-order-meta">
-                      <span>Yêu cầu cứu hộ</span>
-                      <strong>{formatDisplayValue(order.requestDisplay)}</strong>
-                      <small>ID: {formatDisplayValue(order.rescueRequestID)}</small>
-                      <small>
-                        Team:{" "}
-                        {formatDisplayValue(
-                          order?.missionStatus,
-                          order.teamAccepted ? "Da xac nhan" : "Cho xac nhan",
-                        )}
-                      </small>
-                    </div>
-
-                    <div className="relief-order-meta">
+                  <div className="relief-order-meta-grid manager-relief-order-compact-grid">
+                    <div className="relief-order-meta manager-relief-order-meta">
                       <span>Đội được phân công</span>
                       <strong>
                         {formatDisplayValue(order.assignedTeamName, "Chưa xác định đội")}
                       </strong>
                       <small>
-                        Mã đội: {formatDisplayValue(order?.assignedTeam?.rescueTeamID)}
+                        Mã đội: {formatDisplayValue(order?.assignedTeam?.rescueTeamID, "Chưa có")}
                       </small>
                     </div>
 
-                    <div className="relief-order-meta">
-                      <span>Nhiệm vụ cứu hộ</span>
-                      <strong>
-                        {formatDisplayValue(
-                          order?.assignedMission?.rescueMissionID || order?.rescueMissionID,
-                        )}
-                      </strong>
-                      <small>
-                        Mã ngắn:{" "}
-                        {formatDisplayValue(
-                          order?.relatedRequest?.shortCode || order?.requestShortCode,
-                        )}
-                      </small>
-                    </div>
-
-                    <div className="relief-order-meta">
+                    <div className="relief-order-meta manager-relief-order-meta">
                       <span>Mốc thời gian</span>
                       <strong>Tạo: {formatDateTime(order.createdAt)}</strong>
                       <small>Chuẩn bị: {formatDateTime(order.preparedAt)}</small>
@@ -1723,108 +1781,14 @@ export default function ManagerReliefOrders() {
                     </div>
                   </div>
 
-                  <div
-                    className={`relief-order-desc-box manager-relief-order-desc-box ${
-                      order.isSupplyOrder ? "is-supply" : ""
-                    }`}
-                  >
-                    <div className="manager-relief-order-desc-head">
-                      <span>Nội dung cần chuẩn bị</span>
-                      {order.isSupplyOrder && (
-                        <small>Dựa vào mô tả này để kiểm hàng và soạn thủ công.</small>
-                      )}
-                    </div>
-
-                    <div className="manager-relief-order-desc-body">
-                      {order.descriptionLines.map((line, index) => (
-                        <p
-                          className="manager-relief-order-desc-line"
-                          key={`${orderId}-desc-${index}`}
-                        >
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-
-                  {!order.isSupplyOrder && (
-                    <div className="relief-order-items-box manager-relief-order-items-box">
-                      <div className="relief-order-items-head">
-                        <span>
-                          Vật phẩm ({order.totalItems || order.items.length})
-                        </span>
-                        <strong>Số lượng yêu cầu: {order.totalItemQuantity}</strong>
-                      </div>
-
-                      {order.items.length > 0 ? (
-                        <div className="manager-relief-order-item-editor">
-                          {order.items.map((item, index) => {
-                            const itemId = String(
-                              item?.reliefItemID || getOrderItemKey(item, index),
-                            );
-
-                            return (
-                              <div
-                                className="manager-relief-order-item-row"
-                                key={getOrderItemKey(item, index)}
-                              >
-                                <div className="manager-relief-order-item-copy">
-                                  <strong>
-                                    {formatDisplayValue(
-                                      item?.reliefItemName || item?.itemName,
-                                      "Không rõ vật phẩm",
-                                    )}
-                                  </strong>
-                                  <span>Yêu cầu: x{Number(item?.quantity) || 0}</span>
-                                  {item?.availableStock !== null &&
-                                    item?.availableStock !== undefined && (
-                                      <span>Tồn hiện tại: {item.availableStock}</span>
-                                    )}
-                                </div>
-
-                                <label className="manager-relief-order-prepare-field">
-                                  <span>Soạn</span>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    value={draft[itemId] ?? String(Number(item?.quantity) || 0)}
-                                    onChange={(event) =>
-                                      updateDraftQuantity(
-                                        orderId,
-                                        itemId,
-                                        event.target.value,
-                                      )
-                                    }
-                                    disabled={
-                                      !order.canPrepare ||
-                                      !item?.reliefItemID ||
-                                      savingOrderIds[orderId]
-                                    }
-                                  />
-                                </label>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="relief-order-empty-items">Không có vật phẩm hợp lệ.</div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="relief-order-footer">
-                    <div className="relief-order-footer-copy">
-                      {order.canPrepare ? (
-                        <span>
-                          {order.isSupplyOrder && order.items.length === 0
-                            ? "Đơn supply này chưa có danh sách vật phẩm. Quản lý có thể xem mô tả, tự điều chỉnh tồn kho bằng +/- ở màn Hàng tồn kho, rồi bấm Hoàn thành."
-                            : `Payload chuẩn bị hiện tại có tổng số lượng ${preparedDraftQuantity}. Quản lý có thể sửa từng vật phẩm trước khi gửi.`}
-                        </span>
-                      ) : (
-                        <span>{order.prepareDisabledReason}</span>
-                      )}
-                    </div>
+                  <div className="manager-relief-order-actions">
+                    <button
+                      className="btn btn-outline-primary manager-relief-order-detail-btn"
+                      type="button"
+                      onClick={() => setDetailOrderId(orderId)}
+                    >
+                      Xem chi tiết
+                    </button>
 
                     <button
                       className="btn btn-primary relief-order-action-btn"
@@ -1875,6 +1839,46 @@ export default function ManagerReliefOrders() {
           </button>
         </div>
       </div>
+
+      {detailModalOrder && (
+        <div
+          className="manager-relief-order-modal-backdrop"
+          onClick={() => setDetailOrderId("")}
+          role="presentation"
+        >
+          <div
+            className="manager-relief-order-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manager-relief-order-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="manager-relief-order-modal-head">
+              <div className="manager-relief-order-modal-title-group">
+                <span>Chi tiết đơn cứu trợ</span>
+                <h3 id="manager-relief-order-modal-title">
+                  {formatDisplayValue(detailModalOrder.reliefOrderID)}
+                </h3>
+              </div>
+
+              <button
+                className="manager-relief-order-modal-close"
+                type="button"
+                onClick={() => setDetailOrderId("")}
+              >
+                Đóng
+              </button>
+            </div>
+
+            <div className="manager-relief-order-modal-field">
+              <span className="manager-relief-order-modal-label">Mô tả</span>
+              <div className="manager-relief-order-modal-description">
+                {detailModalOrder.descriptionText}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -86,6 +86,15 @@ const TEAM_NAME_KEYS = [
   "Name",
 ];
 
+const ACCEPTED_AT_KEYS = [
+  "acceptedAt",
+  "AcceptedAt",
+  "acceptAt",
+  "AcceptAt",
+  "acceptedTime",
+  "AcceptedTime",
+];
+
 const ITEM_ARRAY_KEYS = [
   "items",
   "Items",
@@ -591,6 +600,15 @@ export function normalizeReliefOrder(order = {}) {
     ["preparedAt", "PreparedAt", "preparedTime", "PreparedTime"],
     null,
   );
+  const acceptedAt = pickNestedValue(
+    order,
+    [
+      (item) => pickFirstValue(item, ACCEPTED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.mission, ACCEPTED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.rescueMission, ACCEPTED_AT_KEYS, null),
+    ],
+    null,
+  );
   const pickedUpAt = pickFirstValue(
     order,
     ["pickedUpAt", "PickedUpAt", "pickedUpTime", "PickedUpTime"],
@@ -637,6 +655,7 @@ export function normalizeReliefOrder(order = {}) {
     items: extractOrderItems(order),
     description: pickFirstValue(order, ["description", "Description"], ""),
     createdAt: normalizeDateValue(createdAt),
+    acceptedAt: normalizeDateValue(acceptedAt),
     preparedAt: normalizeDateValue(preparedAt),
     pickedUpAt: normalizeDateValue(pickedUpAt),
     updatedAt: normalizeDateValue(updatedAt),
