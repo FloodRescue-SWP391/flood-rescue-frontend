@@ -109,8 +109,6 @@ export default function RescueTeamLeader({ teamId }) {
     );
   };
 
-  
-
   const normalizeStatus = (status) => {
     const s = String(status || "")
       .trim()
@@ -295,8 +293,19 @@ export default function RescueTeamLeader({ teamId }) {
   };
   const loadIncidentReports = async () => {
     try {
+      if (!teamId) {
+        setIncidentReports([]);
+        return;
+      }
+
+      const params = new URLSearchParams({
+        RescueTeamID: teamId,
+        PageNumber: "1",
+        PageSize: "20",
+      });
+
       const res = await fetchWithAuth(
-        `/IncidentReports/filter?pageNumber=1&pageSize=20`,
+        `/IncidentReports/filter?${params.toString()}`,
       );
 
       if (!res.ok) {
@@ -308,18 +317,36 @@ export default function RescueTeamLeader({ teamId }) {
       const text = await res.text();
       const json = text ? JSON.parse(text) : null;
 
-      let list = json?.content?.data || json?.content || [];
+      let list = json?.content?.data || [];
       if (!Array.isArray(list)) list = [];
 
-      list.sort(
-        (a, b) => new Date(b?.createdTime || 0) - new Date(a?.createdTime || 0),
-      );
+      const normalized = list
+        .map((r) => ({
+          incidentReportID:
+            r?.incidentReportID || r?.incidentReportId || r?.id || "",
+          rescueMissionID: r?.rescueMissionID || r?.rescueMissionId || "",
+          rescueTeamID: r?.rescueTeamID || r?.rescueTeamId || "",
+          teamName: r?.rescueTeamName || r?.teamName || "Đội cứu hộ",
+          reporterName: r?.reporterName || "Không rõ",
+          title: r?.title || "Không có tiêu đề",
+          status: r?.status || "Không rõ",
+          createdTime: r?.createdTime || r?.createdAt || null,
+        }))
+        .sort(
+          (a, b) =>
+            new Date(b?.createdTime || 0) - new Date(a?.createdTime || 0),
+        );
 
-      setIncidentReports(list);
+      setIncidentReports(normalized);
     } catch (err) {
       console.error("Load incident reports failed:", err);
       setIncidentReports([]);
     }
+    console.log("teamId:", teamId);
+    console.log(
+      "incident filter url:",
+      `/IncidentReports/filter?${params.toString()}`,
+    );
   };
 
   const loadMissions = async () => {
@@ -411,10 +438,13 @@ export default function RescueTeamLeader({ teamId }) {
       );
     };
 
-    const handleIncidentResolved = (data) => {
+    const handleIncidentResolved = async (data) => {
       console.log("IncidentResolved:", data);
-      loadMissions();
-      window.alert("Điều phối viên đã xử lý sự cố. Nhiệm vụ này sẽ được thu hồi để điều phối lại.");
+      await loadMissions();
+      await loadIncidentReports();
+      window.alert(
+        "Điều phối viên đã xử lý sự cố. Nhiệm vụ này sẽ được thu hồi để điều phối lại.",
+      );
     };
 
     const init = async () => {
@@ -968,9 +998,9 @@ export default function RescueTeamLeader({ teamId }) {
 
                       <p>
                         <small>
-                          📝 Nhận nhiệm vụ:{" "}
-                          {mission?.assignedAt
-                            ? formatVNTime(mission.assignedAt)
+                          🕒 Báo cáo lúc:{" "}
+                          {r?.createdTime
+                            ? formatVNTime(r.createdTime)
                             : "Không có thời gian"}
                         </small>
                       </p>
