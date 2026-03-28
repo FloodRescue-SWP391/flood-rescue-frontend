@@ -1107,7 +1107,15 @@ export default function ManagerReliefOrders() {
         ]),
       );
     };
+const handleReceiveOrderResponse = (data) => {
+  console.log("ReceiveOrderResponse:", data);
 
+  // hiện thông báo
+  // toast.success(data?.message || "Đơn hàng vừa có phản hồi");
+
+  // load lại danh sách order
+  loadPageData(appliedFilters);
+};
     const handleDeliveryStarted = async (data) => {
       const reliefOrderId = pickFirst(
         data,
@@ -1226,6 +1234,10 @@ export default function ManagerReliefOrders() {
           CLIENT_EVENTS.ORDER_PREPARED,
           handleOrderPrepared,
         );
+            await signalrService.on(
+      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+      handleReceiveOrderResponse
+    );
       } catch (signalRError) {
         console.error("SignalR init error in ManagerReliefOrders:", signalRError);
       }
@@ -1250,6 +1262,10 @@ export default function ManagerReliefOrders() {
         CLIENT_EVENTS.DELIVERY_STARTED,
         handleDeliveryStarted,
       );
+           signalrService.off(
+      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+      handleReceiveOrderResponse
+    );
       signalRService.off(CLIENT_EVENTS.ORDER_PREPARED, handleOrderPrepared);
     };
   }, [appliedFilters]);

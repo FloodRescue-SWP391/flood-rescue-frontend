@@ -982,7 +982,17 @@ export default function ManagerDashboard() {
         return { bg: "#f3f4f6", border: "#6b7280", icon: "🔔" };
     }
   };
+const handleReceiveOrderResponse = (data) => {
+  console.log("ReceiveOrderResponse:", data);
 
+  // toast / notification nếu bạn có
+  // ví dụ:
+  // toast.success(data?.message || "Có phản hồi đơn hàng mới");
+
+  // reload lại data manager
+  loadDashboardData();
+  loadReliefOrdersContext?.(true);
+};
   const handleSendOrderToTeam = async (order) => {
     const normalizedOrder = normalizeReliefOrder(order);
     const payload = buildSendReliefOrderPayload(
@@ -1289,6 +1299,10 @@ export default function ManagerDashboard() {
           CLIENT_EVENTS.DELIVERY_STARTED,
           handleDeliveryStarted,
         );
+    await signalrService.on(
+      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+      handleReceiveOrderResponse
+    );
       } catch (err) {
         console.error("SignalR init error in ManagerDashboard:", err);
       }
@@ -1313,6 +1327,10 @@ export default function ManagerDashboard() {
         CLIENT_EVENTS.DELIVERY_STARTED,
         handleDeliveryStarted,
       );
+           signalrService.off(
+      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+      handleReceiveOrderResponse
+    );
     };
   }, [activeWarehouseId]);
 
