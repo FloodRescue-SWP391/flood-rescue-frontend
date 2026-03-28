@@ -195,11 +195,15 @@ export default function RescueTeamLeader({ teamId }) {
 
         address:
           mission?.address ||
-          detail?.citizenAddress ||
+          mission?.Address ||
           detail?.address ||
+          detail?.Address ||
+          detail?.requestInfo?.address ||
+          detail?.requestInfo?.Address ||
+          detail?.rescueRequest?.address ||
+          detail?.rescueRequest?.Address ||
           requestInfo?.address ||
-          requestInfo?.locationAddress ||
-          requestInfo?.formattedAddress ||
+          requestInfo?.Address ||
           null,
 
         description:
@@ -759,8 +763,6 @@ export default function RescueTeamLeader({ teamId }) {
                     <span>
                       {mission?.address ||
                         mission?.rescueRequest?.address ||
-                        mission?.rescueRequest?.locationAddress ||
-                        mission?.rescueRequest?.formattedAddress ||
                         "Chưa có địa chỉ"}
                     </span>
                   </p>
@@ -836,8 +838,6 @@ export default function RescueTeamLeader({ teamId }) {
                     <span>
                       {mission?.address ||
                         mission?.rescueRequest?.address ||
-                        mission?.rescueRequest?.locationAddress ||
-                        mission?.rescueRequest?.formattedAddress ||
                         "Chưa có địa chỉ"}
                     </span>
                   </p>
@@ -961,6 +961,15 @@ export default function RescueTeamLeader({ teamId }) {
                               )
                             : "Không có thời gian"}
                         </small>
+                      </p>
+
+                      <p>
+                        <FaMapMarkerAlt />{" "}
+                        <span>
+                          {mission?.address ||
+                            mission?.rescueRequest?.address ||
+                            "Chưa có địa chỉ"}
+                        </span>
                       </p>
 
                       <div className="btn-group">
