@@ -292,18 +292,18 @@ export default function RescueTeamLeader({ teamId }) {
     }
   };
   const loadIncidentReports = async () => {
+    if (!teamId) {
+      setIncidentReports([]);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      RescueTeamID: teamId,
+      PageNumber: "1",
+      PageSize: "20",
+    });
+
     try {
-      if (!teamId) {
-        setIncidentReports([]);
-        return;
-      }
-
-      const params = new URLSearchParams({
-        RescueTeamID: teamId,
-        PageNumber: "1",
-        PageSize: "20",
-      });
-
       const res = await fetchWithAuth(
         `/IncidentReports/filter?${params.toString()}`,
       );
@@ -317,7 +317,9 @@ export default function RescueTeamLeader({ teamId }) {
       const text = await res.text();
       const json = text ? JSON.parse(text) : null;
 
-      let list = json?.content?.data || [];
+      let list =
+        json?.content?.data || json?.content?.items || json?.content || [];
+
       if (!Array.isArray(list)) list = [];
 
       const normalized = list
@@ -326,11 +328,28 @@ export default function RescueTeamLeader({ teamId }) {
             r?.incidentReportID || r?.incidentReportId || r?.id || "",
           rescueMissionID: r?.rescueMissionID || r?.rescueMissionId || "",
           rescueTeamID: r?.rescueTeamID || r?.rescueTeamId || "",
-          teamName: r?.rescueTeamName || r?.teamName || "Đội cứu hộ",
-          reporterName: r?.reporterName || "Không rõ",
+          teamName:
+            r?.teamName ||
+            r?.rescueTeamName ||
+            r?.team?.teamName ||
+            "Đội cứu hộ",
+          reporterName:
+            r?.reporterName || r?.reportedBy || r?.createdByName || "Không rõ",
           title: r?.title || "Không có tiêu đề",
+          description:
+            r?.description || r?.incidentDescription || r?.message || "",
           status: r?.status || "Không rõ",
           createdTime: r?.createdTime || r?.createdAt || null,
+
+          coordinatorNote: r?.coordinatorNote || r?.resolveNote || "",
+          resolvedBy:
+            r?.resolvedBy || r?.coordinatorName || r?.resolvedByName || "",
+          resolvedTime:
+            r?.resolvedTime || r?.updatedAt || r?.resolvedAt || null,
+
+          missionStatus: r?.missionStatus || "",
+          requestStatus: r?.requestStatus || "",
+          teamStatus: r?.teamStatus || "",
         }))
         .sort(
           (a, b) =>
@@ -342,6 +361,7 @@ export default function RescueTeamLeader({ teamId }) {
       console.error("Load incident reports failed:", err);
       setIncidentReports([]);
     }
+
     console.log("teamId:", teamId);
     console.log(
       "incident filter url:",
@@ -994,7 +1014,11 @@ export default function RescueTeamLeader({ teamId }) {
 
                       <p>👤 Người báo cáo: {r?.reporterName || "Không rõ"}</p>
 
-                      <p>📄 {r?.title || "Không có tiêu đề"}</p>
+                      <p>📄 Tiêu đề: {r?.title || "Không có tiêu đề"}</p>
+
+                      {r?.description && (
+                        <p>📝 Nội dung sự cố: {r.description}</p>
+                      )}
 
                       <p>
                         <small>
@@ -1006,8 +1030,56 @@ export default function RescueTeamLeader({ teamId }) {
                       </p>
 
                       <p>
-                        <small>📌 Trạng thái: {r?.status || "Không rõ"}</small>
+                        <small>
+                          📌 Trạng thái sự cố: {r?.status || "Không rõ"}
+                        </small>
                       </p>
+
+                      {r?.missionStatus && (
+                        <p>
+                          <small>
+                            🚒 Trạng thái nhiệm vụ: {r.missionStatus}
+                          </small>
+                        </p>
+                      )}
+
+                      {r?.requestStatus && (
+                        <p>
+                          <small>
+                            📨 Trạng thái yêu cầu: {r.requestStatus}
+                          </small>
+                        </p>
+                      )}
+
+                      {r?.resolvedBy && (
+                        <p>
+                          <small>✅ Người xử lý: {r.resolvedBy}</small>
+                        </p>
+                      )}
+
+                      {r?.resolvedTime && (
+                        <p>
+                          <small>
+                            ⏱ Xử lý lúc: {formatVNTime(r.resolvedTime)}
+                          </small>
+                        </p>
+                      )}
+
+                      {r?.coordinatorNote && (
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            padding: "10px 12px",
+                            background: "#f6f8fb",
+                            borderLeft: "4px solid #2563eb",
+                            borderRadius: "8px",
+                          }}
+                        >
+                          <small>
+                            <b>Ghi chú điều phối viên:</b> {r.coordinatorNote}
+                          </small>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
