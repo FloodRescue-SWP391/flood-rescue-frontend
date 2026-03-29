@@ -926,6 +926,9 @@ const loadSelectedManagerWarehouseMeta = async (warehouseId = "") => {
   }
 };
 
+const getWarehouseOptionId = (warehouse) =>
+  String(warehouse?.warehouseId || warehouse?.warehouseID || warehouse?.id || "");
+
 const publishPreparedOrderSharedEvent = ({
   order,
   warehouseMeta,
@@ -1323,6 +1326,17 @@ export default function ManagerReliefOrders() {
       console.warn("Save selected manager warehouse failed:", error);
     }
   }, [selectedWarehouseId]);
+
+  useEffect(() => {
+    if (selectedWarehouseId || warehouseOptions.length !== 1) {
+      return;
+    }
+
+    const onlyWarehouseId = getWarehouseOptionId(warehouseOptions[0]);
+    if (onlyWarehouseId) {
+      setSelectedWarehouseId(onlyWarehouseId);
+    }
+  }, [selectedWarehouseId, warehouseOptions]);
 
   useEffect(() => {
     ordersSnapshotRef.current = orders;
@@ -1953,7 +1967,7 @@ const handleReceiveOrderResponse = (data) => {
       return;
     }
 
-    if (!selectedWarehouseId) {
+    if (!selectedWarehouseId && warehouseOptions.length > 0) {
       toast.error("Hãy chọn kho xuất hàng trước khi hoàn thành.");
       return;
     }
@@ -2427,10 +2441,12 @@ const handleReceiveOrderResponse = (data) => {
                       className="btn btn-primary relief-order-action-btn"
                       onClick={() => handlePrepareOrder(order)}
                       disabled={
-                        !selectedWarehouseId || !order.canPrepare || savingOrderIds[orderId]
+                        (warehouseOptions.length > 0 && !selectedWarehouseId) ||
+                        !order.canPrepare ||
+                        savingOrderIds[orderId]
                       }
                       title={
-                        !selectedWarehouseId
+                        warehouseOptions.length > 0 && !selectedWarehouseId
                           ? "Chọn kho xuất hàng trước khi hoàn thành."
                           : order.prepareDisabledReason || ""
                       }
