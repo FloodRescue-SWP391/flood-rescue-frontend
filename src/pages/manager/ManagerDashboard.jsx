@@ -333,6 +333,13 @@ const sameEntityValue = (left, right) =>
   right !== "" &&
   toComparable(left) === toComparable(right);
 
+const isPermissionLikeError = (error) => {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || "");
+
+  return status === 403 || /\b403\b/.test(message) || /forbidden/i.test(message);
+};
+
 const formatDisplayValue = (value, fallback = "Không rõ") =>
   value !== undefined && value !== null && value !== "" ? String(value) : fallback;
 
@@ -571,34 +578,25 @@ export default function ManagerDashboard() {
 
   const fetchProductsData = async () => {
     const res = await reliefItemsService.getAll();
-    const normalizedProducts = normalizeReliefItems(extractList(res));
-    console.log("[ManagerDashboard] ReliefItems normalized:", normalizedProducts);
-    return normalizedProducts;
+    return normalizeReliefItems(extractList(res));
   };
 
   const fetchWarehousesData = async () => {
     const res = await getWarehouses();
-    const normalizedWarehouses = normalizeWarehouses(extractList(res));
-    console.log("[ManagerDashboard] Warehouses normalized:", normalizedWarehouses);
-    return normalizedWarehouses;
+    return normalizeWarehouses(extractList(res));
   };
 
   const fetchInventoryData = async (warehouseId) => {
     if (!warehouseId) return [];
 
-    console.log("[ManagerDashboard] Loading inventory for warehouse:", warehouseId);
     const res = await inventoryService.getInventoryByWarehouse(warehouseId);
-    const normalizedInventory = normalizeInventoryList(extractList(res));
-    console.log("[ManagerDashboard] Inventory normalized:", normalizedInventory);
-    return normalizedInventory;
+    return normalizeInventoryList(extractList(res));
   };
 
   const fetchReliefOrdersData = async () => {
     try {
       const res = await getManagerReliefOrders();
-      const normalizedOrders = normalizeReliefOrders(extractList(res));
-      console.log("[ManagerDashboard] ReliefOrders normalized:", normalizedOrders);
-      return normalizedOrders;
+      return normalizeReliefOrders(extractList(res));
     } catch (error) {
       const status = Number(error?.status || 0);
       const isMethodIssue = status === 404 || status === 405;
@@ -617,34 +615,31 @@ export default function ManagerDashboard() {
 
   const fetchRescueRequestsData = async () => {
     const res = await getAllRescueRequests();
-    const normalizedRequests = normalizeRescueRequests(extractList(res));
-    console.log("[ManagerDashboard] RescueRequests normalized:", normalizedRequests);
-    return normalizedRequests;
+    return normalizeRescueRequests(extractList(res));
   };
 
-  const fetchRescueTeamsData = async () => {
-    console.info(
-      "[ManagerDashboard] Skip RescueTeams fetch on Manager dashboard. Team mapping uses rescue mission/request data.",
-    );
-    return [];
-  };
+  const fetchRescueTeamsData = async () => [];
 
   const fetchRescueMissionsData = async () => {
-    const res = await rescueMissionService.filter({
-      pageNumber: 1,
-      pageSize: 200,
-    });
-    const normalizedMissions = normalizeRescueMissions(extractList(res));
-    console.log("[ManagerDashboard] RescueMissions normalized:", normalizedMissions);
-    return normalizedMissions;
+    try {
+      const res = await rescueMissionService.filter({
+        pageNumber: 1,
+        pageSize: 200,
+      });
+      return normalizeRescueMissions(extractList(res));
+    } catch (error) {
+      if (isPermissionLikeError(error)) {
+        console.warn(
+          "[ManagerDashboard] Bỏ qua Rescue Missions vì tài khoản Manager không có quyền truy cập endpoint này (403).",
+        );
+        return [];
+      }
+
+      throw error;
+    }
   };
 
   const loadDashboardData = async (preferredWarehouseId = "") => {
-    console.log("[ManagerDashboard] loadDashboardData:start", {
-      preferredWarehouseId,
-      activeWarehouseId,
-    });
-
     setDashboardLoading(true);
     setDashboardError("");
 
@@ -659,7 +654,6 @@ export default function ManagerDashboard() {
         getWarehouseIdValue(warehouseList?.[0]),
       );
 
-      console.log("[ManagerDashboard] Resolved warehouseId:", resolvedWarehouseId);
       setProducts(productsList);
       setWarehouses(warehouseList);
       setActiveWarehouseId(resolvedWarehouseId || "");
@@ -778,7 +772,10 @@ export default function ManagerDashboard() {
     if (reliefOrdersResult.status === "fulfilled") {
       setReliefOrders(reliefOrdersResult.value);
     } else {
-      console.error("[ManagerDashboard] loadReliefOrders failed:", reliefOrdersResult.reason);
+      console.error(
+        "[ManagerDashboard] Không thể tải Relief Orders:",
+        reliefOrdersResult.reason?.message || reliefOrdersResult.reason,
+      );
       setReliefOrders([]);
       errors.push(
         reliefOrdersResult.reason?.message || "Không thể tải Relief Orders.",
@@ -788,7 +785,10 @@ export default function ManagerDashboard() {
     if (rescueRequestsResult.status === "fulfilled") {
       setRescueRequests(rescueRequestsResult.value);
     } else {
-      console.error("[ManagerDashboard] loadRescueRequests failed:", rescueRequestsResult.reason);
+      console.error(
+        "[ManagerDashboard] Không thể tải Rescue Requests:",
+        rescueRequestsResult.reason?.message || rescueRequestsResult.reason,
+      );
       setRescueRequests([]);
       errors.push(
         rescueRequestsResult.reason?.message || "Không thể tải Rescue Requests.",
@@ -798,14 +798,20 @@ export default function ManagerDashboard() {
     if (rescueTeamsResult.status === "fulfilled") {
       setRescueTeams(rescueTeamsResult.value);
     } else {
-      console.error("[ManagerDashboard] loadRescueTeams failed:", rescueTeamsResult.reason);
+      console.error(
+        "[ManagerDashboard] Không thể tải Rescue Teams:",
+        rescueTeamsResult.reason?.message || rescueTeamsResult.reason,
+      );
       setRescueTeams([]);
     }
 
     if (rescueMissionsResult.status === "fulfilled") {
       setRescueMissions(rescueMissionsResult.value);
     } else {
-      console.error("[ManagerDashboard] loadRescueMissions failed:", rescueMissionsResult.reason);
+      console.error(
+        "[ManagerDashboard] Không thể tải Rescue Missions cho dashboard:",
+        rescueMissionsResult.reason?.message || rescueMissionsResult.reason,
+      );
       setRescueMissions([]);
       errors.push(
         rescueMissionsResult.reason?.message || "Không thể tải Rescue Missions.",
@@ -1049,9 +1055,7 @@ const handleReceiveOrderResponse = (data) => {
     );
 
     try {
-      console.log("[ManagerDashboard] sendReliefOrderToAssignedTeam payload:", payload);
-      const response = await sendReliefOrderToAssignedTeam(payload);
-      console.log("[ManagerDashboard] sendReliefOrderToAssignedTeam success:", response);
+      await sendReliefOrderToAssignedTeam(payload);
 
       toast.success(
         `Đã gửi Relief Order ${formatDisplayValue(orderId)} cho đội ${formatDisplayValue(payload.rescueTeamID)}.`,
@@ -1076,8 +1080,6 @@ const handleReceiveOrderResponse = (data) => {
 
   useEffect(() => {
     const handleReliefOrderCreated = async (data) => {
-      console.log("ReliefOrderCreatedCoordinator:", data);
-
       const reliefOrderId = pickFirst(
         data,
         [
@@ -1142,8 +1144,6 @@ const handleReceiveOrderResponse = (data) => {
     };
 
     const handleReliefItemCreated = async (data) => {
-      console.log("ReliefItemCreated:", data);
-
       const itemId = pickFirst(
         data,
         [
@@ -1189,8 +1189,6 @@ const handleReceiveOrderResponse = (data) => {
     };
 
     const handleReliefItemUpdated = async (data) => {
-      console.log("ReliefItemUpdated:", data);
-
       const itemId = pickFirst(
         data,
         [
@@ -1236,8 +1234,6 @@ const handleReceiveOrderResponse = (data) => {
     };
 
     const handleDeliveryStarted = async (data) => {
-      console.log("DeliveryStarted:", data);
-
       const reliefOrderId = pickFirst(
         data,
         [

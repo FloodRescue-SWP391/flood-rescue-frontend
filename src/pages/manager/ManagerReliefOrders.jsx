@@ -635,7 +635,6 @@ export default function ManagerReliefOrders() {
   const [savingOrderIds, setSavingOrderIds] = useState({});
   const [highlightedOrderId, setHighlightedOrderId] = useState("");
   const [detailOrderId, setDetailOrderId] = useState("");
-  const [acceptedAtByOrderId, setAcceptedAtByOrderId] = useState({});
   const [notifications, setNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem(NOTI_STORAGE_KEY);
@@ -666,12 +665,15 @@ export default function ManagerReliefOrders() {
 
         const detail = await reliefOrdersService.getById(orderId);
         const normalizedDetail = normalizeReliefOrder(detail);
+        const resolvedCanPrepare =
+          normalizedDetail?.canPrepare ?? normalizedSummary?.canPrepare;
 
         return {
           ...orderSummary,
           ...detail,
           ...normalizedSummary,
           ...normalizedDetail,
+          ...(resolvedCanPrepare === undefined ? {} : { canPrepare: resolvedCanPrepare }),
           items:
             normalizedDetail.items?.length > 0
               ? normalizedDetail.items
@@ -740,11 +742,6 @@ export default function ManagerReliefOrders() {
           );
           resolvedTotalCount = locallyFilteredOrders.length;
 
-          console.log("[ManagerReliefOrders] Fallback local orders:", {
-            totalCount: resolvedTotalCount,
-            pageCount: orderSummaries.length,
-            filterParams,
-          });
         } catch (fallbackError) {
           console.error(
             "[ManagerReliefOrders] Fallback getManagerReliefOrders failed:",
@@ -786,7 +783,10 @@ export default function ManagerReliefOrders() {
         ordersResult.status === "fulfilled" &&
         errors.every((errorMessage) => isPermissionLikeError({ message: errorMessage }))
       ) {
-        console.warn("[ManagerReliefOrders] Ignore non-blocking permission error:", nextError);
+        console.warn(
+          "[ManagerReliefOrders] Bỏ qua lỗi quyền truy cập không ảnh hưởng đến danh sách đơn:",
+          nextError,
+        );
         setError("");
       } else {
         setError(nextError);
@@ -911,12 +911,6 @@ export default function ManagerReliefOrders() {
         normalizedOrder?.orderStatus ||
         normalizedOrder?.missionStatus ||
         "Pending";
-      const hasValidItems = items.some((item) => item?.reliefItemID);
-      const isSupplyOrder = isSupplyReliefOrder(normalizedOrder, relatedRequest);
-      const orderId = String(normalizedOrder?.reliefOrderID || "");
-      const acceptedAt =
-        normalizedOrder?.acceptedAt || acceptedAtByOrderId[orderId] || "";
-      const hasLeaderAccepted = Boolean(acceptedAt);
       const hasAssignedTeam = Boolean(
         assignedTeam?.rescueTeamID ||
           normalizedOrder?.teamID ||
@@ -930,20 +924,14 @@ export default function ManagerReliefOrders() {
       );
       const canPrepare =
         Boolean(normalizedOrder?.reliefOrderID) &&
-        hasAssignedTeam &&
-        hasLeaderAccepted &&
-        (hasValidItems || isSupplyOrder) &&
+        Boolean(normalizedOrder?.canPrepare) &&
         !isPreparationLockedStatus(orderStatus);
       const prepareDisabledReason = !normalizedOrder?.reliefOrderID
         ? "Don chua co ReliefOrderID hop le."
-        : !hasAssignedTeam
-          ? "Don chua co doi duoc phan cong."
         : isPreparationLockedStatus(orderStatus)
           ? "Don da qua buoc soan hoac da ban giao."
-        : !hasLeaderAccepted
-          ? "Doi truong chua chap nhan nhiem vu."
-        : !hasValidItems && !isSupplyOrder
-          ? ""
+        : normalizedOrder?.canPrepare !== true
+          ? "Don chua du dieu kien de manager hoan thanh."
           : "";
 
       return {
@@ -962,21 +950,11 @@ export default function ManagerReliefOrders() {
           relatedRequest?.assignedTeamName ||
           "",
         descriptionText,
-        acceptedAt,
-        isSupplyOrder,
         statusMeta: getOrderStatusMeta(orderStatus),
         orderStatus,
         hasAssignedTeam,
-        hasLeaderAccepted,
         canPrepare,
         prepareDisabledReason,
-        disabledReason: !normalizedOrder?.reliefOrderID
-          ? "Đơn chưa có ReliefOrderID hợp lệ."
-          : !items.some((item) => item?.reliefItemID) && !isSupplyOrder
-            ? "Đơn chưa có vật phẩm hợp lệ để chuẩn bị."
-          : isPreparationLockedStatus(orderStatus)
-              ? "Đơn đã qua bước chuẩn bị hoặc bàn giao."
-              : "",
       };
     })
     .sort((left, right) => {
@@ -1043,52 +1021,37 @@ export default function ManagerReliefOrders() {
 
       if (!reliefOrderId) {
         console.warn(
-          "[ManagerReliefOrders] Could not resolve relief order from team response:",
+          "[ManagerReliefOrders] Nhận event đội phản hồi nhưng chưa map được sang relief order cụ thể. Sẽ tải lại danh sách để đồng bộ.",
           data,
         );
-        return;
       }
 
       const teamName = pickFirst(data, TEAM_EVENT_NAME_KEYS, "");
-      const resolvedAcceptedAt = acceptedAtValue || new Date().toISOString();
-
-      setAcceptedAtByOrderId((prev) => ({
-        ...prev,
-        [reliefOrderId]: resolvedAcceptedAt,
-      }));
-      setOrders((prev) =>
-        prev.map((entry) => {
-          const normalizedEntry = normalizeReliefOrder(entry);
-          const currentOrderId = String(normalizedEntry?.reliefOrderID || "");
-
-          if (currentOrderId !== String(reliefOrderId)) {
-            return entry;
-          }
-
-          return {
-            ...entry,
-            acceptedAt: normalizedEntry?.acceptedAt || resolvedAcceptedAt,
-          };
-        }),
-      );
       setNotifications((prev) =>
         mergeNotifications(prev, [
           {
-            id: `team-accepted-${reliefOrderId}`,
+            id: `team-accepted-${reliefOrderId || Date.now()}`,
             type: "order",
             title: "Đội cứu hộ đã chấp nhận nhiệm vụ",
             message: teamName
-              ? `${teamName} đã chấp nhận nhiệm vụ cho đơn ${reliefOrderId}.`
-              : `Đơn ${reliefOrderId} đã được đội cứu hộ chấp nhận.`,
-            referenceId: reliefOrderId,
-            targetRoute: buildManagerReliefOrdersRoute(reliefOrderId),
+              ? reliefOrderId
+                ? `${teamName} đã chấp nhận nhiệm vụ cho đơn ${reliefOrderId}.`
+                : `${teamName} đã chấp nhận một nhiệm vụ cứu trợ.`
+              : reliefOrderId
+                ? `Đơn ${reliefOrderId} đã được đội cứu hộ chấp nhận.`
+                : "Một đội cứu hộ vừa chấp nhận nhiệm vụ cứu trợ.",
+            referenceId: reliefOrderId || "",
+            targetRoute: buildManagerReliefOrdersRoute(reliefOrderId || ""),
             timestamp: createTimestamp(),
             createdAt: new Date().toISOString(),
             read: false,
           },
         ]),
       );
-      setHighlightedOrderId(reliefOrderId);
+      await loadPageData(appliedFilters);
+      if (reliefOrderId) {
+        setHighlightedOrderId(reliefOrderId);
+      }
     };
 
     const handleReliefOrderCreated = async (data) => {
@@ -1451,7 +1414,7 @@ const handleReceiveOrderResponse = (data) => {
         (item) => item?.reliefItemID && Number.isFinite(item.quantity) && item.quantity > 0,
       );
 
-    if (items.length === 0 && !order?.isSupplyOrder) {
+    if (items.length === 0) {
       toast.error("Cần ít nhất 1 vật phẩm hợp lệ để chuẩn bị.");
       return;
     }

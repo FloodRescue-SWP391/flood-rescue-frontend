@@ -95,6 +95,11 @@ const ACCEPTED_AT_KEYS = [
   "AcceptedTime",
 ];
 
+const CAN_PREPARE_KEYS = [
+  "canPrepare",
+  "CanPrepare",
+];
+
 const ITEM_ARRAY_KEYS = [
   "items",
   "Items",
@@ -133,6 +138,18 @@ const valuesMatch = (left, right) =>
 const numberOrZero = (value) => {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const normalizeBooleanValue = (value) => {
+  if (!isPresent(value)) return undefined;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+
+  const token = String(value).trim().toLowerCase();
+  if (["true", "1", "yes"].includes(token)) return true;
+  if (["false", "0", "no"].includes(token)) return false;
+
+  return Boolean(value);
 };
 
 const getStatusToken = (value) =>
@@ -628,6 +645,9 @@ export function normalizeReliefOrder(order = {}) {
     ],
     null,
   );
+  const canPrepare = normalizeBooleanValue(
+    pickFirstValue(order, CAN_PREPARE_KEYS, undefined),
+  );
 
   return {
     ...order,
@@ -659,6 +679,7 @@ export function normalizeReliefOrder(order = {}) {
     preparedAt: normalizeDateValue(preparedAt),
     pickedUpAt: normalizeDateValue(pickedUpAt),
     updatedAt: normalizeDateValue(updatedAt),
+    ...(canPrepare === undefined ? {} : { canPrepare }),
     totalItems: numberOrZero(
       pickFirstValue(order, ["totalItems", "TotalItems"], extractOrderItems(order).length),
     ),
@@ -1101,13 +1122,6 @@ export async function filterReliefOrders(params = {}) {
       const payload = await parseJsonSafe(res);
       const parsedResult = parseReliefOrderCollectionPayload(payload);
 
-      console.log("[reliefOrdersService.filterReliefOrders] Endpoint payload:", {
-        endpoint,
-        itemCount: parsedResult.items.length,
-        totalCount: parsedResult.totalCount,
-        payload,
-      });
-
       if (
         parsedResult.items.length > 0 ||
         parsedResult.totalCount > 0 ||
@@ -1122,12 +1136,6 @@ export async function filterReliefOrders(params = {}) {
       lastError = error;
       const status = Number(error?.status || 0);
       const canTryNext = !hasActiveFilters && (status === 404 || status === 405);
-
-      console.warn(
-        "[reliefOrdersService.filterReliefOrders] Endpoint failed:",
-        endpoint,
-        error,
-      );
 
       if (!canTryNext) {
         error.attemptedEndpoints = attemptedEndpoints;
@@ -1157,6 +1165,7 @@ export async function createReliefOrder(payload) {
     throw new Error("payload is required");
   }
 
+  const endpoint = BASE;
   const normalizedPayload = {
     rescueRequestID: payload?.rescueRequestID ?? payload?.rescueRequestId ?? null,
     rescueTeamID: payload?.rescueTeamID ?? payload?.rescueTeamId ?? null,
@@ -1170,14 +1179,20 @@ export async function createReliefOrder(payload) {
     throw new Error("rescueTeamID is required");
   }
 
-  const res = await fetchWithAuth(BASE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(normalizedPayload),
-  });
+  try {
+    const res = await fetchWithAuth(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(normalizedPayload),
+    });
 
-  const responsePayload = await parseJsonSafe(res);
-  return normalizeReliefOrderResult(responsePayload);
+    const responsePayload = await parseJsonSafe(res);
+    return normalizeReliefOrderResult(responsePayload);
+  } catch (error) {
+    error.endpoint = endpoint;
+    error.requestPayload = normalizedPayload;
+    throw error;
+  }
 }
 
 const SEND_RELIEF_ORDER_ENDPOINTS = [
@@ -1218,12 +1233,6 @@ export async function sendReliefOrderToAssignedTeam(payload) {
     attemptedEndpoints.push(endpoint);
 
     try {
-      console.log(
-        "[reliefOrdersService.sendReliefOrderToAssignedTeam] Trying endpoint:",
-        endpoint,
-        normalizedPayload,
-      );
-
       const res = await fetchWithAuth(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
