@@ -51,6 +51,7 @@ const SHOW_RELIEF_ORDERS_ON_DASHBOARD = false;
 const SHOW_RELIEF_ORDER_SUMMARY_CARD = false;
 const SHOW_DASHBOARD_NOTIFICATION_BELL = false;
 const SHOW_DASHBOARD_ORDER_SHORTCUT = false;
+const MANAGER_AUTO_REFRESH_INTERVAL_MS = 10000;
 
 const buildManagerReliefOrdersRoute = (orderId = "") =>
   orderId
@@ -865,6 +866,23 @@ export default function ManagerDashboard() {
   }, []);
 
   useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      Promise.allSettled([
+        loadDashboardData(activeWarehouseId),
+        loadReliefOrdersContext(true),
+      ]).then((results) => {
+        results.forEach((result) => {
+          if (result.status === "rejected") {
+            console.warn("[ManagerDashboard] Auto refresh failed:", result.reason);
+          }
+        });
+      });
+    }, MANAGER_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeWarehouseId]);
+
+  useEffect(() => {
     if (location.hash !== "#relief-orders") return;
 
     const timer = window.setTimeout(() => {
@@ -1295,10 +1313,10 @@ const handleReceiveOrderResponse = (data) => {
           CLIENT_EVENTS.DELIVERY_STARTED,
           handleDeliveryStarted,
         );
-    await signalrService.on(
-      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
-      handleReceiveOrderResponse
-    );
+        await signalRService.on(
+          CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+          handleReceiveOrderResponse,
+        );
       } catch (err) {
         console.error("SignalR init error in ManagerDashboard:", err);
       }
@@ -1323,10 +1341,10 @@ const handleReceiveOrderResponse = (data) => {
         CLIENT_EVENTS.DELIVERY_STARTED,
         handleDeliveryStarted,
       );
-           signalrService.off(
-      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
-      handleReceiveOrderResponse
-    );
+      signalRService.off(
+        CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+        handleReceiveOrderResponse,
+      );
     };
   }, [activeWarehouseId]);
 

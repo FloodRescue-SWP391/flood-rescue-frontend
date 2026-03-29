@@ -19,6 +19,8 @@ import IncidentReportForm from "./IncidentReportForm";
 import { incidentReportService } from "../../services/incidentReportService";
 import { useNavigate } from "react-router-dom";
 
+const RESCUE_TEAM_AUTO_REFRESH_INTERVAL_MS = 10000;
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -432,6 +434,24 @@ export default function RescueTeamLeader({ teamId }) {
       loadMissions();
       loadIncidentReports();
     }
+  }, [teamId]);
+
+  useEffect(() => {
+    if (!teamId) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      Promise.allSettled([loadMissions(), loadIncidentReports()]).then((results) => {
+        results.forEach((result) => {
+          if (result.status === "rejected") {
+            console.warn("[RescueTeamLeader] Auto refresh failed:", result.reason);
+          }
+        });
+      });
+    }, RESCUE_TEAM_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
   }, [teamId]);
 
   useEffect(() => {

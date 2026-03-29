@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { getAllRescueRequests } from "../../services/rescueRequestService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
+import { reliefItemsService } from "../../services/reliefItemService";
 import {
   extractOrderItems,
   findAssignedTeamForOrder,
@@ -30,6 +31,7 @@ const DEFAULT_FILTERS = {
 
 const NOTI_STORAGE_KEY = "manager_notifications";
 const MANAGER_RELIEF_ORDERS_ROUTE = "/manager/relief-orders";
+const MANAGER_RELIEF_ORDERS_AUTO_REFRESH_INTERVAL_MS = 10000;
 
 const extractList = (res) => {
   if (Array.isArray(res)) return res;
@@ -395,6 +397,91 @@ const createEmptyManualItem = () => ({
   quantity: "",
 });
 
+const normalizeLookupToken = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const findMatchingReliefItem = (text, catalog = []) => {
+  const normalizedText = normalizeLookupToken(text).replace(/\b\d+\b/g, " ").trim();
+  if (!normalizedText) {
+    return null;
+  }
+
+  const candidates = catalog
+    .map((item) => ({
+      item,
+      token: normalizeLookupToken(item?.reliefItemName || item?.itemName || ""),
+    }))
+    .filter((entry) => entry.token)
+    .sort((left, right) => right.token.length - left.token.length);
+
+  return (
+    candidates.find(
+      (entry) =>
+        normalizedText.includes(entry.token) || entry.token.includes(normalizedText),
+    )?.item || null
+  );
+};
+
+const inferRequestedItemsFromText = (text, catalog = []) => {
+  if (!text || !Array.isArray(catalog) || catalog.length === 0) {
+    return [];
+  }
+
+  const segments = String(text)
+    .split(/\r?\n|,|;|\+|\/|&/g)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  const aggregated = new Map();
+
+  segments.forEach((segment) => {
+    const matchedItem = findMatchingReliefItem(segment, catalog);
+    if (!matchedItem) {
+      return;
+    }
+
+    const quantityMatch = normalizeLookupToken(segment).match(/\b(\d+)\b/);
+    const quantity = Number(quantityMatch?.[1] || 1);
+    const reliefItemID =
+      matchedItem?.reliefItemID || matchedItem?.reliefItemId || matchedItem?.id || "";
+
+    if (!reliefItemID) {
+      return;
+    }
+
+    const existing = aggregated.get(String(reliefItemID));
+    aggregated.set(String(reliefItemID), {
+      ...(existing || matchedItem),
+      reliefItemID,
+      reliefItemId: reliefItemID,
+      reliefItemName:
+        matchedItem?.reliefItemName || matchedItem?.itemName || existing?.reliefItemName || "",
+      quantity: (existing?.quantity || 0) + (Number.isFinite(quantity) ? quantity : 1),
+      isInferred: true,
+      sourceText: segment,
+    });
+  });
+
+  return Array.from(aggregated.values());
+};
+
+const buildResolvableOrderItems = (order, relatedRequest = null, catalog = []) => {
+  const directItems = extractOrderItems(order);
+  if (directItems.length > 0) {
+    return directItems;
+  }
+
+  return inferRequestedItemsFromText(
+    order?.description || relatedRequest?.description || "",
+    catalog,
+  );
+};
+
 const formatDateTime = (value) => {
   if (!value) return "Chưa có";
 
@@ -497,6 +584,15 @@ const isPreparedOrder = (order) =>
   ["prepared", "preparing", "ready", "confirmed"].some((value) =>
     getOrderStatusToken(order?.orderStatus).includes(value),
   );
+
+const canPrepareOrderLocally = ({
+  order,
+  orderStatus,
+  hasAssignedTeam,
+}) =>
+  Boolean(order?.reliefOrderID) &&
+  hasAssignedTeam &&
+  !isPreparationLockedStatus(orderStatus);
 
 const getOrderItemKey = (item, index) =>
   item?.reliefItemID ||
@@ -645,6 +741,7 @@ export default function ManagerReliefOrders() {
     }
   });
   const [showNotifications, setShowNotifications] = useState(false);
+  const [reliefItemCatalog, setReliefItemCatalog] = useState([]);
 
   const hydrateReliefOrders = async (orderSummaries = []) => {
     if (!Array.isArray(orderSummaries) || orderSummaries.length === 0) {
@@ -805,6 +902,28 @@ export default function ManagerReliefOrders() {
   }, [appliedFilters]);
 
   useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadPageData(appliedFilters).catch((loadError) => {
+        console.warn("[ManagerReliefOrders] Auto refresh failed:", loadError);
+      });
+    }, MANAGER_RELIEF_ORDERS_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [appliedFilters]);
+
+  useEffect(() => {
+    reliefItemsService
+      .getAll()
+      .then((items) => {
+        setReliefItemCatalog(items.map((item, index) => normalizeInventoryOption(item, index)));
+      })
+      .catch((loadError) => {
+        console.warn("[ManagerReliefOrders] Load relief item catalog failed:", loadError);
+        setReliefItemCatalog([]);
+      });
+  }, []);
+
+  useEffect(() => {
     ordersSnapshotRef.current = orders;
   }, [orders]);
 
@@ -895,10 +1014,14 @@ export default function ManagerReliefOrders() {
   const orderCards = orders
     .map((order) => {
       const normalizedOrder = normalizeReliefOrder(order);
-      const items = extractOrderItems(normalizedOrder);
       const relatedRequest = findRelatedRequestForOrder(
         normalizedOrder,
         rescueRequests,
+      );
+      const items = buildResolvableOrderItems(
+        normalizedOrder,
+        relatedRequest,
+        reliefItemCatalog,
       );
       const assignedTeam = findAssignedTeamForOrder(
         normalizedOrder,
@@ -923,14 +1046,19 @@ export default function ManagerReliefOrders() {
         "Chưa có mô tả cung ứng.",
       );
       const canPrepare =
-        Boolean(normalizedOrder?.reliefOrderID) &&
-        Boolean(normalizedOrder?.canPrepare) &&
-        !isPreparationLockedStatus(orderStatus);
+        normalizedOrder?.canPrepare === true ||
+        canPrepareOrderLocally({
+          order: normalizedOrder,
+          orderStatus,
+          hasAssignedTeam,
+        });
       const prepareDisabledReason = !normalizedOrder?.reliefOrderID
         ? "Don chua co ReliefOrderID hop le."
+        : !hasAssignedTeam
+          ? "Don chua duoc coordinator gan doi cuu ho."
         : isPreparationLockedStatus(orderStatus)
           ? "Don da qua buoc soan hoac da ban giao."
-        : normalizedOrder?.canPrepare !== true
+        : !canPrepare
           ? "Don chua du dieu kien de manager hoan thanh."
           : "";
 
@@ -1331,10 +1459,10 @@ const handleReceiveOrderResponse = (data) => {
           CLIENT_EVENTS.ORDER_PREPARED,
           handleOrderPrepared,
         );
-            await signalrService.on(
-      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
-      handleReceiveOrderResponse
-    );
+        await signalRService.on(
+          CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+          handleReceiveOrderResponse,
+        );
       } catch (signalRError) {
         console.error("SignalR init error in ManagerReliefOrders:", signalRError);
       }
@@ -1363,10 +1491,10 @@ const handleReceiveOrderResponse = (data) => {
         CLIENT_EVENTS.DELIVERY_STARTED,
         handleDeliveryStarted,
       );
-           signalrService.off(
-      CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
-      handleReceiveOrderResponse
-    );
+      signalRService.off(
+        CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+        handleReceiveOrderResponse,
+      );
       signalRService.off(CLIENT_EVENTS.ORDER_PREPARED, handleOrderPrepared);
     };
   }, [appliedFilters]);
@@ -1413,6 +1541,10 @@ const handleReceiveOrderResponse = (data) => {
       .filter(
         (item) => item?.reliefItemID && Number.isFinite(item.quantity) && item.quantity > 0,
       );
+
+    if (items.length === 0) {
+      setDetailOrderId(orderId);
+    }
 
     if (items.length === 0) {
       toast.error("Cần ít nhất 1 vật phẩm hợp lệ để chuẩn bị.");
@@ -1495,6 +1627,46 @@ const handleReceiveOrderResponse = (data) => {
               <span>Chờ xử lý: {pendingCount}</span>
               <span>Đã chuẩn bị: {preparedCount}</span>
               <span>Đã nhận: {pickedUpCount}</span>
+            </div>
+            <div className="manager-relief-order-modal-field" hidden>
+              <span className="manager-relief-order-modal-label">Váº­t pháº©m</span>
+              <div className="manager-relief-order-items-box">
+                {detailModalOrder?.items?.length > 0 ? (
+                  <div className="manager-relief-order-item-editor">
+                    {detailModalOrder?.items?.map((item, index) => (
+                      <div
+                        className="manager-relief-order-item-row"
+                        key={`${item?.reliefItemID || item?.itemID || index}`}
+                      >
+                        <div className="manager-relief-order-item-copy">
+                          <strong>
+                            {formatDisplayValue(
+                              item?.reliefItemName || item?.itemName,
+                              `Váº­t pháº©m ${index + 1}`,
+                            )}
+                          </strong>
+                          <span>
+                            MÃ£ váº­t pháº©m: {formatDisplayValue(item?.reliefItemID, "ChÆ°a cÃ³")}
+                          </span>
+                          {item?.isInferred && (
+                            <span>
+                              Suy ra tá»« mÃ´ táº£: {formatDisplayValue(item?.sourceText, "KhÃ´ng rÃµ")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="manager-relief-order-prepare-field">
+                          <span>Sá»‘ lÆ°á»£ng</span>
+                          <input type="number" value={Number(item?.quantity) || 0} readOnly />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="manager-relief-order-modal-description">
+                    ChÆ°a map Ä‘Æ°á»£c váº­t pháº©m tá»« dá»¯ liá»‡u Ä‘Æ¡n.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1853,6 +2025,46 @@ const handleReceiveOrderResponse = (data) => {
               <span className="manager-relief-order-modal-label">Mô tả</span>
               <div className="manager-relief-order-modal-description">
                 {detailModalOrder.descriptionText}
+              </div>
+            </div>
+            <div className="manager-relief-order-modal-field">
+              <span className="manager-relief-order-modal-label">Vat pham</span>
+              <div className="manager-relief-order-items-box">
+                {detailModalOrder?.items?.length > 0 ? (
+                  <div className="manager-relief-order-item-editor">
+                    {detailModalOrder.items.map((item, index) => (
+                      <div
+                        className="manager-relief-order-item-row"
+                        key={`${item?.reliefItemID || item?.itemID || index}`}
+                      >
+                        <div className="manager-relief-order-item-copy">
+                          <strong>
+                            {formatDisplayValue(
+                              item?.reliefItemName || item?.itemName,
+                              `Vat pham ${index + 1}`,
+                            )}
+                          </strong>
+                          <span>
+                            Ma vat pham: {formatDisplayValue(item?.reliefItemID, "Chua co")}
+                          </span>
+                          {item?.isInferred && (
+                            <span>
+                              Suy ra tu mo ta: {formatDisplayValue(item?.sourceText, "Khong ro")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="manager-relief-order-prepare-field">
+                          <span>So luong</span>
+                          <input type="number" value={Number(item?.quantity) || 0} readOnly />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="manager-relief-order-modal-description">
+                    Chua map duoc vat pham tu du lieu don.
+                  </div>
+                )}
               </div>
             </div>
           </div>
