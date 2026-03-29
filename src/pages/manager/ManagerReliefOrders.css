@@ -17,11 +17,51 @@
 
 .manager-relief-orders-actions {
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: minmax(260px, 320px) auto auto;
   align-items: start;
   justify-content: end;
   gap: 16px 20px;
   position: relative;
+}
+
+.manager-relief-orders-warehouse-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.manager-relief-orders-warehouse-picker label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e3a8a;
+}
+
+.manager-relief-orders-warehouse-picker select {
+  min-height: 46px;
+  width: 100%;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 14px;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.manager-relief-orders-warehouse-picker select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.manager-relief-orders-warehouse-picker small {
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .manager-relief-orders-page .notification-container {
@@ -638,6 +678,10 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .manager-relief-orders-warehouse-picker {
+    min-width: 100%;
   }
 
   .manager-relief-orders-page .notification-container {

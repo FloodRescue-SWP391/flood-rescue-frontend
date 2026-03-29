@@ -16,6 +16,7 @@ import {
   normalizeRescueRequests,
   reliefOrdersService,
 } from "../../services/reliefOrdersService";
+import { getWarehouseById, getWarehouses } from "../../services/warehouseService";
 
 const DEFAULT_FILTERS = {
   statusesText: "",
@@ -30,8 +31,10 @@ const DEFAULT_FILTERS = {
 };
 
 const NOTI_STORAGE_KEY = "manager_notifications";
+const MANAGER_WAREHOUSE_STORAGE_KEY = "manager_dashboard_warehouse_id";
 const MANAGER_RELIEF_ORDERS_ROUTE = "/manager/relief-orders";
 const MANAGER_RELIEF_ORDERS_AUTO_REFRESH_INTERVAL_MS = 10000;
+const SHARED_PREPARED_ORDER_STORAGE_KEY = "shared_prepared_order_notifications";
 
 const extractList = (res) => {
   if (Array.isArray(res)) return res;
@@ -633,6 +636,364 @@ const buildPreparedItemsSnapshot = (order, draft = {}) =>
     };
   });
 
+const normalizeWarehousePreparationMeta = (warehouse = {}) => {
+  if (!warehouse || typeof warehouse !== "object") {
+    return null;
+  }
+
+  const warehouseID = pickFirst(
+    warehouse,
+    ["warehouseID", "WarehouseID", "warehouseId", "WarehouseId", "id", "ID"],
+    "",
+  );
+
+  if (!warehouseID) {
+    return null;
+  }
+
+  const warehouseName = pickFirst(
+    warehouse,
+    ["warehouseName", "WarehouseName", "name", "Name"],
+    "",
+  );
+  const warehouseAddress = pickFirst(
+    warehouse,
+    ["address", "Address", "warehouseAddress", "WarehouseAddress"],
+    "",
+  );
+  const pickupLatitude = pickFirst(
+    warehouse,
+    ["locationLat", "LocationLat", "latitude", "Latitude", "lat", "Lat"],
+    null,
+  );
+  const pickupLongitude = pickFirst(
+    warehouse,
+    [
+      "locationLong",
+      "LocationLong",
+      "longitude",
+      "Longitude",
+      "lng",
+      "Lng",
+      "lon",
+      "Lon",
+    ],
+    null,
+  );
+
+  return {
+    warehouseID,
+    warehouseId: warehouseID,
+    warehouseName,
+    warehouseAddress,
+    pickupAddress: warehouseAddress,
+    pickupLatitude,
+    pickupLongitude,
+  };
+};
+
+const extractPreparedOrderWarehouseMeta = (source = {}) => {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const itemSources = [
+    ...(Array.isArray(source?.items) ? source.items : []),
+    ...(Array.isArray(source?.Items) ? source.Items : []),
+    ...(Array.isArray(source?.reliefItems) ? source.reliefItems : []),
+    ...(Array.isArray(source?.ReliefItems) ? source.ReliefItems : []),
+    ...(Array.isArray(source?.orderItems) ? source.orderItems : []),
+    ...(Array.isArray(source?.OrderItems) ? source.OrderItems : []),
+    ...(Array.isArray(source?.content?.items) ? source.content.items : []),
+    ...(Array.isArray(source?.content?.Items) ? source.content.Items : []),
+    ...(Array.isArray(source?.data?.items) ? source.data.items : []),
+    ...(Array.isArray(source?.data?.Items) ? source.data.Items : []),
+  ];
+  const pickupItem =
+    itemSources.find(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        (item?.warehouseAddress ||
+          item?.WarehouseAddress ||
+          item?.pickupAddress ||
+          item?.PickupAddress ||
+          item?.warehouseID ||
+          item?.warehouseId ||
+          item?.warehouseName),
+    ) || {};
+
+  const normalizedWarehouse = normalizeWarehousePreparationMeta(source);
+  if (normalizedWarehouse) {
+    return normalizedWarehouse;
+  }
+
+  const warehouseID = pickFirst(
+    source,
+    [
+      "warehouseID",
+      "WarehouseID",
+      "warehouseId",
+      "WarehouseId",
+      "pickupWarehouseID",
+      "PickupWarehouseID",
+      "pickupWarehouseId",
+      "PickupWarehouseId",
+      "warehouseID",
+      "WarehouseID",
+      "warehouseId",
+      "WarehouseId",
+    ],
+    "",
+  ) ||
+    pickFirst(
+      pickupItem,
+      [
+        "warehouseID",
+        "WarehouseID",
+        "warehouseId",
+        "WarehouseId",
+        "pickupWarehouseID",
+        "PickupWarehouseID",
+        "pickupWarehouseId",
+        "PickupWarehouseId",
+      ],
+      "",
+    );
+  const warehouseName = pickFirst(
+    source,
+    [
+      "warehouseName",
+      "WarehouseName",
+      "pickupWarehouseName",
+      "PickupWarehouseName",
+    ],
+    "",
+  ) ||
+    pickFirst(
+      pickupItem,
+      [
+        "warehouseName",
+        "WarehouseName",
+        "pickupWarehouseName",
+        "PickupWarehouseName",
+      ],
+      "",
+    );
+  const pickupAddress = pickFirst(
+    source,
+    [
+      "pickupAddress",
+      "PickupAddress",
+      "warehouseAddress",
+      "WarehouseAddress",
+      "pickupLocationAddress",
+      "PickupLocationAddress",
+    ],
+    "",
+  ) ||
+    pickFirst(
+      pickupItem,
+      [
+        "pickupAddress",
+        "PickupAddress",
+        "warehouseAddress",
+        "WarehouseAddress",
+        "pickupLocationAddress",
+        "PickupLocationAddress",
+      ],
+      "",
+    );
+  const pickupLatitude = pickFirst(
+    source,
+    [
+      "pickupLatitude",
+      "PickupLatitude",
+      "pickupLat",
+      "PickupLat",
+      "warehouseLatitude",
+      "WarehouseLatitude",
+      "warehouseLat",
+      "WarehouseLat",
+    ],
+    null,
+  ) ??
+    pickFirst(
+      pickupItem,
+      [
+        "pickupLatitude",
+        "PickupLatitude",
+        "pickupLat",
+        "PickupLat",
+        "warehouseLatitude",
+        "WarehouseLatitude",
+        "warehouseLat",
+        "WarehouseLat",
+      ],
+      null,
+    );
+  const pickupLongitude = pickFirst(
+    source,
+    [
+      "pickupLongitude",
+      "PickupLongitude",
+      "pickupLng",
+      "PickupLng",
+      "pickupLong",
+      "PickupLong",
+      "warehouseLongitude",
+      "WarehouseLongitude",
+      "warehouseLng",
+      "WarehouseLng",
+      "warehouseLong",
+      "WarehouseLong",
+    ],
+    null,
+  ) ??
+    pickFirst(
+      pickupItem,
+      [
+        "pickupLongitude",
+        "PickupLongitude",
+        "pickupLng",
+        "PickupLng",
+        "pickupLong",
+        "PickupLong",
+        "warehouseLongitude",
+        "WarehouseLongitude",
+        "warehouseLng",
+        "WarehouseLng",
+        "warehouseLong",
+        "WarehouseLong",
+      ],
+      null,
+    );
+
+  if (
+    !warehouseID &&
+    !warehouseName &&
+    !pickupAddress &&
+    pickupLatitude == null &&
+    pickupLongitude == null
+  ) {
+    return null;
+  }
+
+  return {
+    ...(warehouseID ? { warehouseID, warehouseId: warehouseID } : {}),
+    warehouseName,
+    warehouseAddress: pickupAddress,
+    pickupAddress,
+    pickupLatitude,
+    pickupLongitude,
+  };
+};
+
+const getSelectedManagerWarehouseId = () => {
+  try {
+    return localStorage.getItem(MANAGER_WAREHOUSE_STORAGE_KEY) || "";
+  } catch (error) {
+    console.warn("Load selected manager warehouse failed:", error);
+    return "";
+  }
+};
+
+const loadSelectedManagerWarehouseMeta = async (warehouseId = "") => {
+  const selectedWarehouseId = warehouseId || getSelectedManagerWarehouseId();
+  if (!selectedWarehouseId) return null;
+
+  try {
+    const warehouseDetail = await getWarehouseById(selectedWarehouseId);
+    return normalizeWarehousePreparationMeta(warehouseDetail);
+  } catch (error) {
+    console.warn("Load manager warehouse detail failed:", error);
+    return {
+      warehouseID: selectedWarehouseId,
+      warehouseId: selectedWarehouseId,
+    };
+  }
+};
+
+const publishPreparedOrderSharedEvent = ({
+  order,
+  warehouseMeta,
+  preparedOrderResult,
+}) => {
+  const normalizedOrder = normalizeReliefOrder(order);
+  const normalizedPreparedOrder =
+    preparedOrderResult && typeof preparedOrderResult === "object"
+      ? normalizeReliefOrder(preparedOrderResult)
+      : {};
+
+  const teamId = pickFirst(
+    normalizedOrder,
+    [
+      "rescueTeamID",
+      "rescueTeamId",
+      "assignedTeamID",
+      "assignedTeamId",
+      "teamID",
+      "teamId",
+    ],
+    "",
+  );
+
+  if (!teamId) {
+    return;
+  }
+
+  const managerName = (() => {
+    try {
+      return (
+        localStorage.getItem("fullName") ||
+        localStorage.getItem("userFullName") ||
+        "Manager"
+      );
+    } catch {
+      return "Manager";
+    }
+  })();
+  const resolvedWarehouseMeta =
+    (warehouseMeta && typeof warehouseMeta === "object" ? warehouseMeta : null) ||
+    extractPreparedOrderWarehouseMeta(preparedOrderResult) ||
+    extractPreparedOrderWarehouseMeta(normalizedPreparedOrder) ||
+    extractPreparedOrderWarehouseMeta(normalizedOrder);
+
+  const payload = {
+    id: `prepared-${normalizedOrder?.reliefOrderID || Date.now()}`,
+    source: "manager_prepare_order",
+    teamId: String(teamId),
+    reliefOrderID:
+      normalizedPreparedOrder?.reliefOrderID || normalizedOrder?.reliefOrderID || "",
+    rescueMissionID:
+      normalizedPreparedOrder?.rescueMissionID || normalizedOrder?.rescueMissionID || "",
+    rescueRequestID:
+      normalizedPreparedOrder?.rescueRequestID || normalizedOrder?.rescueRequestID || "",
+    managerName,
+    createdAt: new Date().toISOString(),
+    ...(resolvedWarehouseMeta || {}),
+  };
+
+  try {
+    const raw = localStorage.getItem(SHARED_PREPARED_ORDER_STORAGE_KEY);
+    const currentList = raw ? JSON.parse(raw) : [];
+    const nextList = Array.isArray(currentList) ? currentList : [];
+    const deduped = nextList.filter(
+      (entry) =>
+        String(entry?.id || "") !== payload.id &&
+        String(entry?.reliefOrderID || "") !== String(payload.reliefOrderID || ""),
+    );
+
+    deduped.unshift(payload);
+    localStorage.setItem(
+      SHARED_PREPARED_ORDER_STORAGE_KEY,
+      JSON.stringify(deduped.slice(0, 50)),
+    );
+  } catch (error) {
+    console.warn("Publish shared prepared order event failed:", error);
+  }
+};
+
 const mergePreparedOrderLocally = (
   sourceOrder,
   preparedItems = [],
@@ -742,6 +1103,10 @@ export default function ManagerReliefOrders() {
   });
   const [showNotifications, setShowNotifications] = useState(false);
   const [reliefItemCatalog, setReliefItemCatalog] = useState([]);
+  const [warehouseOptions, setWarehouseOptions] = useState([]);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState(() =>
+    getSelectedManagerWarehouseId(),
+  );
 
   const hydrateReliefOrders = async (orderSummaries = []) => {
     if (!Array.isArray(orderSummaries) || orderSummaries.length === 0) {
@@ -922,6 +1287,29 @@ export default function ManagerReliefOrders() {
         setReliefItemCatalog([]);
       });
   }, []);
+
+  useEffect(() => {
+    getWarehouses()
+      .then((items) => {
+        setWarehouseOptions(Array.isArray(items) ? items : []);
+      })
+      .catch((loadError) => {
+        console.warn("[ManagerReliefOrders] Load warehouses failed:", loadError);
+        setWarehouseOptions([]);
+      });
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (selectedWarehouseId) {
+        localStorage.setItem(MANAGER_WAREHOUSE_STORAGE_KEY, selectedWarehouseId);
+      } else {
+        localStorage.removeItem(MANAGER_WAREHOUSE_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.warn("Save selected manager warehouse failed:", error);
+    }
+  }, [selectedWarehouseId]);
 
   useEffect(() => {
     ordersSnapshotRef.current = orders;
@@ -1510,6 +1898,10 @@ const handleReceiveOrderResponse = (data) => {
     }));
   };
 
+  const handleWarehouseChange = (event) => {
+    setSelectedWarehouseId(event.target.value || "");
+  };
+
   const handleApplyFilters = (event) => {
     event.preventDefault();
     setAppliedFilters((prev) => ({
@@ -1529,6 +1921,11 @@ const handleReceiveOrderResponse = (data) => {
     const orderId = String(order?.reliefOrderID || "");
     if (!orderId) {
       toast.error("Không tìm thấy ReliefOrderID hợp lệ.");
+      return;
+    }
+
+    if (!selectedWarehouseId) {
+      toast.error("Hãy chọn kho xuất hàng trước khi hoàn thành.");
       return;
     }
 
@@ -1557,9 +1954,28 @@ const handleReceiveOrderResponse = (data) => {
     }));
 
     try {
+      const selectedWarehouseMeta = await loadSelectedManagerWarehouseMeta(
+        selectedWarehouseId,
+      );
       const preparedOrderResponse = await reliefOrdersService.prepareOrder({
         reliefOrderID: order.reliefOrderID,
         items,
+        ...(selectedWarehouseMeta || {}),
+      });
+      const preparedOrderResult =
+        selectedWarehouseMeta &&
+        preparedOrderResponse &&
+        typeof preparedOrderResponse === "object"
+          ? {
+              ...preparedOrderResponse,
+              ...selectedWarehouseMeta,
+            }
+          : preparedOrderResponse;
+
+      publishPreparedOrderSharedEvent({
+        order,
+        warehouseMeta: selectedWarehouseMeta,
+        preparedOrderResult,
       });
 
       setOrders((prev) =>
@@ -1572,7 +1988,7 @@ const handleReceiveOrderResponse = (data) => {
           return mergePreparedOrderLocally(
             entry,
             preparedItemsSnapshot,
-            preparedOrderResponse,
+            preparedOrderResult,
           );
         }),
       );
@@ -1606,6 +2022,12 @@ const handleReceiveOrderResponse = (data) => {
     totalCount > appliedFilters.pageNumber * appliedFilters.pageSize ||
     orderCards.length === appliedFilters.pageSize;
   const bellCount = notifications.length;
+  const selectedWarehouseOption = warehouseOptions.find(
+    (warehouse) =>
+      String(
+        warehouse?.warehouseId || warehouse?.warehouseID || warehouse?.id || "",
+      ) === String(selectedWarehouseId || ""),
+  );
   const detailModalOrder = orderCards.find(
     (order) =>
       String(order?.reliefOrderID || order?.orderKey || "").toLowerCase() ===
@@ -1671,6 +2093,37 @@ const handleReceiveOrderResponse = (data) => {
           </div>
 
           <div className="manager-relief-orders-actions">
+            <div className="manager-relief-orders-warehouse-picker">
+              <label htmlFor="manager-relief-orders-warehouse">
+                Kho xuất hàng
+              </label>
+              <select
+                id="manager-relief-orders-warehouse"
+                value={selectedWarehouseId}
+                onChange={handleWarehouseChange}
+              >
+                <option value="">Chọn kho để hoàn thành đơn</option>
+                {warehouseOptions.map((warehouse) => {
+                  const warehouseId =
+                    warehouse?.warehouseId ||
+                    warehouse?.warehouseID ||
+                    warehouse?.id ||
+                    "";
+
+                  return (
+                    <option key={warehouseId} value={warehouseId}>
+                      {warehouse?.warehouseName ||
+                        warehouse?.name ||
+                        `Kho ${warehouseId}`}
+                    </option>
+                  );
+                })}
+              </select>
+              <small>
+                {selectedWarehouseOption?.address || "Địa chỉ kho sẽ gửi sang RescueTeamLeader."}
+              </small>
+            </div>
+
             <div className="notification-container">
               <button
                 className={`notification-bell ${bellCount > 0 ? "active" : ""}`}
@@ -1944,8 +2397,14 @@ const handleReceiveOrderResponse = (data) => {
                     <button
                       className="btn btn-primary relief-order-action-btn"
                       onClick={() => handlePrepareOrder(order)}
-                      disabled={!order.canPrepare || savingOrderIds[orderId]}
-                      title={order.prepareDisabledReason || ""}
+                      disabled={
+                        !selectedWarehouseId || !order.canPrepare || savingOrderIds[orderId]
+                      }
+                      title={
+                        !selectedWarehouseId
+                          ? "Chọn kho xuất hàng trước khi hoàn thành."
+                          : order.prepareDisabledReason || ""
+                      }
                     >
                       {savingOrderIds[orderId] ? "Đang hoàn thành..." : "Hoàn thành"}
                     </button>

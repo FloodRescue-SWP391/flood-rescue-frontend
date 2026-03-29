@@ -1,15 +1,25 @@
 import "./Dashboard.css";
 import Header from "../../components/common/Header";
 import { fetchWithAuth } from "../../services/apiClient";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   rescueMissionService,
   completeMission,
 } from "../../services/rescueMissionService";
 import { toast } from "react-hot-toast";
-import { FaClipboardList, FaCheckCircle, FaMapMarkerAlt } from "react-icons/fa";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import {
+  FaBell,
+  FaCheckCircle,
+  FaClipboardList,
+  FaMapMarkerAlt,
+} from "react-icons/fa";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+} from "react-leaflet";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
 import L from "leaflet";
@@ -18,8 +28,12 @@ import RequestDetailModal from "./RequestDetailModal";
 import IncidentReportForm from "./IncidentReportForm";
 import { incidentReportService } from "../../services/incidentReportService";
 import { useNavigate } from "react-router-dom";
+import { reliefOrdersService } from "../../services/reliefOrdersService";
+import { getWarehouseById } from "../../services/warehouseService";
 
 const RESCUE_TEAM_AUTO_REFRESH_INTERVAL_MS = 10000;
+const RESCUE_TEAM_NOTIFICATION_STORAGE_KEY = "rescue_team_leader_notifications";
+const SHARED_PREPARED_ORDER_STORAGE_KEY = "shared_prepared_order_notifications";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -38,12 +52,398 @@ const formatVNTime = (dateString) => {
       timeStyle: "short",
       timeZone: "Asia/Ho_Chi_Minh",
     });
-  } catch (e) {
+  } catch {
     return dateString;
   }
 };
 
+const isPresent = (value) =>
+  value !== undefined && value !== null && value !== "";
+
+const pickFirstValue = (...values) => values.find((value) => isPresent(value));
+
+const toComparable = (value) => String(value ?? "").trim().toLowerCase();
+
+const sameValue = (left, right) =>
+  Boolean(toComparable(left)) && toComparable(left) === toComparable(right);
+
+const toValidCoordinate = (value) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const extractPickupInfo = (source = {}) => {
+  if (!source || typeof source !== "object") return null;
+
+  const itemSources = [
+    ...(Array.isArray(source?.items) ? source.items : []),
+    ...(Array.isArray(source?.Items) ? source.Items : []),
+    ...(Array.isArray(source?.reliefItems) ? source.reliefItems : []),
+    ...(Array.isArray(source?.ReliefItems) ? source.ReliefItems : []),
+    ...(Array.isArray(source?.orderItems) ? source.orderItems : []),
+    ...(Array.isArray(source?.OrderItems) ? source.OrderItems : []),
+    ...(Array.isArray(source?.content?.items) ? source.content.items : []),
+    ...(Array.isArray(source?.content?.Items) ? source.content.Items : []),
+    ...(Array.isArray(source?.data?.items) ? source.data.items : []),
+    ...(Array.isArray(source?.data?.Items) ? source.data.Items : []),
+  ];
+  const pickupItem =
+    itemSources.find(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        (isPresent(item?.warehouseAddress) ||
+          isPresent(item?.WarehouseAddress) ||
+          isPresent(item?.pickupAddress) ||
+          isPresent(item?.PickupAddress) ||
+          isPresent(item?.warehouseID) ||
+          isPresent(item?.warehouseId) ||
+          isPresent(item?.warehouseName) ||
+          isPresent(item?.warehouseLatitude) ||
+          isPresent(item?.warehouseLongitude)),
+    ) || {};
+  const requestInfo =
+    source?.rescueRequest || source?.requestInfo || source?.request || {};
+  const warehouse =
+    source?.warehouse || source?.pickupWarehouse || source?.assignedWarehouse || {};
+  const pickupItemWarehouse =
+    pickupItem?.warehouse ||
+    pickupItem?.pickupWarehouse ||
+    pickupItem?.assignedWarehouse ||
+    {};
+
+  const warehouseID = pickFirstValue(
+    source?.warehouseID,
+    source?.warehouseId,
+    source?.WarehouseID,
+    source?.WarehouseId,
+    source?.pickupWarehouseID,
+    source?.pickupWarehouseId,
+    requestInfo?.warehouseID,
+    requestInfo?.warehouseId,
+    pickupItem?.warehouseID,
+    pickupItem?.WarehouseID,
+    pickupItem?.warehouseId,
+    pickupItem?.WarehouseId,
+    pickupItemWarehouse?.warehouseID,
+    pickupItemWarehouse?.warehouseId,
+    pickupItemWarehouse?.id,
+    pickupItemWarehouse?.ID,
+    warehouse?.warehouseID,
+    warehouse?.warehouseId,
+    warehouse?.id,
+    warehouse?.ID,
+  );
+
+  const warehouseName = pickFirstValue(
+    source?.warehouseName,
+    source?.WarehouseName,
+    source?.pickupWarehouseName,
+    source?.PickupWarehouseName,
+    requestInfo?.warehouseName,
+    requestInfo?.WarehouseName,
+    pickupItem?.warehouseName,
+    pickupItem?.WarehouseName,
+    pickupItem?.pickupWarehouseName,
+    pickupItem?.PickupWarehouseName,
+    pickupItemWarehouse?.warehouseName,
+    pickupItemWarehouse?.WarehouseName,
+    pickupItemWarehouse?.name,
+    pickupItemWarehouse?.Name,
+    warehouse?.warehouseName,
+    warehouse?.WarehouseName,
+    warehouse?.name,
+    warehouse?.Name,
+  );
+
+  const pickupAddress = pickFirstValue(
+    source?.pickupAddress,
+    source?.PickupAddress,
+    source?.warehouseAddress,
+    source?.WarehouseAddress,
+    source?.pickupLocationAddress,
+    source?.PickupLocationAddress,
+    source?.pickupPointAddress,
+    source?.PickupPointAddress,
+    requestInfo?.pickupAddress,
+    requestInfo?.PickupAddress,
+    requestInfo?.warehouseAddress,
+    requestInfo?.WarehouseAddress,
+    pickupItem?.pickupAddress,
+    pickupItem?.PickupAddress,
+    pickupItem?.warehouseAddress,
+    pickupItem?.WarehouseAddress,
+    pickupItemWarehouse?.address,
+    pickupItemWarehouse?.Address,
+    warehouse?.address,
+    warehouse?.Address,
+  );
+
+  const pickupLatitude = toValidCoordinate(
+    pickFirstValue(
+      source?.pickupLatitude,
+      source?.PickupLatitude,
+      source?.pickupLat,
+      source?.PickupLat,
+      source?.warehouseLatitude,
+      source?.WarehouseLatitude,
+      source?.warehouseLat,
+      source?.WarehouseLat,
+      requestInfo?.pickupLatitude,
+      requestInfo?.PickupLatitude,
+      requestInfo?.pickupLat,
+      requestInfo?.PickupLat,
+      requestInfo?.warehouseLatitude,
+      requestInfo?.WarehouseLatitude,
+      requestInfo?.warehouseLat,
+      requestInfo?.WarehouseLat,
+      pickupItem?.pickupLatitude,
+      pickupItem?.PickupLatitude,
+      pickupItem?.pickupLat,
+      pickupItem?.PickupLat,
+      pickupItem?.warehouseLatitude,
+      pickupItem?.WarehouseLatitude,
+      pickupItem?.warehouseLat,
+      pickupItem?.WarehouseLat,
+      pickupItemWarehouse?.locationLat,
+      pickupItemWarehouse?.LocationLat,
+      pickupItemWarehouse?.latitude,
+      pickupItemWarehouse?.Latitude,
+      pickupItemWarehouse?.lat,
+      pickupItemWarehouse?.Lat,
+      warehouse?.locationLat,
+      warehouse?.LocationLat,
+      warehouse?.latitude,
+      warehouse?.Latitude,
+      warehouse?.lat,
+      warehouse?.Lat,
+    ),
+  );
+
+  const pickupLongitude = toValidCoordinate(
+    pickFirstValue(
+      source?.pickupLongitude,
+      source?.PickupLongitude,
+      source?.pickupLong,
+      source?.PickupLong,
+      source?.pickupLng,
+      source?.PickupLng,
+      source?.warehouseLongitude,
+      source?.WarehouseLongitude,
+      source?.warehouseLong,
+      source?.WarehouseLong,
+      source?.warehouseLng,
+      source?.WarehouseLng,
+      requestInfo?.pickupLongitude,
+      requestInfo?.PickupLongitude,
+      requestInfo?.pickupLong,
+      requestInfo?.PickupLong,
+      requestInfo?.pickupLng,
+      requestInfo?.PickupLng,
+      requestInfo?.warehouseLongitude,
+      requestInfo?.WarehouseLongitude,
+      requestInfo?.warehouseLong,
+      requestInfo?.WarehouseLong,
+      requestInfo?.warehouseLng,
+      requestInfo?.WarehouseLng,
+      pickupItem?.pickupLongitude,
+      pickupItem?.PickupLongitude,
+      pickupItem?.pickupLong,
+      pickupItem?.PickupLong,
+      pickupItem?.pickupLng,
+      pickupItem?.PickupLng,
+      pickupItem?.warehouseLongitude,
+      pickupItem?.WarehouseLongitude,
+      pickupItem?.warehouseLong,
+      pickupItem?.WarehouseLong,
+      pickupItem?.warehouseLng,
+      pickupItem?.WarehouseLng,
+      pickupItemWarehouse?.locationLong,
+      pickupItemWarehouse?.LocationLong,
+      pickupItemWarehouse?.longitude,
+      pickupItemWarehouse?.Longitude,
+      pickupItemWarehouse?.lng,
+      pickupItemWarehouse?.Lng,
+      pickupItemWarehouse?.lon,
+      pickupItemWarehouse?.Lon,
+      warehouse?.locationLong,
+      warehouse?.LocationLong,
+      warehouse?.longitude,
+      warehouse?.Longitude,
+      warehouse?.lng,
+      warehouse?.Lng,
+      warehouse?.lon,
+      warehouse?.Lon,
+    ),
+  );
+
+  if (
+    !isPresent(warehouseID) &&
+    !isPresent(warehouseName) &&
+    !isPresent(pickupAddress) &&
+    pickupLatitude == null &&
+    pickupLongitude == null
+  ) {
+    return null;
+  }
+
+  return {
+    warehouseID: warehouseID ?? null,
+    warehouseName: warehouseName ?? "",
+    pickupAddress: pickupAddress ?? "",
+    pickupLatitude,
+    pickupLongitude,
+  };
+};
+
+const mergePickupInfo = (...sources) => {
+  const merged = sources.reduce(
+    (accumulator, source) => {
+      const info =
+        source &&
+        (Object.prototype.hasOwnProperty.call(source, "pickupAddress") ||
+        Object.prototype.hasOwnProperty.call(source, "pickupLatitude") ||
+        Object.prototype.hasOwnProperty.call(source, "pickupLongitude") ||
+        Object.prototype.hasOwnProperty.call(source, "warehouseName") ||
+        Object.prototype.hasOwnProperty.call(source, "warehouseID")
+          ? source
+          : extractPickupInfo(source));
+
+      if (!info) return accumulator;
+
+      return {
+        warehouseID: accumulator.warehouseID ?? info.warehouseID ?? null,
+        warehouseName: accumulator.warehouseName || info.warehouseName || "",
+        pickupAddress: accumulator.pickupAddress || info.pickupAddress || "",
+        pickupLatitude: accumulator.pickupLatitude ?? info.pickupLatitude ?? null,
+        pickupLongitude:
+          accumulator.pickupLongitude ?? info.pickupLongitude ?? null,
+      };
+    },
+    {
+      warehouseID: null,
+      warehouseName: "",
+      pickupAddress: "",
+      pickupLatitude: null,
+      pickupLongitude: null,
+    },
+  );
+
+  return extractPickupInfo(merged);
+};
+
+const hasPickupInfo = (source) => Boolean(mergePickupInfo(source));
+
+const formatCoordinateText = (latitude, longitude) => {
+  const lat = toValidCoordinate(latitude);
+  const lng = toValidCoordinate(longitude);
+
+  if (lat == null || lng == null) return "";
+  return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+};
+
+const getPickupDisplayText = (source) => {
+  const pickupInfo = mergePickupInfo(source);
+  if (!pickupInfo) return "";
+
+  if (pickupInfo.warehouseName && pickupInfo.pickupAddress) {
+    return `${pickupInfo.warehouseName}: ${pickupInfo.pickupAddress}`;
+  }
+
+  if (pickupInfo.pickupAddress) {
+    return pickupInfo.pickupAddress;
+  }
+
+  if (pickupInfo.warehouseName) {
+    return pickupInfo.warehouseName;
+  }
+
+  return formatCoordinateText(
+    pickupInfo.pickupLatitude,
+    pickupInfo.pickupLongitude,
+  );
+};
+
+const mergePickupInfoIntoMission = (mission, pickupInfo) => {
+  const resolvedPickupInfo = mergePickupInfo(mission, pickupInfo);
+  if (!resolvedPickupInfo) return mission;
+
+  return {
+    ...mission,
+    warehouseID: mission?.warehouseID ?? resolvedPickupInfo.warehouseID ?? null,
+    warehouseId: mission?.warehouseId ?? resolvedPickupInfo.warehouseID ?? null,
+    warehouseName: mission?.warehouseName || resolvedPickupInfo.warehouseName || "",
+    pickupAddress: mission?.pickupAddress || resolvedPickupInfo.pickupAddress || "",
+    pickupLatitude:
+      mission?.pickupLatitude ?? resolvedPickupInfo.pickupLatitude ?? null,
+    pickupLongitude:
+      mission?.pickupLongitude ?? resolvedPickupInfo.pickupLongitude ?? null,
+    rescueRequest: {
+      ...(mission?.rescueRequest || {}),
+      warehouseID:
+        mission?.rescueRequest?.warehouseID ??
+        resolvedPickupInfo.warehouseID ??
+        null,
+      warehouseId:
+        mission?.rescueRequest?.warehouseId ??
+        resolvedPickupInfo.warehouseID ??
+        null,
+      warehouseName:
+        mission?.rescueRequest?.warehouseName ||
+        resolvedPickupInfo.warehouseName ||
+        "",
+      pickupAddress:
+        mission?.rescueRequest?.pickupAddress ||
+        resolvedPickupInfo.pickupAddress ||
+        "",
+      pickupLatitude:
+        mission?.rescueRequest?.pickupLatitude ??
+        resolvedPickupInfo.pickupLatitude ??
+        null,
+      pickupLongitude:
+        mission?.rescueRequest?.pickupLongitude ??
+        resolvedPickupInfo.pickupLongitude ??
+        null,
+    },
+  };
+};
+
+const createNotificationTimestamp = () =>
+  new Date().toLocaleString("vi-VN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+
+const mergeNotifications = (oldList, newList) => {
+  const notificationMap = new Map();
+
+  [...newList, ...oldList].forEach((item) => {
+    const key = String(item.id);
+
+    if (!notificationMap.has(key)) {
+      notificationMap.set(key, item);
+      return;
+    }
+
+    const previousItem = notificationMap.get(key);
+    notificationMap.set(key, {
+      ...previousItem,
+      ...item,
+      read: previousItem.read ?? item.read ?? false,
+    });
+  });
+
+  return Array.from(notificationMap.values()).sort(
+    (left, right) =>
+      new Date(right.createdAt || right.timestamp).getTime() -
+      new Date(left.createdAt || left.timestamp).getTime(),
+  );
+};
+
 export default function RescueTeamLeader({ teamId }) {
+  const missionsRef = useRef([]);
+  const notificationsRef = useRef([]);
   const [assigned, setAssigned] = useState([]);
   const [inProgress, setInProgress] = useState([]);
   const [completed, setCompleted] = useState([]);
@@ -52,9 +452,21 @@ export default function RescueTeamLeader({ teamId }) {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedMission, setSelectedMission] = useState(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [userFullName, setUserFullName] = useState("");
 
   const [incidentReports, setIncidentReports] = useState([]);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const savedNotifications = localStorage.getItem(
+        RESCUE_TEAM_NOTIFICATION_STORAGE_KEY,
+      );
+      return savedNotifications ? JSON.parse(savedNotifications) : [];
+    } catch (error) {
+      console.error("Load rescue team notifications failed:", error);
+      return [];
+    }
+  });
 
   useEffect(() => {
     try {
@@ -69,8 +481,68 @@ export default function RescueTeamLeader({ teamId }) {
     }
   }, []);
 
+  useEffect(() => {
+    missionsRef.current = missions;
+  }, [missions]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+    try {
+      localStorage.setItem(
+        RESCUE_TEAM_NOTIFICATION_STORAGE_KEY,
+        JSON.stringify(notifications),
+      );
+    } catch (error) {
+      console.error("Save rescue team notifications failed:", error);
+    }
+  }, [notifications]);
+
   const getMissionId = (mission) =>
     mission?.rescueMissionID || mission?.rescueMissionId || mission?.id;
+
+  const getReliefOrderId = (mission) =>
+    mission?.reliefOrderID || mission?.reliefOrderId || mission?.orderID;
+
+  const getRequestId = (mission) =>
+    mission?.rescueRequestID ||
+    mission?.rescueRequestId ||
+    mission?.requestID ||
+    mission?.rescueRequest?.rescueRequestID ||
+    mission?.rescueRequest?.rescueRequestId;
+
+  const matchesMissionIdentifiers = (mission, identifiers = {}) =>
+    sameValue(getMissionId(mission), identifiers?.rescueMissionID) ||
+    sameValue(getReliefOrderId(mission), identifiers?.reliefOrderID) ||
+    sameValue(getRequestId(mission), identifiers?.rescueRequestID);
+
+  const findMissionByIdentifiers = (missionList = [], identifiers = {}) =>
+    missionList.find((mission) => matchesMissionIdentifiers(mission, identifiers));
+
+  const getMissionIdentifiers = (mission = {}) => ({
+    rescueMissionID: getMissionId(mission),
+    reliefOrderID: getReliefOrderId(mission),
+    rescueRequestID: getRequestId(mission),
+  });
+
+  const getPreparedOrderTeamId = (source = {}) =>
+    pickFirstValue(
+      source?.rescueTeamID,
+      source?.RescueTeamID,
+      source?.rescueTeamId,
+      source?.RescueTeamId,
+      source?.assignedTeamID,
+      source?.AssignedTeamID,
+      source?.assignedTeamId,
+      source?.AssignedTeamId,
+      source?.teamID,
+      source?.TeamID,
+      source?.teamId,
+      source?.TeamId,
+      source?.team?.rescueTeamID,
+      source?.team?.rescueTeamId,
+      source?.assignedTeam?.rescueTeamID,
+      source?.assignedTeam?.rescueTeamId,
+    );
 
   const getCitizenName = (mission) => {
     return (
@@ -136,6 +608,11 @@ export default function RescueTeamLeader({ teamId }) {
     return normalizeStatus(rawStatus);
   };
 
+  const isActivePickupMission = (mission) => {
+    const status = getMissionStatus(mission);
+    return status === "Assigned" || status === "InProgress";
+  };
+
   const isValidCoord = (lat, lng) => {
     if (lat == null || lng == null) return false;
     const latNum = Number(lat);
@@ -163,8 +640,7 @@ export default function RescueTeamLeader({ teamId }) {
         detail?.rescueRequest ||
         mission?.rescueRequest ||
         {};
-
-      return {
+      const enrichedMission = {
         ...mission,
         ...detail,
         rescueRequest: {
@@ -292,6 +768,45 @@ export default function RescueTeamLeader({ teamId }) {
 
         teamName: mission?.teamName || detail?.teamName || null,
       };
+
+      let resolvedPickupInfo = mergePickupInfo(mission, detail, requestInfo);
+      const reliefOrderId = getReliefOrderId(enrichedMission);
+
+      if (
+        reliefOrderId &&
+        (!resolvedPickupInfo?.pickupAddress ||
+          resolvedPickupInfo?.pickupLatitude == null ||
+          resolvedPickupInfo?.pickupLongitude == null ||
+          !resolvedPickupInfo?.warehouseName)
+      ) {
+        try {
+          const orderDetail = reliefOrderId
+            ? await reliefOrdersService.getById(reliefOrderId)
+            : null;
+          resolvedPickupInfo = mergePickupInfo(
+            resolvedPickupInfo,
+            orderDetail,
+          );
+        } catch (orderError) {
+          console.warn("Load relief order detail for pickup failed:", orderError);
+        }
+      }
+
+      if (resolvedPickupInfo?.warehouseID && !resolvedPickupInfo?.pickupAddress) {
+        try {
+          const warehouseDetail = await getWarehouseById(
+            resolvedPickupInfo.warehouseID,
+          );
+          resolvedPickupInfo = mergePickupInfo(
+            resolvedPickupInfo,
+            warehouseDetail,
+          );
+        } catch (warehouseError) {
+          console.warn("Load warehouse detail failed:", warehouseError);
+        }
+      }
+
+      return mergePickupInfoIntoMission(enrichedMission, resolvedPickupInfo);
     } catch (err) {
       console.error("Enrich mission detail error:", missionId, err);
       return mission;
@@ -375,8 +890,263 @@ export default function RescueTeamLeader({ teamId }) {
     );
   };
 
-  const loadMissions = async () => {
-    if (!teamId || loading) return;
+  const applyMissionGroups = (missionList = [], options = {}) => {
+    const { suppressPickupNotifications = false } = options;
+    const previousMissions = missionsRef.current;
+    const assignedList = missionList.filter(
+      (mission) => getMissionStatus(mission) === "Assigned",
+    );
+    const inProgressList = missionList.filter(
+      (mission) => getMissionStatus(mission) === "InProgress",
+    );
+    const completedList = missionList
+      .filter((mission) => getMissionStatus(mission) === "Completed")
+      .sort(
+        (left, right) =>
+          new Date(right?.completedAt || right?.endTime || 0) -
+          new Date(left?.completedAt || left?.endTime || 0),
+      );
+
+    setMissions(missionList);
+    setAssigned(assignedList);
+    setInProgress(inProgressList);
+    setCompleted(completedList);
+    missionsRef.current = missionList;
+
+    if (!suppressPickupNotifications) {
+      missionList.forEach((mission) => {
+        if (!isActivePickupMission(mission) || !hasPickupInfo(mission)) {
+          return;
+        }
+
+        const identifiers = getMissionIdentifiers(mission);
+        if (!identifiers.reliefOrderID && !identifiers.rescueMissionID) {
+          return;
+        }
+
+        const previousMission = findMissionByIdentifiers(
+          previousMissions,
+          identifiers,
+        );
+
+        if (previousMission && hasPickupInfo(previousMission)) {
+          return;
+        }
+
+        const notification = buildPreparedOrderNotification({
+          reliefOrderId: identifiers.reliefOrderID,
+          rescueMissionID: identifiers.rescueMissionID,
+          managerName: "Manager",
+          pickupInfo: mergePickupInfo(mission),
+        });
+        const alreadyExists = notificationsRef.current.some(
+          (item) => String(item.id) === String(notification.id),
+        );
+
+        setNotifications((previousNotifications) =>
+          mergeNotifications(previousNotifications, [notification]),
+        );
+
+        if (previousMissions.length > 0 && !alreadyExists) {
+          toast.success(notification.message);
+        }
+      });
+    }
+
+    return missionList;
+  };
+
+  const updateMissionDataWithPickupInfo = (pickupInfo, identifiers = {}) => {
+    const resolvedPickupInfo = mergePickupInfo(pickupInfo);
+    if (!resolvedPickupInfo) return;
+
+    const mergeList = (missionList = []) =>
+      missionList.map((mission) =>
+        matchesMissionIdentifiers(mission, identifiers)
+          ? mergePickupInfoIntoMission(mission, resolvedPickupInfo)
+          : mission,
+      );
+
+    setMissions((previousMissions) => {
+      const nextMissions = mergeList(previousMissions);
+      missionsRef.current = nextMissions;
+      return nextMissions;
+    });
+    setAssigned((previousMissions) => mergeList(previousMissions));
+    setInProgress((previousMissions) => mergeList(previousMissions));
+    setCompleted((previousMissions) => mergeList(previousMissions));
+    setSelectedMission((previousMission) =>
+      previousMission && matchesMissionIdentifiers(previousMission, identifiers)
+        ? mergePickupInfoIntoMission(previousMission, resolvedPickupInfo)
+        : previousMission,
+    );
+  };
+
+  const resolvePreparedOrderContext = async (data = {}) => {
+    const identifiers = {
+      reliefOrderID: pickFirstValue(
+        data?.reliefOrderID,
+        data?.ReliefOrderID,
+        data?.reliefOrderId,
+        data?.ReliefOrderId,
+        data?.id,
+        data?.ID,
+      ),
+      rescueMissionID: pickFirstValue(
+        data?.rescueMissionID,
+        data?.RescueMissionID,
+        data?.rescueMissionId,
+        data?.RescueMissionId,
+        data?.missionID,
+        data?.MissionID,
+      ),
+      rescueRequestID: pickFirstValue(
+        data?.rescueRequestID,
+        data?.RescueRequestID,
+        data?.rescueRequestId,
+        data?.RescueRequestId,
+        data?.requestID,
+        data?.RequestID,
+      ),
+    };
+
+    let matchedMission = findMissionByIdentifiers(
+      missionsRef.current,
+      identifiers,
+    );
+    let resolvedPickupInfo = mergePickupInfo(data, matchedMission);
+
+    if (identifiers.rescueMissionID) {
+      try {
+        const missionResponse = await rescueMissionService.getById(
+          identifiers.rescueMissionID,
+        );
+        const missionDetail =
+          missionResponse?.content || missionResponse?.data || missionResponse || {};
+
+        matchedMission = mergePickupInfoIntoMission(
+          matchedMission || missionDetail,
+          missionDetail,
+        );
+        resolvedPickupInfo = mergePickupInfo(
+          resolvedPickupInfo,
+          missionDetail,
+        );
+      } catch (missionError) {
+        console.warn("Load mission detail for prepared order failed:", missionError);
+      }
+    }
+
+    let orderDetail = null;
+    const needsOrderContext = Boolean(
+      identifiers.reliefOrderID &&
+        (!resolvedPickupInfo?.pickupAddress ||
+          resolvedPickupInfo?.pickupLatitude == null ||
+          resolvedPickupInfo?.pickupLongitude == null ||
+          !resolvedPickupInfo?.warehouseName),
+    );
+
+    if (needsOrderContext) {
+      try {
+        orderDetail = await reliefOrdersService.getById(identifiers.reliefOrderID);
+        identifiers.rescueMissionID =
+          identifiers.rescueMissionID ||
+          pickFirstValue(orderDetail?.rescueMissionID, orderDetail?.rescueMissionId);
+        identifiers.rescueRequestID =
+          identifiers.rescueRequestID ||
+          pickFirstValue(orderDetail?.rescueRequestID, orderDetail?.rescueRequestId);
+
+        matchedMission =
+          matchedMission ||
+          findMissionByIdentifiers(missionsRef.current, identifiers) ||
+          matchedMission;
+        resolvedPickupInfo = mergePickupInfo(resolvedPickupInfo, orderDetail);
+      } catch (orderError) {
+        console.warn("Load relief order detail for prepared order failed:", orderError);
+      }
+    }
+
+    const warehouseId = pickFirstValue(
+      resolvedPickupInfo?.warehouseID,
+      data?.warehouseID,
+      data?.warehouseId,
+      matchedMission?.warehouseID,
+      matchedMission?.warehouseId,
+      orderDetail?.warehouseID,
+      orderDetail?.warehouseId,
+    );
+
+    if (
+      warehouseId &&
+      (!resolvedPickupInfo?.pickupAddress ||
+        resolvedPickupInfo?.pickupLatitude == null ||
+        resolvedPickupInfo?.pickupLongitude == null ||
+        !resolvedPickupInfo?.warehouseName)
+    ) {
+      try {
+        const warehouseDetail = await getWarehouseById(warehouseId);
+        resolvedPickupInfo = mergePickupInfo(
+          resolvedPickupInfo,
+          warehouseDetail,
+        );
+      } catch (warehouseError) {
+        console.warn("Load warehouse detail for prepared order failed:", warehouseError);
+      }
+    }
+
+    return {
+      identifiers,
+      matchedMission:
+        matchedMission && hasPickupInfo(resolvedPickupInfo)
+          ? mergePickupInfoIntoMission(matchedMission, resolvedPickupInfo)
+          : matchedMission,
+      pickupInfo: resolvedPickupInfo,
+    };
+  };
+
+  const buildPreparedOrderNotification = ({
+    reliefOrderId,
+    rescueMissionID,
+    managerName,
+    pickupInfo,
+  }) => {
+    const actor = managerName || "Manager";
+    const pickupAddressText =
+      pickupInfo?.pickupAddress ||
+      pickupInfo?.warehouseName ||
+      getPickupDisplayText(pickupInfo);
+    const locationNote = pickupAddressText
+      ? ` Địa chỉ kho: ${pickupAddressText}.`
+      : "";
+
+    return {
+      id: `order-prepared-${reliefOrderId || rescueMissionID || Date.now()}`,
+      type: "pickup",
+      title: "Đơn supply đã sẵn sàng",
+      message: reliefOrderId
+        ? `${actor} đã hoàn thành đơn supply #${reliefOrderId}.${locationNote}`
+        : `${actor} đã hoàn thành đơn supply cho đội của bạn.${locationNote}`,
+      reliefOrderId: reliefOrderId || "",
+      reliefOrderID: reliefOrderId || "",
+      rescueMissionID: rescueMissionID || "",
+      warehouseID: pickupInfo?.warehouseID ?? null,
+      warehouseName: pickupInfo?.warehouseName || "",
+      pickupAddress: pickupInfo?.pickupAddress || "",
+      pickupLatitude: pickupInfo?.pickupLatitude ?? null,
+      pickupLongitude: pickupInfo?.pickupLongitude ?? null,
+      timestamp: createNotificationTimestamp(),
+      createdAt: new Date().toISOString(),
+      read: false,
+    };
+  };
+
+  const loadMissions = async (options = {}) => {
+    const { force = false, suppressPickupNotifications = false } = options;
+
+    if (!teamId || (!force && loading)) {
+      return missionsRef.current;
+    }
+
     setLoading(true);
 
     try {
@@ -403,27 +1173,12 @@ export default function RescueTeamLeader({ teamId }) {
       const enrichedMissions = await Promise.all(
         missionList.map(enrichMissionDetail),
       );
-
-      const assignedList = enrichedMissions.filter(
-        (m) => getMissionStatus(m) === "Assigned",
-      );
-      const inProgressList = enrichedMissions.filter(
-        (m) => getMissionStatus(m) === "InProgress",
-      );
-      const completedList = enrichedMissions
-        .filter((m) => getMissionStatus(m) === "Completed")
-        .sort(
-          (a, b) =>
-            new Date(b?.completedAt || b?.endTime || 0) -
-            new Date(a?.completedAt || a?.endTime || 0),
-        );
-
-      setMissions(enrichedMissions);
-      setAssigned(assignedList);
-      setInProgress(inProgressList);
-      setCompleted(completedList);
+      return applyMissionGroups(enrichedMissions, {
+        suppressPickupNotifications,
+      });
     } catch (err) {
       console.error("Load mission error:", err?.message);
+      return missionsRef.current;
     } finally {
       setLoading(false);
     }
@@ -442,7 +1197,7 @@ export default function RescueTeamLeader({ teamId }) {
     }
 
     const intervalId = window.setInterval(() => {
-      Promise.allSettled([loadMissions(), loadIncidentReports()]).then((results) => {
+      Promise.allSettled([loadMissions({ force: true }), loadIncidentReports()]).then((results) => {
         results.forEach((result) => {
           if (result.status === "rejected") {
             console.warn("[RescueTeamLeader] Auto refresh failed:", result.reason);
@@ -455,9 +1210,10 @@ export default function RescueTeamLeader({ teamId }) {
   }, [teamId]);
 
   useEffect(() => {
-    const handleMissionNotification = () => loadMissions();
+    const handleMissionNotification = () => loadMissions({ force: true });
 
-    const handleOrderPrepared = (data) => {
+    const handlePreparedOrderUpdate = async (data = {}, options = {}) => {
+      const showToast = options?.showToast !== false;
       const reliefOrderId =
         data?.reliefOrderID ||
         data?.ReliefOrderID ||
@@ -466,6 +1222,7 @@ export default function RescueTeamLeader({ teamId }) {
         data?.id ||
         data?.ID ||
         "";
+      const eventTeamId = getPreparedOrderTeamId(data);
       const managerName =
         data?.managerName ||
         data?.ManagerName ||
@@ -473,18 +1230,122 @@ export default function RescueTeamLeader({ teamId }) {
         data?.PreparedBy ||
         "Manager";
 
-      console.log("OrderPrepared:", data);
-      loadMissions();
-      toast.success(
-        reliefOrderId
-          ? `${managerName} đã chuẩn bị xong đơn supply #${reliefOrderId}.`
-          : `${managerName} đã chuẩn bị xong đơn supply cho đội của bạn.`,
+      const preparedOrderContext = await resolvePreparedOrderContext(data);
+      const knownMission =
+        preparedOrderContext.matchedMission ||
+        findMissionByIdentifiers(
+          missionsRef.current,
+          preparedOrderContext.identifiers,
+        );
+      const shouldHandleEvent =
+        sameValue(eventTeamId, teamId) || Boolean(knownMission);
+
+      if (!shouldHandleEvent) {
+        return false;
+      }
+
+      const refreshedMissions =
+        options?.refreshMissions === false
+          ? missionsRef.current
+          : await loadMissions({
+              force: true,
+              suppressPickupNotifications: true,
+            });
+      const refreshedMission = findMissionByIdentifiers(
+        refreshedMissions,
+        preparedOrderContext.identifiers,
       );
+      const pickupInfo = mergePickupInfo(
+        preparedOrderContext.pickupInfo,
+        preparedOrderContext.matchedMission,
+        refreshedMission,
+        data,
+      );
+
+      if (pickupInfo) {
+        updateMissionDataWithPickupInfo(
+          pickupInfo,
+          preparedOrderContext.identifiers,
+        );
+      }
+
+      const notification = buildPreparedOrderNotification({
+        reliefOrderId,
+        rescueMissionID: preparedOrderContext.identifiers?.rescueMissionID,
+        managerName,
+        pickupInfo,
+      });
+
+      let shouldShowToast = false;
+      setNotifications((previousNotifications) => {
+        shouldShowToast =
+          showToast &&
+          !previousNotifications.some(
+            (item) => String(item.id) === String(notification.id),
+          );
+
+        return mergeNotifications(previousNotifications, [notification]);
+      });
+
+      if (shouldShowToast) {
+        toast.success(notification.message);
+      }
+
+      return true;
+    };
+
+    const handleOrderPrepared = async (data) => {
+      console.log("OrderPrepared:", data);
+      await handlePreparedOrderUpdate(data);
+    };
+
+    const handleReceiveOrderResponse = async (data) => {
+      console.log("ReceiveOrderResponse:", data);
+      const handled = await handlePreparedOrderUpdate(data);
+
+      if (!handled) {
+        await loadMissions({ force: true });
+      }
+    };
+
+    const syncSharedPreparedOrderEvents = async (
+      rawValue,
+      { showToast = false } = {},
+    ) => {
+      try {
+        const parsedValue =
+          typeof rawValue === "string" ? JSON.parse(rawValue) : rawValue;
+        const sharedEvents = Array.isArray(parsedValue) ? parsedValue : [];
+        const relevantEvents = sharedEvents
+          .filter((entry) => entry && sameValue(getPreparedOrderTeamId(entry), teamId))
+          .sort(
+            (left, right) =>
+              new Date(left?.createdAt || 0).getTime() -
+              new Date(right?.createdAt || 0).getTime(),
+          );
+
+        for (const entry of relevantEvents) {
+          await handlePreparedOrderUpdate(entry, {
+            showToast,
+            refreshMissions: false,
+          });
+        }
+      } catch (error) {
+        console.warn("Sync shared prepared order events failed:", error);
+      }
+    };
+
+    const handleSharedPreparedOrderStorage = (event) => {
+      if (event.key !== SHARED_PREPARED_ORDER_STORAGE_KEY) {
+        return;
+      }
+
+      void syncSharedPreparedOrderEvents(event.newValue, { showToast: true });
     };
 
     const handleIncidentResolved = async (data) => {
       console.log("IncidentResolved:", data);
-      await loadMissions();
+      await loadMissions({ force: true });
       await loadIncidentReports();
       window.alert(
         "Điều phối viên đã xử lý sự cố. Nhiệm vụ này sẽ được thu hồi để điều phối lại.",
@@ -503,8 +1364,16 @@ export default function RescueTeamLeader({ teamId }) {
           handleOrderPrepared,
         );
         await signalRService.on(
+          CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+          handleReceiveOrderResponse,
+        );
+        await signalRService.on(
           CLIENT_EVENTS.INCIDENT_RESOLVED,
           handleIncidentResolved,
+        );
+        window.addEventListener("storage", handleSharedPreparedOrderStorage);
+        await syncSharedPreparedOrderEvents(
+          localStorage.getItem(SHARED_PREPARED_ORDER_STORAGE_KEY),
         );
       } catch (err) {
         console.error("SignalR init error in RescueTeamLeader:", err);
@@ -520,11 +1389,77 @@ export default function RescueTeamLeader({ teamId }) {
       );
       signalRService.off(CLIENT_EVENTS.ORDER_PREPARED, handleOrderPrepared);
       signalRService.off(
+        CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+        handleReceiveOrderResponse,
+      );
+      signalRService.off(
         CLIENT_EVENTS.INCIDENT_RESOLVED,
         handleIncidentResolved,
       );
+      window.removeEventListener("storage", handleSharedPreparedOrderStorage);
     };
   }, [teamId]);
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((previousNotifications) =>
+      previousNotifications.map((notification) => ({
+        ...notification,
+        read: true,
+      })),
+    );
+  };
+
+  const removeNotification = (notificationId) => {
+    setNotifications((previousNotifications) =>
+      previousNotifications.filter(
+        (notification) => notification.id !== notificationId,
+      ),
+    );
+  };
+
+  const openNotificationDetail = async (notification) => {
+    if (!notification) return;
+
+    setNotifications((previousNotifications) =>
+      previousNotifications.map((item) =>
+        item.id === notification.id ? { ...item, read: true } : item,
+      ),
+    );
+    setShowNotifications(false);
+
+    const identifiers = {
+      rescueMissionID: notification?.rescueMissionID,
+      reliefOrderID: notification?.reliefOrderId || notification?.reliefOrderID,
+    };
+
+    let mission = findMissionByIdentifiers(missionsRef.current, identifiers);
+
+    if (!mission) {
+      const refreshedMissions = await loadMissions({ force: true });
+      mission = findMissionByIdentifiers(refreshedMissions, identifiers);
+    }
+
+    if (mission) {
+      handleShowDetail(mission);
+      return;
+    }
+
+    const pickupInfo = mergePickupInfo(notification);
+    if (pickupInfo) {
+      handleShowDetail(
+        mergePickupInfoIntoMission(
+          {
+            rescueMissionID: notification?.rescueMissionID || "",
+            reliefOrderID:
+              notification?.reliefOrderId || notification?.reliefOrderID || "",
+            citizenName: notification?.title || "Đơn supply",
+            description: notification?.message || "",
+          },
+          pickupInfo,
+        ),
+      );
+    }
+  };
 
   const handleShowDetail = (mission) => {
     setSelectedMission(mission);
@@ -550,7 +1485,7 @@ export default function RescueTeamLeader({ teamId }) {
   const handleIncidentSubmit = async (formData) => {
     try {
       await incidentReportService.reportIncident(formData);
-      await loadMissions();
+      await loadMissions({ force: true });
       await loadIncidentReports();
       setShowIncidentModal(false);
       setSelectedMission(null);
@@ -576,7 +1511,7 @@ export default function RescueTeamLeader({ teamId }) {
       });
 
       if (res?.success) {
-        await loadMissions();
+        await loadMissions({ force: true });
       } else {
         console.error(res?.message || "Accept failed");
       }
@@ -608,7 +1543,7 @@ export default function RescueTeamLeader({ teamId }) {
       });
 
       if (res?.success) {
-        await loadMissions();
+        await loadMissions({ force: true });
       } else {
         console.error(res?.message || "Reject failed");
       }
@@ -637,7 +1572,7 @@ export default function RescueTeamLeader({ teamId }) {
         reliefOrderID,
       });
 
-      await loadMissions();
+      await loadMissions({ force: true });
     } catch (err) {
       console.error("Confirm pickup error:", err);
     }
@@ -660,10 +1595,29 @@ export default function RescueTeamLeader({ teamId }) {
       }
 
       await completeMission(missionId);
-      await loadMissions();
+      await loadMissions({ force: true });
     } catch (err) {
       console.error("Complete mission error:", err);
     }
+  };
+
+  const renderPickupSummary = (mission) => {
+    const pickupInfo = mergePickupInfo(mission);
+    const pickupLabel =
+      pickupInfo?.pickupAddress ||
+      pickupInfo?.warehouseName ||
+      getPickupDisplayText(mission);
+
+    if (!pickupLabel) {
+      return null;
+    }
+
+    return (
+      <div className="pickup-summary-card">
+        <p className="pickup-summary-title">Điểm lấy hàng</p>
+        {pickupLabel && <p className="pickup-summary-copy">{pickupLabel}</p>}
+      </div>
+    );
   };
 
   const mapMissions = useMemo(() => {
@@ -671,13 +1625,34 @@ export default function RescueTeamLeader({ teamId }) {
     return all.filter((m) => isValidCoord(getLatitude(m), getLongitude(m)));
   }, [assigned, inProgress, completed]);
 
-  const defaultCenter =
+  const unreadNotificationCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
+
+  const firstMapPoint =
     mapMissions.length > 0
+      ? {
+          latitude: Number(getLatitude(mapMissions[0])),
+          longitude: Number(getLongitude(mapMissions[0])),
+        }
+      : null;
+
+  const defaultCenter =
+    firstMapPoint
       ? [
-          Number(getLatitude(mapMissions[0])),
-          Number(getLongitude(mapMissions[0])),
+          Number(firstMapPoint.latitude),
+          Number(firstMapPoint.longitude),
         ]
       : [10.8231, 106.6297];
+
+  const getNotificationStyleMeta = (type) => {
+    switch (type) {
+      case "pickup":
+        return { bg: "#fff7ed", border: "#f97316", icon: "\uD83D\uDCE6" };
+      default:
+        return { bg: "#eff6ff", border: "#2563eb", icon: "\uD83D\uDD14" };
+    }
+  };
 
   const navigate = useNavigate();
   const handleLogout = () => {
@@ -695,9 +1670,105 @@ export default function RescueTeamLeader({ teamId }) {
             <div>
               <div className="dashboard-header-top">
                 <h1 className="dashboard-title">Dashboard trưởng đội cứu hộ</h1>
-                <button className="logout-btn2" onClick={handleLogout}>
+                <div className="dashboard-header-actions">
+                  <div className="rescue-notification-container">
+                    <button
+                      className={`rescue-notification-bell ${
+                        unreadNotificationCount > 0 ? "active" : ""
+                      }`}
+                      type="button"
+                      onClick={() => setShowNotifications((previous) => !previous)}
+                    >
+                      <FaBell className="rescue-notification-bell-icon" />
+                      {unreadNotificationCount > 0 && (
+                        <span className="rescue-notification-badge">
+                          {unreadNotificationCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {showNotifications && (
+                      <div className="rescue-notification-panel">
+                        <div className="rescue-notification-header">
+                          <h3>Thông báo ({notifications.length})</h3>
+                          <button
+                            className="rescue-notification-mark-all"
+                            type="button"
+                            onClick={markAllNotificationsAsRead}
+                          >
+                            Đánh dấu đã đọc
+                          </button>
+                        </div>
+
+                        <div className="rescue-notification-list">
+                          {notifications.length === 0 ? (
+                            <div className="rescue-no-notifications">
+                              Chưa có thông báo mới
+                            </div>
+                          ) : (
+                            notifications.map((notification) => {
+                              const styleMeta = getNotificationStyleMeta(
+                                notification.type,
+                              );
+
+                              return (
+                                <div
+                                  key={notification.id}
+                                  className={`rescue-notification-item ${
+                                    notification.read ? "read" : "unread"
+                                  }`}
+                                  style={{
+                                    backgroundColor: styleMeta.bg,
+                                    borderLeft: `4px solid ${styleMeta.border}`,
+                                  }}
+                                >
+                                  <div className="rescue-notification-icon">
+                                    {styleMeta.icon}
+                                  </div>
+
+                                  <div className="rescue-notification-content">
+                                    <h4>{notification.title}</h4>
+                                    <p>{notification.message}</p>
+
+                                    <div className="rescue-notification-footer">
+                                      <span className="rescue-notification-time">
+                                        {notification.timestamp}
+                                      </span>
+
+                                      <button
+                                        className="rescue-notification-action"
+                                        type="button"
+                                        onClick={() =>
+                                          openNotificationDetail(notification)
+                                        }
+                                      >
+                                        Xem chi tiết
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    className="rescue-notification-close"
+                                    type="button"
+                                    onClick={() =>
+                                      removeNotification(notification.id)
+                                    }
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button className="logout-btn2" onClick={handleLogout}>
                   🚪 Đăng xuất
                 </button>
+              </div>
               </div>
               <div className="a">
                 <p className="dashboard-sub">
@@ -787,6 +1858,8 @@ export default function RescueTeamLeader({ teamId }) {
                     </span>
                   </p>
 
+                  {renderPickupSummary(mission)}
+
                   <div className="btn-group">
                     <button
                       className="btn-accept"
@@ -861,6 +1934,8 @@ export default function RescueTeamLeader({ teamId }) {
                         "Chưa có địa chỉ"}
                     </span>
                   </p>
+
+                  {renderPickupSummary(mission)}
 
                   {(mission.reliefOrderID || mission.reliefOrderId) && (
                     <button
@@ -991,6 +2066,8 @@ export default function RescueTeamLeader({ teamId }) {
                             "Chưa có địa chỉ"}
                         </span>
                       </p>
+
+                      {renderPickupSummary(mission)}
 
                       <div className="btn-group">
                         <button
