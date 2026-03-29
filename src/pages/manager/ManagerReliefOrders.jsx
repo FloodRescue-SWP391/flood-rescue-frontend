@@ -582,6 +582,16 @@ const isMissionAcceptedStatus = (status) =>
     "done",
   ].some((value) => getOrderStatusToken(status).includes(value));
 
+const hasAcceptedMissionSignal = (order, locallyAcceptedOrderIds = []) => {
+  const reliefOrderId = String(order?.reliefOrderID || order?.reliefOrderId || "");
+
+  return (
+    Boolean(order?.acceptedAt) ||
+    isMissionAcceptedStatus(order?.missionStatus || order?.status) ||
+    (reliefOrderId !== "" && locallyAcceptedOrderIds.includes(reliefOrderId))
+  );
+};
+
 const isPreparedOrder = (order) =>
   Boolean(order?.preparedAt) ||
   ["prepared", "preparing", "ready", "confirmed"].some((value) =>
@@ -592,9 +602,11 @@ const canPrepareOrderLocally = ({
   order,
   orderStatus,
   hasAssignedTeam,
+  hasAcceptedMission,
 }) =>
   Boolean(order?.reliefOrderID) &&
   hasAssignedTeam &&
+  hasAcceptedMission &&
   !isPreparationLockedStatus(orderStatus);
 
 const getOrderItemKey = (item, index) =>
@@ -1102,6 +1114,7 @@ export default function ManagerReliefOrders() {
     }
   });
   const [showNotifications, setShowNotifications] = useState(false);
+  const [locallyAcceptedOrderIds, setLocallyAcceptedOrderIds] = useState([]);
   const [reliefItemCatalog, setReliefItemCatalog] = useState([]);
   const [warehouseOptions, setWarehouseOptions] = useState([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState(() =>
@@ -1433,19 +1446,27 @@ export default function ManagerReliefOrders() {
         normalizedOrder?.description || relatedRequest?.description,
         "Chưa có mô tả cung ứng.",
       );
+      const hasAcceptedMission = hasAcceptedMissionSignal(
+        normalizedOrder,
+        locallyAcceptedOrderIds,
+      );
       const canPrepare =
         normalizedOrder?.canPrepare === true ||
-        canPrepareOrderLocally({
-          order: normalizedOrder,
-          orderStatus,
-          hasAssignedTeam,
-        });
+        (normalizedOrder?.canPrepare === undefined &&
+          canPrepareOrderLocally({
+            order: normalizedOrder,
+            orderStatus,
+            hasAssignedTeam,
+            hasAcceptedMission,
+          }));
       const prepareDisabledReason = !normalizedOrder?.reliefOrderID
         ? "Don chua co ReliefOrderID hop le."
         : !hasAssignedTeam
           ? "Don chua duoc coordinator gan doi cuu ho."
         : isPreparationLockedStatus(orderStatus)
           ? "Don da qua buoc soan hoac da ban giao."
+        : normalizedOrder?.canPrepare !== true && !hasAcceptedMission
+          ? "Don chua duoc doi cuu ho chap nhan nhiem vu."
         : !canPrepare
           ? "Don chua du dieu kien de manager hoan thanh."
           : "";
@@ -1534,6 +1555,14 @@ export default function ManagerReliefOrders() {
         data,
         ordersSnapshotRef.current,
       );
+
+      if (reliefOrderId) {
+        setLocallyAcceptedOrderIds((prev) =>
+          prev.includes(String(reliefOrderId))
+            ? prev
+            : [...prev, String(reliefOrderId)],
+        );
+      }
 
       if (!reliefOrderId) {
         console.warn(
