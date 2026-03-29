@@ -292,13 +292,27 @@ const Dashboard = () => {
   const [userFullName, setUserFullName] = useState("");
 
   const moveRequestBackToPending = (incident) => {
-    const missionId = incident?.rescueMissionID;
+    const missionId =
+      incident?.rescueMissionID ??
+      incident?.RescueMissionID ??
+      incident?.missionId ??
+      incident?.MissionId;
 
-    if (!missionId) return;
+    const requestId =
+      incident?.rescueRequestID ??
+      incident?.RescueRequestID ??
+      incident?.requestId ??
+      incident?.RequestId;
+
+    if (!missionId && !requestId) return;
 
     setAllRequests((prev) =>
       prev.map((req) => {
-        if (String(req.rescueMissionId) !== String(missionId)) return req;
+        const matched =
+          (missionId && String(req.rescueMissionId) === String(missionId)) ||
+          (requestId && String(req.id) === String(requestId));
+
+        if (!matched) return req;
 
         const prevTeamId = req.assignedTeamId;
         const prevTeamName = req.assignedTeamName;
@@ -311,19 +325,58 @@ const Dashboard = () => {
           assignedTeamId: "",
           assignedTeamName: "",
           rescueMissionId: null,
-
-          rejectedTeamIds: [
-            ...(req.rejectedTeamIds || []),
-            ...(prevTeamId ? [prevTeamId] : []),
-          ],
-
-          rejectedTeamNames: [
-            ...(req.rejectedTeamNames || []),
-            ...(prevTeamName ? [prevTeamName] : []),
-          ],
+          isNew: true,
+          rejectedTeamIds: Array.from(
+            new Set([
+              ...(req.rejectedTeamIds || []),
+              ...(prevTeamId ? [String(prevTeamId)] : []),
+            ]),
+          ),
+          rejectedTeamNames: Array.from(
+            new Set([
+              ...(req.rejectedTeamNames || []),
+              ...(prevTeamName ? [prevTeamName] : []),
+            ]),
+          ),
         };
       }),
     );
+
+    setSelectedRequest((prev) => {
+      if (!prev) return prev;
+
+      const matched =
+        (missionId && String(prev.rescueMissionId) === String(missionId)) ||
+        (requestId && String(prev.id) === String(requestId));
+
+      if (!matched) return prev;
+
+      const prevTeamId = prev.assignedTeamId;
+      const prevTeamName = prev.assignedTeamName;
+
+      return {
+        ...prev,
+        status: "pending",
+        rawStatus: "Pending",
+        missionStatus: "",
+        assignedTeamId: "",
+        assignedTeamName: "",
+        rescueMissionId: null,
+        isNew: true,
+        rejectedTeamIds: Array.from(
+          new Set([
+            ...(prev.rejectedTeamIds || []),
+            ...(prevTeamId ? [String(prevTeamId)] : []),
+          ]),
+        ),
+        rejectedTeamNames: Array.from(
+          new Set([
+            ...(prev.rejectedTeamNames || []),
+            ...(prevTeamName ? [prevTeamName] : []),
+          ]),
+        ),
+      };
+    });
   };
 
   // Hàm lọc trạng thái
@@ -496,6 +549,7 @@ const Dashboard = () => {
       r.rescueMissionStatus;
 
     const uiStatus = mapStatusToUI(rawStatus, rawMissionStatus);
+    const isPendingAgain = uiStatus === "pending";
 
     const requestType =
       r.RescueType ??
@@ -503,6 +557,7 @@ const Dashboard = () => {
       r.RequestType ??
       r.requestType ??
       "Unknown";
+
     const createdTimeRaw = r.CreatedTime ?? r.createdTime ?? null;
 
     return {
@@ -526,10 +581,7 @@ const Dashboard = () => {
           ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
           : "Chưa có địa chỉ"),
 
-      location: {
-        lat,
-        lng,
-      },
+      location: { lat, lng },
 
       emergencyType: requestType,
       rescueType: requestType,
@@ -542,7 +594,6 @@ const Dashboard = () => {
       description: r.Description ?? r.description ?? "",
 
       status: uiStatus,
-
       rawStatus: rawStatus || "",
       missionStatus: rawMissionStatus || "",
 
@@ -572,21 +623,25 @@ const Dashboard = () => {
           ? "Medium"
           : "Critical"),
 
-      assignedTeamId:
-        r.RescueTeamID ??
-        r.rescueTeamID ??
-        r.AssignedTeamId ??
-        r.assignedTeamId ??
-        "",
+      assignedTeamId: isPendingAgain
+        ? ""
+        : (r.RescueTeamID ??
+          r.rescueTeamID ??
+          r.AssignedTeamId ??
+          r.assignedTeamId ??
+          ""),
 
-      assignedTeamName:
-        r.TeamName ??
-        r.teamName ??
-        r.AssignedTeamName ??
-        r.assignedTeamName ??
-        "",
+      assignedTeamName: isPendingAgain
+        ? ""
+        : (r.TeamName ??
+          r.teamName ??
+          r.AssignedTeamName ??
+          r.assignedTeamName ??
+          ""),
 
-      rescueMissionId: r.RescueMissionID ?? r.rescueMissionID ?? null,
+      rescueMissionId: isPendingAgain
+        ? null
+        : (r.RescueMissionID ?? r.rescueMissionID ?? null),
 
       rejectedTeamIds: Array.isArray(r.rejectedTeamIds)
         ? r.rejectedTeamIds
@@ -783,7 +838,11 @@ const Dashboard = () => {
 
       setAllRequests((prev) =>
         prev.map((r) => {
-          if (String(r.requestId) !== String(code)) return r;
+          const matched =
+            String(r.requestId) === String(code) ||
+            (requestId && String(r.id) === String(requestId));
+
+          if (!matched) return r;
 
           if (!rejected) {
             return {
@@ -835,7 +894,11 @@ const Dashboard = () => {
           data.ShortCode ||
           "";
 
-        if (String(prev.requestId) !== String(code)) return prev;
+        const matched =
+          String(prev.requestId) === String(code) ||
+          (requestId && String(prev.id) === String(requestId));
+
+        if (!matched) return prev;
 
         if (!rejected) {
           return {
@@ -1001,23 +1064,9 @@ const Dashboard = () => {
     //   ]);
     // };
 
-    const handleIncidentReported = async (data) => {
-      console.log("IncidentReportedNotification:", data);
-
-      setPendingIncidents((prev) => [
-        {
-          incidentReportID: data.incidentReportID,
-          rescueMissionID: data.rescueMissionID,
-          teamName: data.teamName,
-          title: data.title,
-          description: data.description,
-          createdTime: new Date(data.createdTime),
-        },
-        ...prev,
-      ]);
+    const handleIncidentReported = async () => {
       await loadPendingIncidents();
     };
-
     // const handleNewRescueRequest = (data) => {
     //   console.log("🔔 NewRescueRequest event:", data);
 
@@ -1097,10 +1146,6 @@ const Dashboard = () => {
           CLIENT_EVENTS.NEW_RESCUE_REQUEST,
           handleNewRescueRequest,
         );
-        signalRService.on(
-        CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
-        handleTeamResponse,
-      )
       } catch (err) {
         console.error("❌ SignalR init error:", err);
       }
@@ -1130,10 +1175,6 @@ const Dashboard = () => {
       signalRService.off(
         CLIENT_EVENTS.NEW_RESCUE_REQUEST,
         handleNewRescueRequest,
-      );
-      signalRService.off(
-        CLIENT_EVENTS.RECEIVE_TEAM_RESPONSE,
-        handleTeamResponse,
       );
     };
   }, []);
@@ -1183,6 +1224,7 @@ const Dashboard = () => {
   }, []);
   const handleResolveIncident = async (incidentReportID) => {
     if (!incidentReportID) return;
+
     if (!resolveNote.trim()) {
       alert("Vui lòng nhập ghi chú của điều phối viên.");
       return;
@@ -1196,24 +1238,54 @@ const Dashboard = () => {
         (x) => String(x.incidentReportID) === String(incidentReportID),
       );
 
+      const incidentMissionId =
+        incident?.rescueMissionID ??
+        incident?.RescueMissionID ??
+        incident?.missionId ??
+        incident?.MissionId;
+
+      const incidentRequestId =
+        incident?.rescueRequestID ??
+        incident?.RescueRequestID ??
+        incident?.requestId ??
+        incident?.RequestId;
+
+      const relatedRequestBeforeResolve = allRequests.find(
+        (req) =>
+          (incidentMissionId &&
+            String(req.rescueMissionId) === String(incidentMissionId)) ||
+          (incidentRequestId && String(req.id) === String(incidentRequestId)),
+      );
+
       const res = await incidentReportService.resolveIncident({
         incidentReportID,
         coordinatorNote: resolveNote.trim(),
       });
 
-      // 🔥 THÊM DÒNG NÀY
       moveRequestBackToPending(incident);
 
       alert(res?.message || "Xử lý sự cố thành công.");
 
       setResolveNote("");
       setSelectedIncident(null);
+      setRequestStatusTab("new");
+      setSelectedTeamId("");
+      setDispatchError("");
+      setDispatchSuccess("");
 
-      // 👇 chuyển UI luôn
-      setRequestBoxType("rejected");
+      const relatedType =
+        relatedRequestBeforeResolve?.requestType ??
+        incident?.requestType ??
+        incident?.RequestType ??
+        "";
+
+      setRequestBoxType(
+        String(relatedType).toLowerCase() === "supply" ? "supply" : "rescue",
+      );
 
       await loadPendingIncidents();
       await loadIncidentHistory();
+      await loadRealRequests();
     } catch (e) {
       console.error(e);
       setIncidentError("Không thể xử lý sự cố.");
@@ -1368,23 +1440,55 @@ const Dashboard = () => {
 
       if (!Array.isArray(data)) {
         setAllRequests([]);
+        setSelectedRequest(null);
         return;
       }
 
-      const mapped = data
-        .map(mapRequestToUI)
-        .filter(
-          (item) =>
-            item?.id &&
-            Number.isFinite(item?.location?.lat) &&
-            Number.isFinite(item?.location?.lng),
+      let latestMapped = [];
+
+      setAllRequests((prev) => {
+        latestMapped = data
+          .map(mapRequestToUI)
+          .map((item) => {
+            const oldItem = prev.find(
+              (req) => String(req.id) === String(item.id),
+            );
+
+            return {
+              ...item,
+              rejectedTeamIds:
+                item.rejectedTeamIds?.length > 0
+                  ? item.rejectedTeamIds
+                  : oldItem?.rejectedTeamIds || [],
+              rejectedTeamNames:
+                item.rejectedTeamNames?.length > 0
+                  ? item.rejectedTeamNames
+                  : oldItem?.rejectedTeamNames || [],
+            };
+          })
+          .filter(
+            (item) =>
+              item?.id &&
+              Number.isFinite(item?.location?.lat) &&
+              Number.isFinite(item?.location?.lng),
+          );
+
+        return latestMapped;
+      });
+
+      console.log("Requests mapped:", latestMapped);
+
+      setSelectedRequest((prev) => {
+        if (!prev) return prev;
+
+        const fresh = latestMapped.find(
+          (item) => String(item.id) === String(prev.id),
         );
 
-      console.log("Requests mapped:", mapped);
+        return fresh || null;
+      });
 
-      setAllRequests(mapped);
-
-      const unresolvedNotifications = mapped
+      const unresolvedNotifications = latestMapped
         .filter((item) => isUnprocessedStatus(item.status))
         .map((item) => ({
           id: `req-${item.id}`,
@@ -1411,7 +1515,7 @@ const Dashboard = () => {
         const merged = mergeNotifications(prev, unresolvedNotifications);
 
         return merged.filter((noti) => {
-          const matched = mapped.find(
+          const matched = latestMapped.find(
             (req) =>
               String(req.requestId) === String(noti.requestId) ||
               String(req.id) === String(noti.rawRequestId),
@@ -1425,6 +1529,7 @@ const Dashboard = () => {
     } catch (error) {
       console.warn("Load rescue requests failed:", error);
       setAllRequests([]);
+      setSelectedRequest(null);
     }
   };
 
@@ -1703,8 +1808,13 @@ const Dashboard = () => {
     setNotifications((prev) => prev.filter((noti) => noti.id !== id));
   };
 
-  const goToRequestFromNotification = (requestId) => {
-    const request = allRequests.find((req) => req.requestId === requestId);
+  const goToRequestFromNotification = (requestId, rawRequestId = null) => {
+    const request = allRequests.find(
+      (req) =>
+        String(req.requestId) === String(requestId) ||
+        (rawRequestId && String(req.id) === String(rawRequestId)),
+    );
+
     if (request) {
       handleRequestClick(request);
       setShowNotifications(false);
@@ -1900,6 +2010,7 @@ const Dashboard = () => {
                                 onClick={() =>
                                   goToRequestFromNotification(
                                     notification.requestId,
+                                    notification.rawRequestId,
                                   )
                                 }
                               >
@@ -2675,7 +2786,10 @@ const Dashboard = () => {
               <div
                 key={incident.incidentReportID}
                 className={`incident-card ${selectedIncident?.incidentReportID === incident.incidentReportID ? "selected" : ""}`}
-                onClick={() => setSelectedIncident(incident)}
+                onClick={() => {
+                  setSelectedIncident(incident);
+                  setResolveNote("");
+                }}
               >
                 <div className="incident-card-header">
                   <div className="incident-id">
