@@ -135,6 +135,71 @@ export default function RequestDetailModal({
     "N/A",
   );
 
+  const pickupWarehouseName = pick(
+    requestData?.warehouseName,
+    requestData?.pickupWarehouseName,
+    requestData?.warehouse?.warehouseName,
+    requestData?.warehouse?.name,
+    missionData?.warehouseName,
+    missionData?.pickupWarehouseName,
+    missionData?.warehouse?.warehouseName,
+    missionData?.warehouse?.name,
+    "",
+  );
+
+  const pickupAddress = pick(
+    requestData?.pickupAddress,
+    requestData?.warehouseAddress,
+    requestData?.pickupLocationAddress,
+    requestData?.warehouse?.address,
+    missionData?.pickupAddress,
+    missionData?.warehouseAddress,
+    missionData?.pickupLocationAddress,
+    missionData?.warehouse?.address,
+    "",
+  );
+
+  const pickupLatitude = pick(
+    requestData?.pickupLatitude,
+    requestData?.pickupLat,
+    requestData?.warehouseLatitude,
+    requestData?.warehouseLat,
+    requestData?.warehouse?.locationLat,
+    requestData?.warehouse?.latitude,
+    missionData?.pickupLatitude,
+    missionData?.pickupLat,
+    missionData?.warehouseLatitude,
+    missionData?.warehouseLat,
+    missionData?.warehouse?.locationLat,
+    missionData?.warehouse?.latitude,
+    "N/A",
+  );
+
+  const pickupLongitude = pick(
+    requestData?.pickupLongitude,
+    requestData?.pickupLong,
+    requestData?.pickupLng,
+    requestData?.warehouseLongitude,
+    requestData?.warehouseLong,
+    requestData?.warehouseLng,
+    requestData?.warehouse?.locationLong,
+    requestData?.warehouse?.longitude,
+    missionData?.pickupLongitude,
+    missionData?.pickupLong,
+    missionData?.pickupLng,
+    missionData?.warehouseLongitude,
+    missionData?.warehouseLong,
+    missionData?.warehouseLng,
+    missionData?.warehouse?.locationLong,
+    missionData?.warehouse?.longitude,
+    "N/A",
+  );
+
+  const hasPickupPoint =
+    pickupAddress ||
+    pickupWarehouseName ||
+    (pickupLatitude !== "N/A" && pickupLongitude !== "N/A");
+
   const missionStatus = pick(
     missionData?.missionStatus,
     missionData?.status,
@@ -233,7 +298,7 @@ export default function RequestDetailModal({
           const displayAddress = data.display_name || "Không tìm thấy địa chỉ";
           addressCache.set(key, displayAddress);
           setResolvedAddress(displayAddress);
-        } catch (err) {
+        } catch {
           setResolvedAddress(`Tọa độ: ${lat}, ${lng}`);
         }
       };
@@ -253,7 +318,7 @@ export default function RequestDetailModal({
         timeStyle: "short",
         timeZone: "Asia/Ho_Chi_Minh",
       });
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };
@@ -373,6 +438,35 @@ export default function RequestDetailModal({
                   </div>
                 </div>
               </div>
+
+              {hasPickupPoint && (
+                <div className="detail-section modern-section">
+                  <div className="section-title-row">
+                    <h3>Điểm lấy hàng</h3>
+                  </div>
+
+                  <div className="detail-grid">
+                    <div className="detail-item card-style">
+                      <label>Kho</label>
+                      <p className="value">{pickupWarehouseName || "Kho cứu trợ"}</p>
+                    </div>
+
+                    <div className="detail-item full-width card-style">
+                      <label>Địa chỉ lấy hàng</label>
+                      <p className="value">
+                        <FaMapMarkerAlt />{" "}
+                        {pickupAddress ? (
+                          <span>{pickupAddress}</span>
+                        ) : pickupLatitude !== "N/A" && pickupLongitude !== "N/A" ? (
+                          <AddressDisplay lat={pickupLatitude} lng={pickupLongitude} />
+                        ) : (
+                          <span>Chưa có địa chỉ kho</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="detail-section modern-section">
                 <div className="section-title-row">
