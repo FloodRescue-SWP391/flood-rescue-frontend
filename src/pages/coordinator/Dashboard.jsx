@@ -1433,8 +1433,33 @@ const Dashboard = () => {
 
       await loadRealRequests();
     } catch (e) {
-      console.error(e);
-      setDispatchError(e?.message || "Dispatch mission failed.");
+      const isSupplyOrder = isSupplyRequest(selectedRequest);
+
+      if (isSupplyOrder) {
+        console.error("[Coordinator] Tạo Relief Order thất bại.", {
+          endpoint: e?.endpoint || "/api/ReliefOrders",
+          payload: e?.requestPayload || {
+            rescueRequestID: selectedRequest?.id || null,
+            rescueTeamID: selectedTeamId || null,
+          },
+          status: e?.status || null,
+          message: e?.message || "Unknown error",
+          response: e?.payload || e?.rawText || null,
+        });
+      } else {
+        console.error("[Coordinator] Điều phối nhiệm vụ thất bại.", {
+          rescueRequestID: selectedRequest?.id || null,
+          rescueTeamID: selectedTeamId || null,
+          message: e?.message || "Unknown error",
+          response: e?.payload || e?.rawText || null,
+        });
+      }
+
+      setDispatchError(
+        isSupplyOrder
+          ? `Tạo Relief Order thất bại: ${e?.message || "Không rõ lỗi."}`
+          : e?.message || "Dispatch mission failed.",
+      );
     } finally {
       setDispatching(false);
     }
