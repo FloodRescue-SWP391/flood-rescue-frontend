@@ -16,7 +16,10 @@ import {
   normalizeRescueRequests,
   reliefOrdersService,
 } from "../../services/reliefOrdersService";
-import { getWarehouseById, getWarehouses } from "../../services/warehouseService";
+import {
+  getWarehouseById,
+  getWarehouses,
+} from "../../services/warehouseService";
 
 const DEFAULT_FILTERS = {
   statusesText: "Pending, Prepared",
@@ -70,9 +73,14 @@ const pickFirst = (source, keys, fallback = "") => {
 };
 
 const formatDisplayValue = (value, fallback = "Không rõ") =>
-  value !== undefined && value !== null && value !== "" ? String(value) : fallback;
+  value !== undefined && value !== null && value !== ""
+    ? String(value)
+    : fallback;
 
-const toComparable = (value) => String(value ?? "").trim().toLowerCase();
+const toComparable = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
 
 const valuesMatch = (left, right) =>
   Boolean(toComparable(left)) && toComparable(left) === toComparable(right);
@@ -235,7 +243,13 @@ const STATUS_FILTER_OPTIONS = [
   },
   {
     apiValue: "InProgress",
-    tokens: ["in_progress", "inprogress", "processing", "preparing", "dang_xu_ly"],
+    tokens: [
+      "in_progress",
+      "inprogress",
+      "processing",
+      "preparing",
+      "dang_xu_ly",
+    ],
   },
 ];
 
@@ -279,7 +293,9 @@ const matchesStatusFilters = (order, statuses = []) => {
     );
 
     if (matchedStatus) {
-      return matchedStatus.tokens.some((candidate) => orderToken.includes(candidate));
+      return matchedStatus.tokens.some((candidate) =>
+        orderToken.includes(candidate),
+      );
     }
 
     return orderToken.includes(token);
@@ -321,7 +337,9 @@ const isPermissionLikeError = (error) => {
   const status = Number(error?.status || 0);
   const message = String(error?.message || "");
 
-  return status === 403 || /\b403\b/.test(message) || /forbidden/i.test(message);
+  return (
+    status === 403 || /\b403\b/.test(message) || /forbidden/i.test(message)
+  );
 };
 
 const filterOrdersLocally = (orders, filters = {}) =>
@@ -374,16 +392,34 @@ const paginateOrders = (orders, pageNumber = 1, pageSize = 12) => {
 const normalizeInventoryOption = (item = {}, index = 0) => {
   const reliefItemID = pickFirst(
     item,
-    ["reliefItemID", "ReliefItemID", "reliefItemId", "ReliefItemId", "id", "ID"],
+    [
+      "reliefItemID",
+      "ReliefItemID",
+      "reliefItemId",
+      "ReliefItemId",
+      "id",
+      "ID",
+    ],
     "",
   );
   const reliefItemName = pickFirst(
     item,
-    ["reliefItemName", "ReliefItemName", "itemName", "ItemName", "name", "Name"],
+    [
+      "reliefItemName",
+      "ReliefItemName",
+      "itemName",
+      "ItemName",
+      "name",
+      "Name",
+    ],
     `Vật phẩm ${index + 1}`,
   );
   const availableStock = Number(
-    pickFirst(item, ["quantity", "Quantity", "availableStock", "AvailableStock"], 0),
+    pickFirst(
+      item,
+      ["quantity", "Quantity", "availableStock", "AvailableStock"],
+      0,
+    ),
   );
 
   return {
@@ -404,7 +440,9 @@ const normalizeLookupToken = (value) =>
     .trim();
 
 const findMatchingReliefItem = (text, catalog = []) => {
-  const normalizedText = normalizeLookupToken(text).replace(/\b\d+\b/g, " ").trim();
+  const normalizedText = normalizeLookupToken(text)
+    .replace(/\b\d+\b/g, " ")
+    .trim();
   if (!normalizedText) {
     return null;
   }
@@ -420,7 +458,8 @@ const findMatchingReliefItem = (text, catalog = []) => {
   return (
     candidates.find(
       (entry) =>
-        normalizedText.includes(entry.token) || entry.token.includes(normalizedText),
+        normalizedText.includes(entry.token) ||
+        entry.token.includes(normalizedText),
     )?.item || null
   );
 };
@@ -446,7 +485,10 @@ const inferRequestedItemsFromText = (text, catalog = []) => {
     const quantityMatch = normalizeLookupToken(segment).match(/\b(\d+)\b/);
     const quantity = Number(quantityMatch?.[1] || 1);
     const reliefItemID =
-      matchedItem?.reliefItemID || matchedItem?.reliefItemId || matchedItem?.id || "";
+      matchedItem?.reliefItemID ||
+      matchedItem?.reliefItemId ||
+      matchedItem?.id ||
+      "";
 
     if (!reliefItemID) {
       return;
@@ -458,8 +500,12 @@ const inferRequestedItemsFromText = (text, catalog = []) => {
       reliefItemID,
       reliefItemId: reliefItemID,
       reliefItemName:
-        matchedItem?.reliefItemName || matchedItem?.itemName || existing?.reliefItemName || "",
-      quantity: (existing?.quantity || 0) + (Number.isFinite(quantity) ? quantity : 1),
+        matchedItem?.reliefItemName ||
+        matchedItem?.itemName ||
+        existing?.reliefItemName ||
+        "",
+      quantity:
+        (existing?.quantity || 0) + (Number.isFinite(quantity) ? quantity : 1),
       isInferred: true,
       sourceText: segment,
     });
@@ -468,7 +514,11 @@ const inferRequestedItemsFromText = (text, catalog = []) => {
   return Array.from(aggregated.values());
 };
 
-const buildResolvableOrderItems = (order, relatedRequest = null, catalog = []) => {
+const buildResolvableOrderItems = (
+  order,
+  relatedRequest = null,
+  catalog = [],
+) => {
   const directItems = extractOrderItems(order);
   if (directItems.length > 0) {
     return directItems;
@@ -524,7 +574,9 @@ const isMissionAcceptedStatus = (status) =>
   ].some((value) => getOrderStatusToken(status).includes(value));
 
 const hasAcceptedMissionSignal = (order, locallyAcceptedOrderIds = []) => {
-  const reliefOrderId = String(order?.reliefOrderID || order?.reliefOrderId || "");
+  const reliefOrderId = String(
+    order?.reliefOrderID || order?.reliefOrderId || "",
+  );
 
   return (
     Boolean(order?.acceptedAt) ||
@@ -578,7 +630,9 @@ const buildPreparedItemsSnapshot = (order, draft = {}) =>
 
     return {
       ...item,
-      quantity: Number.isFinite(quantity) ? quantity : Number(item?.quantity) || 0,
+      quantity: Number.isFinite(quantity)
+        ? quantity
+        : Number(item?.quantity) || 0,
     };
   });
 
@@ -662,8 +716,12 @@ const extractPreparedOrderWarehouseMeta = (source = {}) => {
       : []),
     ...(Array.isArray(source?.data?.items) ? source.data.items : []),
     ...(Array.isArray(source?.data?.Items) ? source.data.Items : []),
-    ...(Array.isArray(source?.data?.itemTrackings) ? source.data.itemTrackings : []),
-    ...(Array.isArray(source?.data?.ItemTrackings) ? source.data.ItemTrackings : []),
+    ...(Array.isArray(source?.data?.itemTrackings)
+      ? source.data.itemTrackings
+      : []),
+    ...(Array.isArray(source?.data?.ItemTrackings)
+      ? source.data.ItemTrackings
+      : []),
   ];
   const pickupItem =
     itemSources.find(
@@ -684,24 +742,25 @@ const extractPreparedOrderWarehouseMeta = (source = {}) => {
     return normalizedWarehouse;
   }
 
-  const warehouseID = pickFirst(
-    source,
-    [
-      "warehouseID",
-      "WarehouseID",
-      "warehouseId",
-      "WarehouseId",
-      "pickupWarehouseID",
-      "PickupWarehouseID",
-      "pickupWarehouseId",
-      "PickupWarehouseId",
-      "warehouseID",
-      "WarehouseID",
-      "warehouseId",
-      "WarehouseId",
-    ],
-    "",
-  ) ||
+  const warehouseID =
+    pickFirst(
+      source,
+      [
+        "warehouseID",
+        "WarehouseID",
+        "warehouseId",
+        "WarehouseId",
+        "pickupWarehouseID",
+        "PickupWarehouseID",
+        "pickupWarehouseId",
+        "PickupWarehouseId",
+        "warehouseID",
+        "WarehouseID",
+        "warehouseId",
+        "WarehouseId",
+      ],
+      "",
+    ) ||
     pickFirst(
       pickupItem,
       [
@@ -716,16 +775,17 @@ const extractPreparedOrderWarehouseMeta = (source = {}) => {
       ],
       "",
     );
-  const warehouseName = pickFirst(
-    source,
-    [
-      "warehouseName",
-      "WarehouseName",
-      "pickupWarehouseName",
-      "PickupWarehouseName",
-    ],
-    "",
-  ) ||
+  const warehouseName =
+    pickFirst(
+      source,
+      [
+        "warehouseName",
+        "WarehouseName",
+        "pickupWarehouseName",
+        "PickupWarehouseName",
+      ],
+      "",
+    ) ||
     pickFirst(
       pickupItem,
       [
@@ -736,18 +796,19 @@ const extractPreparedOrderWarehouseMeta = (source = {}) => {
       ],
       "",
     );
-  const pickupAddress = pickFirst(
-    source,
-    [
-      "pickupAddress",
-      "PickupAddress",
-      "warehouseAddress",
-      "WarehouseAddress",
-      "pickupLocationAddress",
-      "PickupLocationAddress",
-    ],
-    "",
-  ) ||
+  const pickupAddress =
+    pickFirst(
+      source,
+      [
+        "pickupAddress",
+        "PickupAddress",
+        "warehouseAddress",
+        "WarehouseAddress",
+        "pickupLocationAddress",
+        "PickupLocationAddress",
+      ],
+      "",
+    ) ||
     pickFirst(
       pickupItem,
       [
@@ -760,20 +821,21 @@ const extractPreparedOrderWarehouseMeta = (source = {}) => {
       ],
       "",
     );
-  const pickupLatitude = pickFirst(
-    source,
-    [
-      "pickupLatitude",
-      "PickupLatitude",
-      "pickupLat",
-      "PickupLat",
-      "warehouseLatitude",
-      "WarehouseLatitude",
-      "warehouseLat",
-      "WarehouseLat",
-    ],
-    null,
-  ) ??
+  const pickupLatitude =
+    pickFirst(
+      source,
+      [
+        "pickupLatitude",
+        "PickupLatitude",
+        "pickupLat",
+        "PickupLat",
+        "warehouseLatitude",
+        "WarehouseLatitude",
+        "warehouseLat",
+        "WarehouseLat",
+      ],
+      null,
+    ) ??
     pickFirst(
       pickupItem,
       [
@@ -788,24 +850,25 @@ const extractPreparedOrderWarehouseMeta = (source = {}) => {
       ],
       null,
     );
-  const pickupLongitude = pickFirst(
-    source,
-    [
-      "pickupLongitude",
-      "PickupLongitude",
-      "pickupLng",
-      "PickupLng",
-      "pickupLong",
-      "PickupLong",
-      "warehouseLongitude",
-      "WarehouseLongitude",
-      "warehouseLng",
-      "WarehouseLng",
-      "warehouseLong",
-      "WarehouseLong",
-    ],
-    null,
-  ) ??
+  const pickupLongitude =
+    pickFirst(
+      source,
+      [
+        "pickupLongitude",
+        "PickupLongitude",
+        "pickupLng",
+        "PickupLng",
+        "pickupLong",
+        "PickupLong",
+        "warehouseLongitude",
+        "WarehouseLongitude",
+        "warehouseLng",
+        "WarehouseLng",
+        "warehouseLong",
+        "WarehouseLong",
+      ],
+      null,
+    ) ??
     pickFirst(
       pickupItem,
       [
@@ -854,20 +917,23 @@ const getSelectedManagerWarehouseId = () => {
   }
 };
 
-const loadSelectedManagerWarehouseMeta = async (warehouseId = "", warehouseList = []) => {
+const loadSelectedManagerWarehouseMeta = async (
+  warehouseId = "",
+  warehouseList = [],
+) => {
   const selectedWarehouseId = warehouseId || getSelectedManagerWarehouseId();
   if (!selectedWarehouseId) return null;
 
   const matchedWarehouse = Array.isArray(warehouseList)
     ? warehouseList.find(
-        (warehouse) => getWarehouseOptionId(warehouse) === String(selectedWarehouseId),
+        (warehouse) =>
+          getWarehouseOptionId(warehouse) === String(selectedWarehouseId),
       )
     : null;
-  const fallbackMeta =
-    normalizeWarehousePreparationMeta(matchedWarehouse) || {
-      warehouseID: selectedWarehouseId,
-      warehouseId: selectedWarehouseId,
-    };
+  const fallbackMeta = normalizeWarehousePreparationMeta(matchedWarehouse) || {
+    warehouseID: selectedWarehouseId,
+    warehouseId: selectedWarehouseId,
+  };
 
   try {
     const warehouseDetail = await getWarehouseById(selectedWarehouseId);
@@ -879,7 +945,9 @@ const loadSelectedManagerWarehouseMeta = async (warehouseId = "", warehouseList 
 };
 
 const getWarehouseOptionId = (warehouse) =>
-  String(warehouse?.warehouseId || warehouse?.warehouseID || warehouse?.id || "");
+  String(
+    warehouse?.warehouseId || warehouse?.warehouseID || warehouse?.id || "",
+  );
 
 const publishPreparedOrderSharedEvent = ({
   order,
@@ -932,7 +1000,9 @@ const publishPreparedOrderSharedEvent = ({
     }
   })();
   const resolvedWarehouseMeta =
-    (warehouseMeta && typeof warehouseMeta === "object" ? warehouseMeta : null) ||
+    (warehouseMeta && typeof warehouseMeta === "object"
+      ? warehouseMeta
+      : null) ||
     extractPreparedOrderWarehouseMeta(preparedOrderResult) ||
     extractPreparedOrderWarehouseMeta(normalizedPreparedOrder) ||
     extractPreparedOrderWarehouseMeta(normalizedOrder);
@@ -942,11 +1012,17 @@ const publishPreparedOrderSharedEvent = ({
     source: "manager_prepare_order",
     teamId: String(teamId),
     reliefOrderID:
-      normalizedPreparedOrder?.reliefOrderID || normalizedOrder?.reliefOrderID || "",
+      normalizedPreparedOrder?.reliefOrderID ||
+      normalizedOrder?.reliefOrderID ||
+      "",
     rescueMissionID:
-      normalizedPreparedOrder?.rescueMissionID || normalizedOrder?.rescueMissionID || "",
+      normalizedPreparedOrder?.rescueMissionID ||
+      normalizedOrder?.rescueMissionID ||
+      "",
     rescueRequestID:
-      normalizedPreparedOrder?.rescueRequestID || normalizedOrder?.rescueRequestID || "",
+      normalizedPreparedOrder?.rescueRequestID ||
+      normalizedOrder?.rescueRequestID ||
+      "",
     managerName,
     createdAt: new Date().toISOString(),
     ...(resolvedWarehouseMeta || {}),
@@ -959,7 +1035,8 @@ const publishPreparedOrderSharedEvent = ({
     const deduped = nextList.filter(
       (entry) =>
         String(entry?.id || "") !== payload.id &&
-        String(entry?.reliefOrderID || "") !== String(payload.reliefOrderID || ""),
+        String(entry?.reliefOrderID || "") !==
+          String(payload.reliefOrderID || ""),
     );
 
     deduped.unshift(payload);
@@ -1011,15 +1088,23 @@ const mergePreparedOrderLocally = (
 
   return {
     ...sourceOrder,
-    ...(responseOrder && typeof responseOrder === "object" ? responseOrder : {}),
+    ...(responseOrder && typeof responseOrder === "object"
+      ? responseOrder
+      : {}),
     reliefOrderID:
-      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+      normalizedSource?.reliefOrderID ||
+      normalizedResponse?.reliefOrderID ||
+      "",
     reliefOrderId:
-      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+      normalizedSource?.reliefOrderID ||
+      normalizedResponse?.reliefOrderID ||
+      "",
     status: nextStatus,
     orderStatus: nextStatus,
     missionStatus:
-      normalizedResponse?.missionStatus || normalizedSource?.missionStatus || "",
+      normalizedResponse?.missionStatus ||
+      normalizedSource?.missionStatus ||
+      "",
     preparedAt,
     updatedAt: preparedAt,
     items: nextItems,
@@ -1048,11 +1133,17 @@ const mergePickedUpOrderLocally = (sourceOrder, responseOrder = null) => {
 
   return {
     ...sourceOrder,
-    ...(responseOrder && typeof responseOrder === "object" ? responseOrder : {}),
+    ...(responseOrder && typeof responseOrder === "object"
+      ? responseOrder
+      : {}),
     reliefOrderID:
-      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+      normalizedSource?.reliefOrderID ||
+      normalizedResponse?.reliefOrderID ||
+      "",
     reliefOrderId:
-      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+      normalizedSource?.reliefOrderID ||
+      normalizedResponse?.reliefOrderID ||
+      "",
     status: nextOrderStatus,
     orderStatus: nextOrderStatus,
     missionStatus: nextMissionStatus,
@@ -1172,7 +1263,9 @@ export default function ManagerReliefOrders() {
           normalizedSummary?.orderStatus ||
           resolvedStatus;
         const resolvedMissionStatus =
-          normalizedDetail?.missionStatus || normalizedSummary?.missionStatus || "";
+          normalizedDetail?.missionStatus ||
+          normalizedSummary?.missionStatus ||
+          "";
         const resolvedCreatedAt =
           normalizedDetail?.createdAt || normalizedSummary?.createdAt || null;
         const resolvedAcceptedAt =
@@ -1193,8 +1286,11 @@ export default function ManagerReliefOrders() {
           ...detail,
           ...normalizedSummary,
           ...normalizedDetail,
-          ...(resolvedCanPrepare === undefined ? {} : { canPrepare: resolvedCanPrepare }),
-          status: resolvedOrderStatus || resolvedMissionStatus || resolvedStatus,
+          ...(resolvedCanPrepare === undefined
+            ? {}
+            : { canPrepare: resolvedCanPrepare }),
+          status:
+            resolvedOrderStatus || resolvedMissionStatus || resolvedStatus,
           orderStatus: resolvedOrderStatus,
           missionStatus: resolvedMissionStatus,
           createdAt: resolvedCreatedAt,
@@ -1249,7 +1345,8 @@ export default function ManagerReliefOrders() {
 
     if (ordersResult.status === "fulfilled") {
       let orderSummaries = ordersResult.value?.items || [];
-      let resolvedTotalCount = Number(ordersResult.value?.totalCount) || orderSummaries.length;
+      let resolvedTotalCount =
+        Number(ordersResult.value?.totalCount) || orderSummaries.length;
 
       if (orderSummaries.length === 0) {
         try {
@@ -1269,7 +1366,6 @@ export default function ManagerReliefOrders() {
             filterParams.pageSize,
           );
           resolvedTotalCount = locallyFilteredOrders.length;
-
         } catch (fallbackError) {
           console.error(
             "[ManagerReliefOrders] Fallback getManagerReliefOrders failed:",
@@ -1294,11 +1390,14 @@ export default function ManagerReliefOrders() {
     }
 
     if (requestsResult.status === "fulfilled") {
-      setRescueRequests(normalizeRescueRequests(extractList(requestsResult.value)));
+      setRescueRequests(
+        normalizeRescueRequests(extractList(requestsResult.value)),
+      );
     } else {
       setRescueRequests([]);
       errors.push(
-        requestsResult.reason?.message || "Không thể tải danh sách yêu cầu cứu hộ.",
+        requestsResult.reason?.message ||
+          "Không thể tải danh sách yêu cầu cứu hộ.",
       );
     }
 
@@ -1309,7 +1408,9 @@ export default function ManagerReliefOrders() {
 
       if (
         ordersResult.status === "fulfilled" &&
-        errors.every((errorMessage) => isPermissionLikeError({ message: errorMessage }))
+        errors.every((errorMessage) =>
+          isPermissionLikeError({ message: errorMessage }),
+        )
       ) {
         console.warn(
           "[ManagerReliefOrders] Bỏ qua lỗi quyền truy cập không ảnh hưởng đến danh sách đơn:",
@@ -1346,10 +1447,15 @@ export default function ManagerReliefOrders() {
     reliefItemsService
       .getAll()
       .then((items) => {
-        setReliefItemCatalog(items.map((item, index) => normalizeInventoryOption(item, index)));
+        setReliefItemCatalog(
+          items.map((item, index) => normalizeInventoryOption(item, index)),
+        );
       })
       .catch((loadError) => {
-        console.warn("[ManagerReliefOrders] Load relief item catalog failed:", loadError);
+        console.warn(
+          "[ManagerReliefOrders] Load relief item catalog failed:",
+          loadError,
+        );
         setReliefItemCatalog([]);
       });
   }, []);
@@ -1360,7 +1466,10 @@ export default function ManagerReliefOrders() {
         setWarehouseOptions(Array.isArray(items) ? items : []);
       })
       .catch((loadError) => {
-        console.warn("[ManagerReliefOrders] Load warehouses failed:", loadError);
+        console.warn(
+          "[ManagerReliefOrders] Load warehouses failed:",
+          loadError,
+        );
         setWarehouseOptions([]);
       });
   }, []);
@@ -1368,7 +1477,10 @@ export default function ManagerReliefOrders() {
   useEffect(() => {
     try {
       if (selectedWarehouseId) {
-        localStorage.setItem(MANAGER_WAREHOUSE_STORAGE_KEY, selectedWarehouseId);
+        localStorage.setItem(
+          MANAGER_WAREHOUSE_STORAGE_KEY,
+          selectedWarehouseId,
+        );
       } else {
         localStorage.removeItem(MANAGER_WAREHOUSE_STORAGE_KEY);
       }
@@ -1475,6 +1587,7 @@ export default function ManagerReliefOrders() {
         normalizedOrder,
         rescueRequests,
       );
+
       const items = buildResolvableOrderItems(
         normalizedOrder,
         relatedRequest,
@@ -1493,10 +1606,10 @@ export default function ManagerReliefOrders() {
         "Pending";
       const hasAssignedTeam = Boolean(
         assignedTeam?.rescueTeamID ||
-          normalizedOrder?.teamID ||
-          normalizedOrder?.teamId ||
-          normalizedOrder?.teamName ||
-          relatedRequest?.assignedTeamName,
+        normalizedOrder?.teamID ||
+        normalizedOrder?.teamId ||
+        normalizedOrder?.teamName ||
+        relatedRequest?.assignedTeamName,
       );
       const descriptionText = formatDisplayValue(
         normalizedOrder?.description || relatedRequest?.description,
@@ -1521,15 +1634,15 @@ export default function ManagerReliefOrders() {
         ? "Don chua co ReliefOrderID hop le."
         : managerOrderState === "prepared"
           ? "Don da o trang thai Prepare."
-        : !hasAssignedTeam
-          ? "Don chua duoc coordinator gan doi cuu ho."
-        : isPreparationLockedStatus(orderStatus)
-          ? "Don da duoc doi nhan hoac da hoan tat."
-        : normalizedOrder?.canPrepare !== true && !hasAcceptedMission
-          ? "Don chua duoc doi cuu ho chap nhan nhiem vu."
-        : !canPrepare
-          ? "Don chua du dieu kien de manager hoan thanh."
-          : "";
+          : !hasAssignedTeam
+            ? "Don chua duoc coordinator gan doi cuu ho."
+            : isPreparationLockedStatus(orderStatus)
+              ? "Don da duoc doi nhan hoac da hoan tat."
+              : normalizedOrder?.canPrepare !== true && !hasAcceptedMission
+                ? "Don chua duoc doi cuu ho chap nhan nhiem vu."
+                : !canPrepare
+                  ? "Don chua du dieu kien de manager hoan thanh."
+                  : "";
 
       return {
         ...normalizedOrder,
@@ -1555,12 +1668,21 @@ export default function ManagerReliefOrders() {
         prepareDisabledReason,
       };
     })
+
     .sort((left, right) => {
       const leftDate = new Date(
-        left?.pickedUpAt || left?.preparedAt || left?.updatedAt || left?.createdAt || 0,
+        left?.pickedUpAt ||
+          left?.preparedAt ||
+          left?.updatedAt ||
+          left?.createdAt ||
+          0,
       ).getTime();
       const rightDate = new Date(
-        right?.pickedUpAt || right?.preparedAt || right?.updatedAt || right?.createdAt || 0,
+        right?.pickedUpAt ||
+          right?.preparedAt ||
+          right?.updatedAt ||
+          right?.createdAt ||
+          0,
       ).getTime();
 
       return rightDate - leftDate;
@@ -1809,15 +1931,15 @@ export default function ManagerReliefOrders() {
         ]),
       );
     };
-const handleReceiveOrderResponse = (data) => {
-  console.log("ReceiveOrderResponse:", data);
+    const handleReceiveOrderResponse = (data) => {
+      console.log("ReceiveOrderResponse:", data);
 
-  // hiện thông báo
-  // toast.success(data?.message || "Đơn hàng vừa có phản hồi");
+      // hiện thông báo
+      // toast.success(data?.message || "Đơn hàng vừa có phản hồi");
 
-  // load lại danh sách order
-  loadPageData(appliedFilters);
-};
+      // load lại danh sách order
+      loadPageData(appliedFilters);
+    };
     const handleDeliveryStarted = async (data) => {
       const reliefOrderId = pickFirst(
         data,
@@ -1858,7 +1980,9 @@ const handleReceiveOrderResponse = (data) => {
       if (reliefOrderId) {
         setOrders((prev) =>
           prev.map((entry) => {
-            const currentOrderId = String(normalizeReliefOrder(entry)?.reliefOrderID || "");
+            const currentOrderId = String(
+              normalizeReliefOrder(entry)?.reliefOrderID || "",
+            );
             if (currentOrderId !== String(reliefOrderId)) {
               return entry;
             }
@@ -1911,7 +2035,9 @@ const handleReceiveOrderResponse = (data) => {
       if (reliefOrderId) {
         setOrders((prev) =>
           prev.map((entry) => {
-            const currentOrderId = String(normalizeReliefOrder(entry)?.reliefOrderID || "");
+            const currentOrderId = String(
+              normalizeReliefOrder(entry)?.reliefOrderID || "",
+            );
             if (currentOrderId !== String(reliefOrderId)) {
               return entry;
             }
@@ -1958,7 +2084,10 @@ const handleReceiveOrderResponse = (data) => {
           handleReceiveOrderResponse,
         );
       } catch (signalRError) {
-        console.error("SignalR init error in ManagerReliefOrders:", signalRError);
+        console.error(
+          "SignalR init error in ManagerReliefOrders:",
+          signalRError,
+        );
       }
     };
 
@@ -1981,10 +2110,7 @@ const handleReceiveOrderResponse = (data) => {
         CLIENT_EVENTS.RELIEF_ITEM_UPDATED,
         handleReliefItemUpdated,
       );
-      signalRService.off(
-        CLIENT_EVENTS.DELIVERY_STARTED,
-        handleDeliveryStarted,
-      );
+      signalRService.off(CLIENT_EVENTS.DELIVERY_STARTED, handleDeliveryStarted);
       signalRService.off(
         CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
         handleReceiveOrderResponse,
@@ -2033,14 +2159,14 @@ const handleReceiveOrderResponse = (data) => {
     }
 
     if (!order?.canPrepare) {
-      toast.error(order?.prepareDisabledReason || "Don chua du dieu kien de Prepare.");
+      toast.error(
+        order?.prepareDisabledReason || "Don chua du dieu kien de Prepare.",
+      );
       return false;
     }
 
     const defaultWarehouseId =
-      selectedWarehouseId ||
-      getWarehouseOptionId(warehouseOptions[0]) ||
-      "";
+      selectedWarehouseId || getWarehouseOptionId(warehouseOptions[0]) || "";
 
     if (!defaultWarehouseId) {
       toast.error("Chua tai duoc danh sach kho de chon.");
@@ -2084,7 +2210,10 @@ const handleReceiveOrderResponse = (data) => {
         ...(selectedWarehouseMeta || {}),
       }))
       .filter(
-        (item) => item?.reliefItemID && Number.isFinite(item.quantity) && item.quantity > 0,
+        (item) =>
+          item?.reliefItemID &&
+          Number.isFinite(item.quantity) &&
+          item.quantity > 0,
       );
 
     if (items.length === 0) {
@@ -2125,7 +2254,9 @@ const handleReceiveOrderResponse = (data) => {
 
       setOrders((prev) =>
         prev.map((entry) => {
-          const currentOrderId = String(normalizeReliefOrder(entry)?.reliefOrderID || "");
+          const currentOrderId = String(
+            normalizeReliefOrder(entry)?.reliefOrderID || "",
+          );
           if (currentOrderId !== orderId) {
             return entry;
           }
@@ -2146,7 +2277,9 @@ const handleReceiveOrderResponse = (data) => {
       return true;
     } catch (prepareError) {
       console.error("[ManagerReliefOrders] prepareOrder failed:", prepareError);
-      toast.error(prepareError?.message || "Không thể cập nhật chuẩn bị cho đơn cứu trợ.");
+      toast.error(
+        prepareError?.message || "Không thể cập nhật chuẩn bị cho đơn cứu trợ.",
+      );
       return false;
     } finally {
       setSavingOrderIds((prev) => ({
@@ -2190,9 +2323,12 @@ const handleReceiveOrderResponse = (data) => {
       <div className="mp-wrap">
         <div className="panel-card manager-relief-orders-hero">
           <div className="manager-relief-orders-hero-copy">
-            <div className="dashboardManager-title">Đơn cứu trợ cho quản lý</div>
+            <div className="dashboardManager-title">
+              Đơn cứu trợ cho quản lý
+            </div>
             <div className="panel-sub">
-              Tiếp nhận danh sách vật phẩm, soạn đồ, điều chỉnh số lượng và cập nhật chuẩn bị.
+              Tiếp nhận danh sách vật phẩm, soạn đồ, điều chỉnh số lượng và cập
+              nhật chuẩn bị.
             </div>
             <div className="manager-relief-orders-summary">
               <span>Đang hiển thị {orderCards.length} đơn</span>
@@ -2201,7 +2337,9 @@ const handleReceiveOrderResponse = (data) => {
               <span>Đã chuẩn bị: {preparedCount}</span>
             </div>
             <div className="manager-relief-order-modal-field" hidden>
-              <span className="manager-relief-order-modal-label">Váº­t pháº©m</span>
+              <span className="manager-relief-order-modal-label">
+                Váº­t pháº©m
+              </span>
               <div className="manager-relief-order-items-box">
                 {detailModalOrder?.items?.length > 0 ? (
                   <div className="manager-relief-order-item-editor">
@@ -2218,17 +2356,29 @@ const handleReceiveOrderResponse = (data) => {
                             )}
                           </strong>
                           <span>
-                            MÃ£ váº­t pháº©m: {formatDisplayValue(item?.reliefItemID, "ChÆ°a cÃ³")}
+                            MÃ£ váº­t pháº©m:{" "}
+                            {formatDisplayValue(
+                              item?.reliefItemID,
+                              "ChÆ°a cÃ³",
+                            )}
                           </span>
                           {item?.isInferred && (
                             <span>
-                              Suy ra tá»« mÃ´ táº£: {formatDisplayValue(item?.sourceText, "KhÃ´ng rÃµ")}
+                              Suy ra tá»« mÃ´ táº£:{" "}
+                              {formatDisplayValue(
+                                item?.sourceText,
+                                "KhÃ´ng rÃµ",
+                              )}
                             </span>
                           )}
                         </div>
                         <div className="manager-relief-order-prepare-field">
                           <span>Sá»‘ lÆ°á»£ng</span>
-                          <input type="number" value={Number(item?.quantity) || 0} readOnly />
+                          <input
+                            type="number"
+                            value={Number(item?.quantity) || 0}
+                            readOnly
+                          />
                         </div>
                       </div>
                     ))}
@@ -2261,15 +2411,18 @@ const handleReceiveOrderResponse = (data) => {
                     <button className="mark-all-read" onClick={markAllAsRead}>
                       Đánh dấu đã đọc
                     </button>
-
-                    </div>
+                  </div>
 
                   <div className="notification-list">
                     {notifications.length === 0 ? (
-                      <div className="no-notifications">Không có thông báo mới</div>
+                      <div className="no-notifications">
+                        Không có thông báo mới
+                      </div>
                     ) : (
                       notifications.map((notification) => {
-                        const color = getNotificationStyleMeta(notification.type);
+                        const color = getNotificationStyleMeta(
+                          notification.type,
+                        );
 
                         return (
                           <div
@@ -2282,7 +2435,9 @@ const handleReceiveOrderResponse = (data) => {
                               borderLeft: `4px solid ${color.border}`,
                             }}
                           >
-                            <div className="notification-icon">{color.icon}</div>
+                            <div className="notification-icon">
+                              {color.icon}
+                            </div>
 
                             <div className="notification-content">
                               <h4>{notification.title}</h4>
@@ -2295,7 +2450,9 @@ const handleReceiveOrderResponse = (data) => {
 
                                 <button
                                   className="notification-action"
-                                  onClick={() => goToNotificationDetail(notification)}
+                                  onClick={() =>
+                                    goToNotificationDetail(notification)
+                                  }
                                 >
                                   Xem chi tiết
                                 </button>
@@ -2304,7 +2461,9 @@ const handleReceiveOrderResponse = (data) => {
 
                             <button
                               className="notification-close"
-                              onClick={() => removeNotification(notification.id)}
+                              onClick={() =>
+                                removeNotification(notification.id)
+                              }
                             >
                               Ã—
                             </button>
@@ -2327,7 +2486,10 @@ const handleReceiveOrderResponse = (data) => {
           </div>
         </div>
 
-        <form className="panel-card manager-relief-orders-filter" onSubmit={handleApplyFilters}>
+        <form
+          className="panel-card manager-relief-orders-filter"
+          onSubmit={handleApplyFilters}
+        >
           <div className="panel-card-title">Bộ lọc đơn cứu trợ</div>
 
           <div className="manager-relief-orders-filter-grid">
@@ -2418,7 +2580,11 @@ const handleReceiveOrderResponse = (data) => {
           </div>
 
           <div className="manager-relief-orders-filter-actions">
-            <button className="btn btn-primary" type="submit" disabled={loading}>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={loading}
+            >
               Áp dụng bộ lọc
             </button>
 
@@ -2440,7 +2606,9 @@ const handleReceiveOrderResponse = (data) => {
         )}
 
         {loading && orderCards.length === 0 && (
-          <div className="panel-card relief-orders-state">Đang tải đơn cứu trợ...</div>
+          <div className="panel-card relief-orders-state">
+            Đang tải đơn cứu trợ...
+          </div>
         )}
 
         {!loading && orderCards.length === 0 && !error && (
@@ -2452,7 +2620,9 @@ const handleReceiveOrderResponse = (data) => {
         {orderCards.length > 0 && (
           <div className="manager-relief-orders-grid">
             {orderCards.map((order) => {
-              const orderId = String(order?.reliefOrderID || order?.orderKey || "");
+              const orderId = String(
+                order?.reliefOrderID || order?.orderKey || "",
+              );
 
               return (
                 <article
@@ -2463,7 +2633,8 @@ const handleReceiveOrderResponse = (data) => {
                   }}
                   className={`relief-order-card manager-relief-order-card ${
                     highlightedOrderId &&
-                    String(highlightedOrderId).toLowerCase() === orderId.toLowerCase()
+                    String(highlightedOrderId).toLowerCase() ===
+                      orderId.toLowerCase()
                       ? "is-highlighted"
                       : ""
                   }`}
@@ -2489,18 +2660,29 @@ const handleReceiveOrderResponse = (data) => {
                     <div className="relief-order-meta manager-relief-order-meta">
                       <span>Đội được phân công</span>
                       <strong>
-                        {formatDisplayValue(order.assignedTeamName, "Chưa xác định đội")}
+                        {formatDisplayValue(
+                          order.assignedTeamName,
+                          "Chưa xác định đội",
+                        )}
                       </strong>
                       <small>
-                        Mã đội: {formatDisplayValue(order?.assignedTeam?.rescueTeamID, "Chưa có")}
+                        Mã đội:{" "}
+                        {formatDisplayValue(
+                          order?.assignedTeam?.rescueTeamID,
+                          "Chưa có",
+                        )}
                       </small>
                     </div>
 
                     <div className="relief-order-meta manager-relief-order-meta">
                       <span>Mốc thời gian</span>
                       <strong>Tạo: {formatDateTime(order.createdAt)}</strong>
-                      <small>Chuẩn bị: {formatDateTime(order.preparedAt)}</small>
-                      <small>Nhận hàng: {formatDateTime(order.pickedUpAt)}</small>
+                      <small>
+                        Chuẩn bị: {formatDateTime(order.preparedAt)}
+                      </small>
+                      <small>
+                        Nhận hàng: {formatDateTime(order.pickedUpAt)}
+                      </small>
                     </div>
                   </div>
 
@@ -2516,13 +2698,12 @@ const handleReceiveOrderResponse = (data) => {
                     <button
                       className="btn btn-primary relief-order-action-btn"
                       onClick={() => openPrepareDialog(order)}
-                      disabled={
-                        !order.canPrepare ||
-                        savingOrderIds[orderId]
-                      }
+                      disabled={!order.canPrepare || savingOrderIds[orderId]}
                       title={order.prepareDisabledReason || ""}
                     >
-                      {savingOrderIds[orderId] ? "Đang hoàn thành..." : "Hoàn thành"}
+                      {savingOrderIds[orderId]
+                        ? "Đang hoàn thành..."
+                        : "Hoàn thành"}
                     </button>
                   </div>
                 </article>
@@ -2531,7 +2712,10 @@ const handleReceiveOrderResponse = (data) => {
           </div>
         )}
 
-        <div className="panel-card manager-relief-orders-pagination">
+        <div
+          className="panel-card manager-relief-orders-pagination"
+          style={{ marginTop: "10px" }}
+        >
           <button
             className="btn btn-outline-secondary"
             type="button"
@@ -2597,7 +2781,9 @@ const handleReceiveOrderResponse = (data) => {
             </div>
 
             <div className="manager-relief-order-modal-field">
-              <span className="manager-relief-order-modal-label">Đội nhận đơn</span>
+              <span className="manager-relief-order-modal-label">
+                Đội nhận đơn
+              </span>
               <div className="manager-relief-order-modal-description">
                 {formatDisplayValue(
                   prepareDialogOrder.assignedTeamName,
@@ -2607,7 +2793,9 @@ const handleReceiveOrderResponse = (data) => {
             </div>
 
             <div className="manager-relief-order-modal-field">
-              <span className="manager-relief-order-modal-label">Kho xuất hàng</span>
+              <span className="manager-relief-order-modal-label">
+                Kho xuất hàng
+              </span>
               <div className="manager-relief-orders-warehouse-picker">
                 <select
                   id="manager-relief-orders-warehouse"
@@ -2657,12 +2845,17 @@ const handleReceiveOrderResponse = (data) => {
                             )}
                           </strong>
                           <span>
-                            Mã vật phẩm: {formatDisplayValue(item?.reliefItemID, "Chưa có")}
+                            Mã vật phẩm:{" "}
+                            {formatDisplayValue(item?.reliefItemID, "Chưa có")}
                           </span>
                         </div>
                         <div className="manager-relief-order-prepare-field">
                           <span>Số lượng</span>
-                          <input type="number" value={Number(item?.quantity) || 0} readOnly />
+                          <input
+                            type="number"
+                            value={Number(item?.quantity) || 0}
+                            readOnly
+                          />
                         </div>
                       </div>
                     ))}
@@ -2687,10 +2880,14 @@ const handleReceiveOrderResponse = (data) => {
               <button
                 className="btn btn-primary relief-order-action-btn"
                 type="button"
-                onClick={() => handlePrepareOrder(prepareDialogOrder, prepareWarehouseId)}
+                onClick={() =>
+                  handlePrepareOrder(prepareDialogOrder, prepareWarehouseId)
+                }
                 disabled={
                   !prepareWarehouseId ||
-                  savingOrderIds[String(prepareDialogOrder?.reliefOrderID || "")]
+                  savingOrderIds[
+                    String(prepareDialogOrder?.reliefOrderID || "")
+                  ]
                 }
               >
                 {savingOrderIds[String(prepareDialogOrder?.reliefOrderID || "")]
@@ -2739,7 +2936,12 @@ const handleReceiveOrderResponse = (data) => {
               </div>
             </div>
             <div className="manager-relief-order-modal-field">
-              <span className="manager-relief-order-modal-label">Vat pham</span>
+              <span
+                className="manager-relief-order-modal-label"
+                style={{ marginTop: "10px" }}
+              >
+                Vật Phẩm
+              </span>
               <div className="manager-relief-order-items-box">
                 {detailModalOrder?.items?.length > 0 ? (
                   <div className="manager-relief-order-item-editor">
@@ -2756,24 +2958,30 @@ const handleReceiveOrderResponse = (data) => {
                             )}
                           </strong>
                           <span>
-                            Ma vat pham: {formatDisplayValue(item?.reliefItemID, "Chua co")}
+                            Mã vật phẩm:{" "}
+                            {formatDisplayValue(item?.reliefItemID, "Chưa có")}
                           </span>
                           {item?.isInferred && (
                             <span>
-                              Suy ra tu mo ta: {formatDisplayValue(item?.sourceText, "Khong ro")}
+                              Suy ra từ mô tả:{" "}
+                              {formatDisplayValue(item?.sourceText, "Không rõ")}
                             </span>
                           )}
                         </div>
                         <div className="manager-relief-order-prepare-field">
-                          <span>So luong</span>
-                          <input type="number" value={Number(item?.quantity) || 0} readOnly />
+                          <span>Số lượng</span>
+                          <input
+                            type="number"
+                            value={Number(item?.quantity) || 0}
+                            readOnly
+                          />
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="manager-relief-order-modal-description">
-                    Chua map duoc vat pham tu du lieu don.
+                    Chưa map được vật phẩm từ dữ liệu đơn.
                   </div>
                 )}
               </div>
