@@ -95,6 +95,52 @@ const ACCEPTED_AT_KEYS = [
   "AcceptedTime",
 ];
 
+const CREATED_AT_KEYS = [
+  "createdAt",
+  "CreatedAt",
+  "createdTime",
+  "CreatedTime",
+  "createTime",
+  "CreateTime",
+];
+
+const PREPARED_AT_KEYS = [
+  "preparedAt",
+  "PreparedAt",
+  "preparedTime",
+  "PreparedTime",
+];
+
+const PICKED_UP_AT_KEYS = [
+  "pickedUpAt",
+  "PickedUpAt",
+  "pickedUpTime",
+  "PickedUpTime",
+  "pickupAt",
+  "PickupAt",
+  "pickupTime",
+  "PickupTime",
+  "receivedAt",
+  "ReceivedAt",
+  "receivedTime",
+  "ReceivedTime",
+  "deliveryStartedAt",
+  "DeliveryStartedAt",
+  "deliveryStartTime",
+  "DeliveryStartTime",
+  "pickupConfirmedAt",
+  "PickupConfirmedAt",
+];
+
+const UPDATED_AT_KEYS = [
+  "updatedAt",
+  "UpdatedAt",
+  "modifiedAt",
+  "ModifiedAt",
+  ...PREPARED_AT_KEYS,
+  ...PICKED_UP_AT_KEYS,
+];
+
 const CAN_PREPARE_KEYS = [
   "canPrepare",
   "CanPrepare",
@@ -103,6 +149,8 @@ const CAN_PREPARE_KEYS = [
 const ITEM_ARRAY_KEYS = [
   "items",
   "Items",
+  "itemTrackings",
+  "ItemTrackings",
   "reliefItems",
   "ReliefItems",
   "orderItems",
@@ -607,14 +655,22 @@ export function normalizeReliefOrder(order = {}) {
   );
   const orderStatus = pickFirstValue(order, STATUS_KEYS, "");
   const missionStatus = pickFirstValue(order, MISSION_STATUS_KEYS, "");
-  const createdAt = pickFirstValue(
+  const createdAt = pickNestedValue(
     order,
-    ["createdAt", "CreatedAt", "createdTime", "CreatedTime", "createTime", "CreateTime"],
+    [
+      (item) => pickFirstValue(item, CREATED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.mission, CREATED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.rescueMission, CREATED_AT_KEYS, null),
+    ],
     null,
   );
-  const preparedAt = pickFirstValue(
+  const preparedAt = pickNestedValue(
     order,
-    ["preparedAt", "PreparedAt", "preparedTime", "PreparedTime"],
+    [
+      (item) => pickFirstValue(item, PREPARED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.mission, PREPARED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.rescueMission, PREPARED_AT_KEYS, null),
+    ],
     null,
   );
   const acceptedAt = pickNestedValue(
@@ -626,22 +682,21 @@ export function normalizeReliefOrder(order = {}) {
     ],
     null,
   );
-  const pickedUpAt = pickFirstValue(
-    order,
-    ["pickedUpAt", "PickedUpAt", "pickedUpTime", "PickedUpTime"],
-    null,
-  );
-  const updatedAt = pickFirstValue(
+  const pickedUpAt = pickNestedValue(
     order,
     [
-      "updatedAt",
-      "UpdatedAt",
-      "modifiedAt",
-      "ModifiedAt",
-      "preparedTime",
-      "PreparedTime",
-      "pickedUpTime",
-      "PickedUpTime",
+      (item) => pickFirstValue(item, PICKED_UP_AT_KEYS, null),
+      (item) => pickFirstValue(item?.mission, PICKED_UP_AT_KEYS, null),
+      (item) => pickFirstValue(item?.rescueMission, PICKED_UP_AT_KEYS, null),
+    ],
+    null,
+  );
+  const updatedAt = pickNestedValue(
+    order,
+    [
+      (item) => pickFirstValue(item, UPDATED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.mission, UPDATED_AT_KEYS, null),
+      (item) => pickFirstValue(item?.rescueMission, UPDATED_AT_KEYS, null),
     ],
     null,
   );
@@ -1056,43 +1111,13 @@ export async function getAllReliefOrders() {
 // NEW: Manager dashboard should prioritize pending orders that need preparation,
 // so we avoid calling endpoints that are known to 405 for Manager role first.
 export async function getManagerReliefOrders() {
-  const endpoints = [
-    `${BASE}/pending`,
-    `${BASE}/filter?pageNumber=1&pageSize=200`,
-    `${BASE}/filter?PageNumber=1&PageSize=200`,
-  ];
-  const attemptedEndpoints = [];
-  let lastError = null;
+  const result = await filterReliefOrders({
+    statuses: ["Pending", "Prepared"],
+    pageNumber: 1,
+    pageSize: 200,
+  });
 
-  for (const endpoint of endpoints) {
-    attemptedEndpoints.push(endpoint);
-
-    try {
-      return await requestReliefOrder(endpoint, { method: "GET" });
-    } catch (error) {
-      lastError = error;
-      const status = Number(error?.status || 0);
-      const canTryNext = status === 404 || status === 405;
-
-      console.warn(
-        "[reliefOrdersService.getManagerReliefOrders] Endpoint failed:",
-        endpoint,
-        error,
-      );
-
-      if (!canTryNext) {
-        error.attemptedEndpoints = attemptedEndpoints;
-        throw error;
-      }
-    }
-  }
-
-  if (lastError) {
-    lastError.attemptedEndpoints = attemptedEndpoints;
-    throw lastError;
-  }
-
-  return [];
+  return result.items;
 }
 
 export async function filterReliefOrders(params = {}) {

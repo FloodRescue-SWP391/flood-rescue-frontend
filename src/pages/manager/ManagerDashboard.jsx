@@ -52,6 +52,11 @@ const SHOW_RELIEF_ORDER_SUMMARY_CARD = false;
 const SHOW_DASHBOARD_NOTIFICATION_BELL = false;
 const SHOW_DASHBOARD_ORDER_SHORTCUT = false;
 const MANAGER_AUTO_REFRESH_INTERVAL_MS = 10000;
+const USES_DASHBOARD_RELIEF_ORDER_FLOW =
+  SHOW_RELIEF_ORDERS_ON_DASHBOARD ||
+  SHOW_RELIEF_ORDER_SUMMARY_CARD ||
+  SHOW_DASHBOARD_NOTIFICATION_BELL ||
+  SHOW_DASHBOARD_ORDER_SHORTCUT;
 
 const buildManagerReliefOrdersRoute = (orderId = "") =>
   orderId
@@ -748,6 +753,15 @@ export default function ManagerDashboard() {
   // NEW: Relief Orders context loader keeps order/request/mission/team data
   // synchronized so the team mapping always follows coordinator assignment.
   const loadReliefOrdersContext = async (silent = false) => {
+    if (!USES_DASHBOARD_RELIEF_ORDER_FLOW) {
+      setReliefOrders([]);
+      setRescueRequests([]);
+      setRescueTeams([]);
+      setRescueMissions([]);
+      setReliefOrdersError("");
+      return;
+    }
+
     if (!silent) {
       setReliefOrdersLoading(true);
     }
@@ -859,7 +873,7 @@ export default function ManagerDashboard() {
 
     Promise.all([
       loadDashboardData(preferredWarehouseId),
-      loadReliefOrdersContext(),
+      ...(USES_DASHBOARD_RELIEF_ORDER_FLOW ? [loadReliefOrdersContext()] : []),
     ]).catch((error) => {
       console.error("[ManagerDashboard] Initial load failed:", error);
     });
@@ -869,7 +883,9 @@ export default function ManagerDashboard() {
     const intervalId = window.setInterval(() => {
       Promise.allSettled([
         loadDashboardData(activeWarehouseId),
-        loadReliefOrdersContext(true),
+        ...(USES_DASHBOARD_RELIEF_ORDER_FLOW
+          ? [loadReliefOrdersContext(true)]
+          : []),
       ]).then((results) => {
         results.forEach((result) => {
           if (result.status === "rejected") {
@@ -1097,6 +1113,10 @@ const handleReceiveOrderResponse = (data) => {
   };
 
   useEffect(() => {
+    if (!USES_DASHBOARD_RELIEF_ORDER_FLOW) {
+      return undefined;
+    }
+
     const handleReliefOrderCreated = async (data) => {
       const reliefOrderId = pickFirst(
         data,

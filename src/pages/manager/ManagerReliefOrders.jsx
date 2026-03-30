@@ -19,7 +19,7 @@ import {
 import { getWarehouseById, getWarehouses } from "../../services/warehouseService";
 
 const DEFAULT_FILTERS = {
-  statusesText: "",
+  statusesText: "Pending, Prepared",
   createdFromDate: "",
   createdToDate: "",
   preparedFromDate: "",
@@ -395,11 +395,6 @@ const normalizeInventoryOption = (item = {}, index = 0) => {
   };
 };
 
-const createEmptyManualItem = () => ({
-  reliefItemID: "",
-  quantity: "",
-});
-
 const normalizeLookupToken = (value) =>
   String(value || "")
     .normalize("NFD")
@@ -502,57 +497,8 @@ const getOrderStatusToken = (status) =>
     .toLowerCase()
     .replace(/[\s-]+/g, "_");
 
-const getOrderStatusMeta = (status) => {
-  const token = getOrderStatusToken(status);
-
-  if (
-    ["pending", "new", "created", "queued", "awaiting"].some((value) =>
-      token.includes(value),
-    )
-  ) {
-    return { className: "is-pending", label: status || "Cho xu ly" };
-  }
-
-  if (
-    [
-      "prepared",
-      "processing",
-      "in_progress",
-      "preparing",
-      "confirmed",
-    ].some((value) => token.includes(value))
-  ) {
-    return { className: "is-processing", label: status || "Đang xử lý" };
-  }
-
-  if (
-    [
-      "sent",
-      "dispatch",
-      "delivered",
-      "completed",
-      "picked_up",
-      "pickup",
-      "done",
-    ].some((value) => token.includes(value))
-  ) {
-    return { className: "is-success", label: status || "Hoàn thành" };
-  }
-
-  if (
-    ["cancelled", "canceled", "rejected", "failed"].some((value) =>
-      token.includes(value),
-    )
-  ) {
-    return { className: "is-danger", label: status || "Đã hủy" };
-  }
-
-  return { className: "is-neutral", label: status || "Không rõ" };
-};
-
 const isPreparationLockedStatus = (status) =>
   [
-    "prepared",
     "sent",
     "dispatch",
     "delivered",
@@ -561,11 +507,6 @@ const isPreparationLockedStatus = (status) =>
     "pickup",
     "done",
   ].some((value) => getOrderStatusToken(status).includes(value));
-
-const isSendCompletedStatus = (status) =>
-  ["sent", "dispatch", "delivered", "completed", "picked_up", "pickup", "done"].some(
-    (value) => getOrderStatusToken(status).includes(value),
-  );
 
 const isMissionAcceptedStatus = (status) =>
   [
@@ -598,6 +539,19 @@ const isPreparedOrder = (order) =>
     getOrderStatusToken(order?.orderStatus).includes(value),
   );
 
+const getManagerOrderState = (order) =>
+  isPreparedOrder(order) ? "prepared" : "pending";
+
+const getManagerOrderStatusMeta = (order) => {
+  const state = getManagerOrderState(order);
+
+  if (state === "prepared") {
+    return { className: "is-processing", label: "Prepare" };
+  }
+
+  return { className: "is-pending", label: "Pending" };
+};
+
 const canPrepareOrderLocally = ({
   order,
   orderStatus,
@@ -607,6 +561,7 @@ const canPrepareOrderLocally = ({
   Boolean(order?.reliefOrderID) &&
   hasAssignedTeam &&
   hasAcceptedMission &&
+  !isPreparedOrder(order) &&
   !isPreparationLockedStatus(orderStatus);
 
 const getOrderItemKey = (item, index) =>
@@ -615,27 +570,6 @@ const getOrderItemKey = (item, index) =>
   item?.itemID ||
   item?.itemId ||
   `${item?.itemName || item?.reliefItemName || "item"}-${index}`;
-
-const isSupplyLikeValue = (value) =>
-  normalizeLooseToken(value).includes("supply");
-
-const isSupplyReliefOrder = (order, relatedRequest = null) =>
-  [
-    relatedRequest?.emergencyCategory,
-    relatedRequest?.EmergencyCategory,
-    relatedRequest?.requestType,
-    relatedRequest?.RequestType,
-    relatedRequest?.rescueType,
-    relatedRequest?.RescueType,
-    relatedRequest?.emergencyType,
-    relatedRequest?.EmergencyType,
-    order?.requestType,
-    order?.RequestType,
-    order?.rescueType,
-    order?.RescueType,
-    order?.orderType,
-    order?.OrderType,
-  ].some((value) => isSupplyLikeValue(value));
 
 const buildPreparedItemsSnapshot = (order, draft = {}) =>
   extractOrderItems(order).map((item, index) => {
@@ -712,14 +646,24 @@ const extractPreparedOrderWarehouseMeta = (source = {}) => {
   const itemSources = [
     ...(Array.isArray(source?.items) ? source.items : []),
     ...(Array.isArray(source?.Items) ? source.Items : []),
+    ...(Array.isArray(source?.itemTrackings) ? source.itemTrackings : []),
+    ...(Array.isArray(source?.ItemTrackings) ? source.ItemTrackings : []),
     ...(Array.isArray(source?.reliefItems) ? source.reliefItems : []),
     ...(Array.isArray(source?.ReliefItems) ? source.ReliefItems : []),
     ...(Array.isArray(source?.orderItems) ? source.orderItems : []),
     ...(Array.isArray(source?.OrderItems) ? source.OrderItems : []),
     ...(Array.isArray(source?.content?.items) ? source.content.items : []),
     ...(Array.isArray(source?.content?.Items) ? source.content.Items : []),
+    ...(Array.isArray(source?.content?.itemTrackings)
+      ? source.content.itemTrackings
+      : []),
+    ...(Array.isArray(source?.content?.ItemTrackings)
+      ? source.content.ItemTrackings
+      : []),
     ...(Array.isArray(source?.data?.items) ? source.data.items : []),
     ...(Array.isArray(source?.data?.Items) ? source.data.Items : []),
+    ...(Array.isArray(source?.data?.itemTrackings) ? source.data.itemTrackings : []),
+    ...(Array.isArray(source?.data?.ItemTrackings) ? source.data.ItemTrackings : []),
   ];
   const pickupItem =
     itemSources.find(
@@ -910,19 +854,27 @@ const getSelectedManagerWarehouseId = () => {
   }
 };
 
-const loadSelectedManagerWarehouseMeta = async (warehouseId = "") => {
+const loadSelectedManagerWarehouseMeta = async (warehouseId = "", warehouseList = []) => {
   const selectedWarehouseId = warehouseId || getSelectedManagerWarehouseId();
   if (!selectedWarehouseId) return null;
 
-  try {
-    const warehouseDetail = await getWarehouseById(selectedWarehouseId);
-    return normalizeWarehousePreparationMeta(warehouseDetail);
-  } catch (error) {
-    console.warn("Load manager warehouse detail failed:", error);
-    return {
+  const matchedWarehouse = Array.isArray(warehouseList)
+    ? warehouseList.find(
+        (warehouse) => getWarehouseOptionId(warehouse) === String(selectedWarehouseId),
+      )
+    : null;
+  const fallbackMeta =
+    normalizeWarehousePreparationMeta(matchedWarehouse) || {
       warehouseID: selectedWarehouseId,
       warehouseId: selectedWarehouseId,
     };
+
+  try {
+    const warehouseDetail = await getWarehouseById(selectedWarehouseId);
+    return normalizeWarehousePreparationMeta(warehouseDetail) || fallbackMeta;
+  } catch (error) {
+    console.warn("Load manager warehouse detail failed:", error);
+    return fallbackMeta;
   }
 };
 
@@ -941,7 +893,7 @@ const publishPreparedOrderSharedEvent = ({
       : {};
 
   const teamId = pickFirst(
-    normalizedOrder,
+    normalizedPreparedOrder,
     [
       "rescueTeamID",
       "rescueTeamId",
@@ -950,7 +902,18 @@ const publishPreparedOrderSharedEvent = ({
       "teamID",
       "teamId",
     ],
-    "",
+    pickFirst(
+      normalizedOrder,
+      [
+        "rescueTeamID",
+        "rescueTeamId",
+        "assignedTeamID",
+        "assignedTeamId",
+        "teamID",
+        "teamId",
+      ],
+      "",
+    ),
   );
 
   if (!teamId) {
@@ -1019,6 +982,9 @@ const mergePreparedOrderLocally = (
     responseOrder && typeof responseOrder === "object"
       ? normalizeReliefOrder(responseOrder)
       : {};
+  const responseItems = extractOrderItems(
+    responseOrder && typeof responseOrder === "object" ? responseOrder : {},
+  );
   const preparedAt =
     normalizedResponse?.preparedAt ||
     normalizedResponse?.updatedAt ||
@@ -1029,6 +995,19 @@ const mergePreparedOrderLocally = (
     normalizedSource?.orderStatus ||
     normalizedSource?.status ||
     "Prepared";
+  const nextItems =
+    responseItems.length > 0
+      ? responseItems.map((item, index) => ({
+          ...(preparedItems[index] || {}),
+          ...item,
+          quantity:
+            Number(item?.quantity) ||
+            Number(preparedItems[index]?.quantity) ||
+            0,
+        }))
+      : preparedItems.length > 0
+        ? preparedItems
+        : extractOrderItems(normalizedSource);
 
   return {
     ...sourceOrder,
@@ -1039,9 +1018,46 @@ const mergePreparedOrderLocally = (
       normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
     status: nextStatus,
     orderStatus: nextStatus,
+    missionStatus:
+      normalizedResponse?.missionStatus || normalizedSource?.missionStatus || "",
     preparedAt,
     updatedAt: preparedAt,
-    items: preparedItems.length > 0 ? preparedItems : extractOrderItems(normalizedSource),
+    items: nextItems,
+  };
+};
+
+const mergePickedUpOrderLocally = (sourceOrder, responseOrder = null) => {
+  const normalizedSource = normalizeReliefOrder(sourceOrder);
+  const normalizedResponse =
+    responseOrder && typeof responseOrder === "object"
+      ? normalizeReliefOrder(responseOrder)
+      : {};
+  const pickedUpAt =
+    normalizedResponse?.pickedUpAt ||
+    normalizedResponse?.updatedAt ||
+    normalizedSource?.pickedUpAt ||
+    new Date().toISOString();
+  const nextOrderStatus =
+    normalizedResponse?.orderStatus ||
+    normalizedResponse?.status ||
+    normalizedSource?.orderStatus ||
+    normalizedSource?.status ||
+    "PickedUp";
+  const nextMissionStatus =
+    normalizedResponse?.missionStatus || normalizedSource?.missionStatus || "";
+
+  return {
+    ...sourceOrder,
+    ...(responseOrder && typeof responseOrder === "object" ? responseOrder : {}),
+    reliefOrderID:
+      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+    reliefOrderId:
+      normalizedSource?.reliefOrderID || normalizedResponse?.reliefOrderID || "",
+    status: nextOrderStatus,
+    orderStatus: nextOrderStatus,
+    missionStatus: nextMissionStatus,
+    pickedUpAt,
+    updatedAt: pickedUpAt,
   };
 };
 
@@ -1123,6 +1139,10 @@ export default function ManagerReliefOrders() {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState(() =>
     getSelectedManagerWarehouseId(),
   );
+  const [prepareDialogOrderId, setPrepareDialogOrderId] = useState("");
+  const [prepareWarehouseId, setPrepareWarehouseId] = useState(() =>
+    getSelectedManagerWarehouseId(),
+  );
 
   const hydrateReliefOrders = async (orderSummaries = []) => {
     if (!Array.isArray(orderSummaries) || orderSummaries.length === 0) {
@@ -1145,6 +1165,28 @@ export default function ManagerReliefOrders() {
         const normalizedDetail = normalizeReliefOrder(detail);
         const resolvedCanPrepare =
           normalizedDetail?.canPrepare ?? normalizedSummary?.canPrepare;
+        const resolvedStatus =
+          normalizedDetail?.status || normalizedSummary?.status || "";
+        const resolvedOrderStatus =
+          normalizedDetail?.orderStatus ||
+          normalizedSummary?.orderStatus ||
+          resolvedStatus;
+        const resolvedMissionStatus =
+          normalizedDetail?.missionStatus || normalizedSummary?.missionStatus || "";
+        const resolvedCreatedAt =
+          normalizedDetail?.createdAt || normalizedSummary?.createdAt || null;
+        const resolvedAcceptedAt =
+          normalizedDetail?.acceptedAt || normalizedSummary?.acceptedAt || null;
+        const resolvedPreparedAt =
+          normalizedDetail?.preparedAt || normalizedSummary?.preparedAt || null;
+        const resolvedPickedUpAt =
+          normalizedDetail?.pickedUpAt || normalizedSummary?.pickedUpAt || null;
+        const resolvedUpdatedAt =
+          normalizedDetail?.updatedAt ||
+          normalizedSummary?.updatedAt ||
+          resolvedPickedUpAt ||
+          resolvedPreparedAt ||
+          resolvedCreatedAt;
 
         return {
           ...orderSummary,
@@ -1152,6 +1194,14 @@ export default function ManagerReliefOrders() {
           ...normalizedSummary,
           ...normalizedDetail,
           ...(resolvedCanPrepare === undefined ? {} : { canPrepare: resolvedCanPrepare }),
+          status: resolvedOrderStatus || resolvedMissionStatus || resolvedStatus,
+          orderStatus: resolvedOrderStatus,
+          missionStatus: resolvedMissionStatus,
+          createdAt: resolvedCreatedAt,
+          acceptedAt: resolvedAcceptedAt,
+          preparedAt: resolvedPreparedAt,
+          pickedUpAt: resolvedPickedUpAt,
+          updatedAt: resolvedUpdatedAt,
           items:
             normalizedDetail.items?.length > 0
               ? normalizedDetail.items
@@ -1351,12 +1401,17 @@ export default function ManagerReliefOrders() {
   }, [notifications]);
 
   useEffect(() => {
-    if (!detailOrderId) {
+    if (!detailOrderId && !prepareDialogOrderId) {
       return undefined;
     }
 
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
+        if (prepareDialogOrderId) {
+          setPrepareDialogOrderId("");
+          return;
+        }
+
         setDetailOrderId("");
       }
     };
@@ -1369,7 +1424,7 @@ export default function ManagerReliefOrders() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [detailOrderId]);
+  }, [detailOrderId, prepareDialogOrderId]);
 
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
@@ -1397,19 +1452,6 @@ export default function ManagerReliefOrders() {
 
     if (targetRoute) {
       navigate(targetRoute);
-    }
-  };
-
-  const getNotificationColor = (type) => {
-    switch (type) {
-      case "order":
-        return { bg: "#fef3c7", border: "#f59e0b", icon: "ðŸ“¦" };
-      case "supply":
-        return { bg: "#dcfce7", border: "#16a34a", icon: "ðŸ†•" };
-      case "inventory":
-        return { bg: "#dbeafe", border: "#2563eb", icon: "ðŸ“" };
-      default:
-        return { bg: "#f3f4f6", border: "#6b7280", icon: "ðŸ””" };
     }
   };
 
@@ -1464,21 +1506,25 @@ export default function ManagerReliefOrders() {
         normalizedOrder,
         locallyAcceptedOrderIds,
       );
+      const managerOrderState = getManagerOrderState(normalizedOrder);
+      const canPrepareLocally = canPrepareOrderLocally({
+        order: normalizedOrder,
+        orderStatus,
+        hasAssignedTeam,
+        hasAcceptedMission,
+      });
       const canPrepare =
-        normalizedOrder?.canPrepare === true ||
-        (normalizedOrder?.canPrepare === undefined &&
-          canPrepareOrderLocally({
-            order: normalizedOrder,
-            orderStatus,
-            hasAssignedTeam,
-            hasAcceptedMission,
-          }));
+        !isPreparedOrder(normalizedOrder) &&
+        (normalizedOrder?.canPrepare === true ||
+          (normalizedOrder?.canPrepare !== false && canPrepareLocally));
       const prepareDisabledReason = !normalizedOrder?.reliefOrderID
         ? "Don chua co ReliefOrderID hop le."
+        : managerOrderState === "prepared"
+          ? "Don da o trang thai Prepare."
         : !hasAssignedTeam
           ? "Don chua duoc coordinator gan doi cuu ho."
         : isPreparationLockedStatus(orderStatus)
-          ? "Don da qua buoc soan hoac da ban giao."
+          ? "Don da duoc doi nhan hoac da hoan tat."
         : normalizedOrder?.canPrepare !== true && !hasAcceptedMission
           ? "Don chua duoc doi cuu ho chap nhan nhiem vu."
         : !canPrepare
@@ -1501,7 +1547,8 @@ export default function ManagerReliefOrders() {
           relatedRequest?.assignedTeamName ||
           "",
         descriptionText,
-        statusMeta: getOrderStatusMeta(orderStatus),
+        managerOrderState,
+        statusMeta: getManagerOrderStatusMeta(normalizedOrder),
         orderStatus,
         hasAssignedTeam,
         canPrepare,
@@ -1672,6 +1719,9 @@ export default function ManagerReliefOrders() {
       );
 
       await loadPageData(appliedFilters);
+      if (reliefOrderId) {
+        setHighlightedOrderId(reliefOrderId);
+      }
     };
 
     const handleReliefItemCreated = async (data) => {
@@ -1804,6 +1854,19 @@ const handleReceiveOrderResponse = (data) => {
           },
         ]),
       );
+
+      if (reliefOrderId) {
+        setOrders((prev) =>
+          prev.map((entry) => {
+            const currentOrderId = String(normalizeReliefOrder(entry)?.reliefOrderID || "");
+            if (currentOrderId !== String(reliefOrderId)) {
+              return entry;
+            }
+
+            return mergePickedUpOrderLocally(entry, data);
+          }),
+        );
+      }
 
       await loadPageData(appliedFilters);
     };
@@ -1941,8 +2004,10 @@ const handleReceiveOrderResponse = (data) => {
     }));
   };
 
-  const handleWarehouseChange = (event) => {
-    setSelectedWarehouseId(event.target.value || "");
+  const handlePrepareWarehouseChange = (event) => {
+    const nextWarehouseId = event.target.value || "";
+    setPrepareWarehouseId(nextWarehouseId);
+    setSelectedWarehouseId(nextWarehouseId);
   };
 
   const handleApplyFilters = (event) => {
@@ -1960,23 +2025,63 @@ const handleReceiveOrderResponse = (data) => {
     setAppliedFilters(DEFAULT_FILTERS);
   };
 
-  const handlePrepareOrder = async (order) => {
+  const openPrepareDialog = (order) => {
+    const orderId = String(order?.reliefOrderID || "");
+    if (!orderId) {
+      toast.error("KhÃ´ng tÃ¬m tháº¥y ReliefOrderID há»£p lá»‡.");
+      return false;
+    }
+
+    if (!order?.canPrepare) {
+      toast.error(order?.prepareDisabledReason || "Don chua du dieu kien de Prepare.");
+      return false;
+    }
+
+    const defaultWarehouseId =
+      selectedWarehouseId ||
+      getWarehouseOptionId(warehouseOptions[0]) ||
+      "";
+
+    if (!defaultWarehouseId) {
+      toast.error("Chua tai duoc danh sach kho de chon.");
+      return false;
+    }
+
+    setPrepareWarehouseId(defaultWarehouseId);
+    setPrepareDialogOrderId(orderId);
+    return true;
+  };
+
+  const closePrepareDialog = () => {
+    setPrepareDialogOrderId("");
+  };
+
+  const handlePrepareOrder = async (order, warehouseId) => {
     const orderId = String(order?.reliefOrderID || "");
     if (!orderId) {
       toast.error("Không tìm thấy ReliefOrderID hợp lệ.");
-      return;
+      return false;
     }
 
-    if (!selectedWarehouseId && warehouseOptions.length > 0) {
-      toast.error("Hãy chọn kho xuất hàng trước khi hoàn thành.");
-      return;
+    if (!warehouseId) {
+      toast.error("Hãy chọn kho xuất hàng trước khi Prepare.");
+      return false;
     }
 
     const preparedItemsSnapshot = buildPreparedItemsSnapshot(order);
+    const selectedWarehouseMeta = await loadSelectedManagerWarehouseMeta(
+      warehouseId,
+      warehouseOptions,
+    );
+    const preparedItemsWithWarehouse = preparedItemsSnapshot.map((item) => ({
+      ...item,
+      ...(selectedWarehouseMeta || {}),
+    }));
     const items = preparedItemsSnapshot
       .map((item) => ({
         reliefItemID: item?.reliefItemID,
         quantity: Number(item?.quantity ?? 0),
+        ...(selectedWarehouseMeta || {}),
       }))
       .filter(
         (item) => item?.reliefItemID && Number.isFinite(item.quantity) && item.quantity > 0,
@@ -1988,7 +2093,7 @@ const handleReceiveOrderResponse = (data) => {
 
     if (items.length === 0) {
       toast.error("Cần ít nhất 1 vật phẩm hợp lệ để chuẩn bị.");
-      return;
+      return false;
     }
 
     setSavingOrderIds((prev) => ({
@@ -1997,9 +2102,6 @@ const handleReceiveOrderResponse = (data) => {
     }));
 
     try {
-      const selectedWarehouseMeta = await loadSelectedManagerWarehouseMeta(
-        selectedWarehouseId,
-      );
       const preparedOrderResponse = await reliefOrdersService.prepareOrder({
         reliefOrderID: order.reliefOrderID,
         items,
@@ -2030,18 +2132,22 @@ const handleReceiveOrderResponse = (data) => {
 
           return mergePreparedOrderLocally(
             entry,
-            preparedItemsSnapshot,
+            preparedItemsWithWarehouse,
             preparedOrderResult,
           );
         }),
       );
 
+      setSelectedWarehouseId(warehouseId);
+      setPrepareDialogOrderId("");
       toast.success(
         `Đã hoàn thành chuẩn bị cho đơn ${formatDisplayValue(order.reliefOrderID)}.`,
       );
+      return true;
     } catch (prepareError) {
       console.error("[ManagerReliefOrders] prepareOrder failed:", prepareError);
       toast.error(prepareError?.message || "Không thể cập nhật chuẩn bị cho đơn cứu trợ.");
+      return false;
     } finally {
       setSavingOrderIds((prev) => ({
         ...prev,
@@ -2050,14 +2156,11 @@ const handleReceiveOrderResponse = (data) => {
     }
   };
 
-  const pendingCount = orderCards.filter((order) =>
-    getOrderStatusToken(order.orderStatus).includes("pending"),
+  const pendingCount = orderCards.filter(
+    (order) => order.managerOrderState === "pending",
   ).length;
-  const preparedCount = orderCards.filter((order) => isPreparedOrder(order)).length;
-  const pickedUpCount = orderCards.filter((order) =>
-    ["picked_up", "pickup"].some((value) =>
-      getOrderStatusToken(order.orderStatus).includes(value),
-    ),
+  const preparedCount = orderCards.filter(
+    (order) => order.managerOrderState === "prepared",
   ).length;
 
   const canGoPrev = appliedFilters.pageNumber > 1;
@@ -2069,12 +2172,17 @@ const handleReceiveOrderResponse = (data) => {
     (warehouse) =>
       String(
         warehouse?.warehouseId || warehouse?.warehouseID || warehouse?.id || "",
-      ) === String(selectedWarehouseId || ""),
+      ) === String(prepareWarehouseId || selectedWarehouseId || ""),
   );
   const detailModalOrder = orderCards.find(
     (order) =>
       String(order?.reliefOrderID || order?.orderKey || "").toLowerCase() ===
       String(detailOrderId || "").toLowerCase(),
+  );
+  const prepareDialogOrder = orderCards.find(
+    (order) =>
+      String(order?.reliefOrderID || order?.orderKey || "").toLowerCase() ===
+      String(prepareDialogOrderId || "").toLowerCase(),
   );
 
   return (
@@ -2091,7 +2199,6 @@ const handleReceiveOrderResponse = (data) => {
               <span>Tổng kết quả: {totalCount}</span>
               <span>Chờ xử lý: {pendingCount}</span>
               <span>Đã chuẩn bị: {preparedCount}</span>
-              <span>Đã nhận: {pickedUpCount}</span>
             </div>
             <div className="manager-relief-order-modal-field" hidden>
               <span className="manager-relief-order-modal-label">Váº­t pháº©m</span>
@@ -2136,37 +2243,6 @@ const handleReceiveOrderResponse = (data) => {
           </div>
 
           <div className="manager-relief-orders-actions">
-            <div className="manager-relief-orders-warehouse-picker">
-              <label htmlFor="manager-relief-orders-warehouse">
-                Kho xuất hàng
-              </label>
-              <select
-                id="manager-relief-orders-warehouse"
-                value={selectedWarehouseId}
-                onChange={handleWarehouseChange}
-              >
-                <option value="">Chọn kho để hoàn thành đơn</option>
-                {warehouseOptions.map((warehouse) => {
-                  const warehouseId =
-                    warehouse?.warehouseId ||
-                    warehouse?.warehouseID ||
-                    warehouse?.id ||
-                    "";
-
-                  return (
-                    <option key={warehouseId} value={warehouseId}>
-                      {warehouse?.warehouseName ||
-                        warehouse?.name ||
-                        `Kho ${warehouseId}`}
-                    </option>
-                  );
-                })}
-              </select>
-              <small>
-                {selectedWarehouseOption?.address || "Địa chỉ kho sẽ gửi sang RescueTeamLeader."}
-              </small>
-            </div>
-
             <div className="notification-container">
               <button
                 className={`notification-bell ${bellCount > 0 ? "active" : ""}`}
@@ -2262,7 +2338,7 @@ const handleReceiveOrderResponse = (data) => {
                 name="statusesText"
                 value={formFilters.statusesText}
                 onChange={handleFilterInputChange}
-                placeholder="Chờ xử lý, Đã chuẩn bị"
+                placeholder="Pending, Prepared"
               />
             </label>
 
@@ -2439,17 +2515,12 @@ const handleReceiveOrderResponse = (data) => {
 
                     <button
                       className="btn btn-primary relief-order-action-btn"
-                      onClick={() => handlePrepareOrder(order)}
+                      onClick={() => openPrepareDialog(order)}
                       disabled={
-                        (warehouseOptions.length > 0 && !selectedWarehouseId) ||
                         !order.canPrepare ||
                         savingOrderIds[orderId]
                       }
-                      title={
-                        warehouseOptions.length > 0 && !selectedWarehouseId
-                          ? "Chọn kho xuất hàng trước khi hoàn thành."
-                          : order.prepareDisabledReason || ""
-                      }
+                      title={order.prepareDisabledReason || ""}
                     >
                       {savingOrderIds[orderId] ? "Đang hoàn thành..." : "Hoàn thành"}
                     </button>
@@ -2494,6 +2565,142 @@ const handleReceiveOrderResponse = (data) => {
           </button>
         </div>
       </div>
+
+      {prepareDialogOrder && (
+        <div
+          className="manager-relief-order-modal-backdrop"
+          onClick={closePrepareDialog}
+          role="presentation"
+        >
+          <div
+            className="manager-relief-order-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manager-relief-order-prepare-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="manager-relief-order-modal-head">
+              <div className="manager-relief-order-modal-title-group">
+                <span>Chọn kho để Prepare đơn</span>
+                <h3 id="manager-relief-order-prepare-modal-title">
+                  {formatDisplayValue(prepareDialogOrder.reliefOrderID)}
+                </h3>
+              </div>
+
+              <button
+                className="manager-relief-order-modal-close"
+                type="button"
+                onClick={closePrepareDialog}
+              >
+                Đóng
+              </button>
+            </div>
+
+            <div className="manager-relief-order-modal-field">
+              <span className="manager-relief-order-modal-label">Đội nhận đơn</span>
+              <div className="manager-relief-order-modal-description">
+                {formatDisplayValue(
+                  prepareDialogOrder.assignedTeamName,
+                  "Chưa xác định đội cứu hộ",
+                )}
+              </div>
+            </div>
+
+            <div className="manager-relief-order-modal-field">
+              <span className="manager-relief-order-modal-label">Kho xuất hàng</span>
+              <div className="manager-relief-orders-warehouse-picker">
+                <select
+                  id="manager-relief-orders-warehouse"
+                  value={prepareWarehouseId}
+                  onChange={handlePrepareWarehouseChange}
+                >
+                  <option value="">Chọn kho để hoàn thành đơn</option>
+                  {warehouseOptions.map((warehouse) => {
+                    const warehouseId =
+                      warehouse?.warehouseId ||
+                      warehouse?.warehouseID ||
+                      warehouse?.id ||
+                      "";
+
+                    return (
+                      <option key={warehouseId} value={warehouseId}>
+                        {warehouse?.warehouseName ||
+                          warehouse?.name ||
+                          `Kho ${warehouseId}`}
+                      </option>
+                    );
+                  })}
+                </select>
+                <small>
+                  {selectedWarehouseOption?.address ||
+                    selectedWarehouseOption?.warehouseAddress ||
+                    "Địa chỉ kho sẽ gửi sang RescueTeamLeader sau khi Prepare."}
+                </small>
+              </div>
+            </div>
+
+            <div className="manager-relief-order-modal-field">
+              <span className="manager-relief-order-modal-label">Vật phẩm</span>
+              <div className="manager-relief-order-items-box">
+                {prepareDialogOrder?.items?.length > 0 ? (
+                  <div className="manager-relief-order-item-editor">
+                    {prepareDialogOrder.items.map((item, index) => (
+                      <div
+                        className="manager-relief-order-item-row"
+                        key={`${item?.reliefItemID || item?.itemID || index}`}
+                      >
+                        <div className="manager-relief-order-item-copy">
+                          <strong>
+                            {formatDisplayValue(
+                              item?.reliefItemName || item?.itemName,
+                              `Vật phẩm ${index + 1}`,
+                            )}
+                          </strong>
+                          <span>
+                            Mã vật phẩm: {formatDisplayValue(item?.reliefItemID, "Chưa có")}
+                          </span>
+                        </div>
+                        <div className="manager-relief-order-prepare-field">
+                          <span>Số lượng</span>
+                          <input type="number" value={Number(item?.quantity) || 0} readOnly />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="manager-relief-order-modal-description">
+                    Chưa map được vật phẩm từ dữ liệu đơn.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="manager-relief-order-actions">
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={closePrepareDialog}
+              >
+                Hủy
+              </button>
+
+              <button
+                className="btn btn-primary relief-order-action-btn"
+                type="button"
+                onClick={() => handlePrepareOrder(prepareDialogOrder, prepareWarehouseId)}
+                disabled={
+                  !prepareWarehouseId ||
+                  savingOrderIds[String(prepareDialogOrder?.reliefOrderID || "")]
+                }
+              >
+                {savingOrderIds[String(prepareDialogOrder?.reliefOrderID || "")]
+                  ? "Đang hoàn thành..."
+                  : "Xác nhận hoàn thành"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {detailModalOrder && (
         <div

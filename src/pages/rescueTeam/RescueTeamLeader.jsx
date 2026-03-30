@@ -78,14 +78,24 @@ const extractPickupInfo = (source = {}) => {
   const itemSources = [
     ...(Array.isArray(source?.items) ? source.items : []),
     ...(Array.isArray(source?.Items) ? source.Items : []),
+    ...(Array.isArray(source?.itemTrackings) ? source.itemTrackings : []),
+    ...(Array.isArray(source?.ItemTrackings) ? source.ItemTrackings : []),
     ...(Array.isArray(source?.reliefItems) ? source.reliefItems : []),
     ...(Array.isArray(source?.ReliefItems) ? source.ReliefItems : []),
     ...(Array.isArray(source?.orderItems) ? source.orderItems : []),
     ...(Array.isArray(source?.OrderItems) ? source.OrderItems : []),
     ...(Array.isArray(source?.content?.items) ? source.content.items : []),
     ...(Array.isArray(source?.content?.Items) ? source.content.Items : []),
+    ...(Array.isArray(source?.content?.itemTrackings)
+      ? source.content.itemTrackings
+      : []),
+    ...(Array.isArray(source?.content?.ItemTrackings)
+      ? source.content.ItemTrackings
+      : []),
     ...(Array.isArray(source?.data?.items) ? source.data.items : []),
     ...(Array.isArray(source?.data?.Items) ? source.data.Items : []),
+    ...(Array.isArray(source?.data?.itemTrackings) ? source.data.itemTrackings : []),
+    ...(Array.isArray(source?.data?.ItemTrackings) ? source.data.ItemTrackings : []),
   ];
   const pickupItem =
     itemSources.find(
@@ -583,34 +593,99 @@ export default function RescueTeamLeader({ teamId }) {
     );
   };
 
-  const normalizeStatus = (status) => {
-    const s = String(status || "")
+  const normalizeStatusToken = (status) =>
+    String(status || "")
       .trim()
-      .toLowerCase();
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
 
-    if (!s) return "unknown";
-    if (s === "assigned") return "Assigned";
-    if (s === "inprogress" || s === "in_progress" || s === "in progress") {
+  const normalizeStatus = (status) => {
+    const token = normalizeStatusToken(status);
+
+    if (!token) return "Unknown";
+    if (token === "assigned") return "Assigned";
+    if (["accepted", "confirm", "confirmed"].includes(token)) {
+      return "Accepted";
+    }
+    if (
+      [
+        "prepared",
+        "ready",
+        "ready_for_pickup",
+        "readyforpickup",
+        "awaiting_pickup",
+        "pending_pickup",
+      ].includes(token)
+    ) {
+      return "AwaitingPickup";
+    }
+    if (
+      [
+        "inprogress",
+        "in_progress",
+        "pickup",
+        "picked_up",
+        "pickup_confirmed",
+        "delivering",
+      ].includes(token)
+    ) {
       return "InProgress";
     }
-    if (s === "completed" || s === "complete") return "Completed";
+    if (token === "completed" || token === "complete") return "Completed";
     return status;
   };
 
   const getMissionStatus = (mission) => {
-    const rawStatus =
+    const missionStatus =
+      mission?.newMissionStatus ||
       mission?.missionStatus ||
       mission?.currentStatus ||
       mission?.status ||
-      mission?.newMissionStatus ||
-      "Unknown";
+      "";
+    const normalizedMissionStatus = normalizeStatus(missionStatus);
 
-    return normalizeStatus(rawStatus);
+    if (["Assigned", "InProgress", "Completed"].includes(normalizedMissionStatus)) {
+      return normalizedMissionStatus;
+    }
+
+    if (mission?.orderStatus) {
+      return normalizeStatus(mission.orderStatus);
+    }
+
+    if (missionStatus) {
+      return normalizedMissionStatus;
+    }
+
+    return "Unknown";
   };
+
+  const hasPickupConfirmed = (mission) =>
+    Boolean(
+      mission?.pickedUpAt ||
+        mission?.pickupConfirmedAt ||
+        mission?.deliveryStartedAt,
+    ) ||
+    ["pickup", "picked_up", "pickup_confirmed", "delivering"].some((value) =>
+      normalizeStatusToken(mission?.orderStatus).includes(value),
+    );
+
+  const canConfirmPickupMission = (mission) => {
+    const status = getMissionStatus(mission);
+
+    return (
+      Boolean(getReliefOrderId(mission)) &&
+      hasPickupInfo(mission) &&
+      !hasPickupConfirmed(mission) &&
+      ["Accepted", "AwaitingPickup", "InProgress"].includes(status)
+    );
+  };
+
+  const canCompleteMission = (mission) =>
+    getMissionStatus(mission) === "InProgress" && hasPickupConfirmed(mission);
 
   const isActivePickupMission = (mission) => {
     const status = getMissionStatus(mission);
-    return status === "Assigned" || status === "InProgress";
+    return ["Accepted", "AwaitingPickup", "InProgress"].includes(status);
   };
 
   const isValidCoord = (lat, lng) => {
@@ -759,6 +834,32 @@ export default function RescueTeamLeader({ teamId }) {
           detail?.endTime ||
           null,
 
+        acceptedAt:
+          mission?.acceptedAt ||
+          detail?.acceptedAt ||
+          detail?.respondedAt ||
+          null,
+
+        preparedAt:
+          mission?.preparedAt ||
+          detail?.preparedAt ||
+          detail?.preparedTime ||
+          null,
+
+        pickedUpAt:
+          mission?.pickedUpAt ||
+          mission?.pickupConfirmedAt ||
+          detail?.pickedUpAt ||
+          detail?.pickupConfirmedAt ||
+          detail?.deliveryStartedAt ||
+          null,
+
+        orderStatus:
+          mission?.orderStatus ||
+          detail?.orderStatus ||
+          detail?.reliefOrderStatus ||
+          null,
+
         missionStatus:
           mission?.missionStatus ||
           detail?.missionStatus ||
@@ -897,7 +998,10 @@ export default function RescueTeamLeader({ teamId }) {
       (mission) => getMissionStatus(mission) === "Assigned",
     );
     const inProgressList = missionList.filter(
-      (mission) => getMissionStatus(mission) === "InProgress",
+      (mission) =>
+        ["Accepted", "AwaitingPickup", "InProgress"].includes(
+          getMissionStatus(mission),
+        ),
     );
     const completedList = missionList
       .filter((mission) => getMissionStatus(mission) === "Completed")
@@ -1554,6 +1658,13 @@ export default function RescueTeamLeader({ teamId }) {
 
   const handlePickup = async (mission) => {
     try {
+      if (!canConfirmPickupMission(mission)) {
+        window.alert(
+          "Đơn chưa ở trạng thái sẵn sàng lấy hàng hoặc đã được xác nhận pickup.",
+        );
+        return;
+      }
+
       const rescueMissionID =
         mission.rescueMissionID || mission.rescueMissionId || mission.id;
       const reliefOrderID = mission.reliefOrderID || mission.reliefOrderId;
@@ -1572,6 +1683,7 @@ export default function RescueTeamLeader({ teamId }) {
         reliefOrderID,
       });
 
+      toast.success("Đã xác nhận lấy hàng từ kho.");
       await loadMissions({ force: true });
     } catch (err) {
       console.error("Confirm pickup error:", err);
@@ -1586,10 +1698,9 @@ export default function RescueTeamLeader({ teamId }) {
         return;
       }
 
-      const status = getMissionStatus(mission);
-      if (status !== "InProgress") {
+      if (!canCompleteMission(mission)) {
         window.alert(
-          "Không thể hoàn thành: nhiệm vụ không ở trạng thái Đang thực hiện.",
+          "Không thể hoàn thành: hãy xác nhận pickup trước khi kết thúc nhiệm vụ.",
         );
         return;
       }
@@ -1937,7 +2048,16 @@ export default function RescueTeamLeader({ teamId }) {
 
                   {renderPickupSummary(mission)}
 
-                  {(mission.reliefOrderID || mission.reliefOrderId) && (
+                  {!canConfirmPickupMission(mission) &&
+                    !canCompleteMission(mission) && (
+                      <p>
+                        <small>
+                          Đang chờ manager prepare đơn và gửi thông tin kho.
+                        </small>
+                      </p>
+                    )}
+
+                  {canConfirmPickupMission(mission) && (
                     <button
                       className="btn-accept"
                       onClick={() => handlePickup(mission)}
@@ -1947,12 +2067,14 @@ export default function RescueTeamLeader({ teamId }) {
                   )}
 
                   <div className="btn-group">
-                    <button
-                      className="btn-complete"
-                      onClick={() => handleComplete(mission)}
-                    >
-                      Hoàn thành nhiệm vụ
-                    </button>
+                    {canCompleteMission(mission) && (
+                      <button
+                        className="btn-complete"
+                        onClick={() => handleComplete(mission)}
+                      >
+                        Hoàn thành nhiệm vụ
+                      </button>
+                    )}
 
                     <button
                       className="btn-report"
