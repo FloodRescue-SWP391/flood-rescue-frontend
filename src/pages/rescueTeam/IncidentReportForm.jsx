@@ -20,8 +20,6 @@ const SEVERITY_LEVELS = [
 ];
 
 export default function IncidentReportForm({ mission, onClose, onSubmit }) {
-  const userId = localStorage.getItem("userId") || "";
-  
   const [formData, setFormData] = useState({
     rescueMissionID: mission?.rescueMissionID || "",
     rescueRequestID: mission?.rescueRequestID || "",
@@ -85,7 +83,6 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
     setSubmitting(true);
 
     try {
-      // Gửi dữ liệu lên API
       const payload = {
         rescueMissionID: formData.rescueMissionID,
         rescueRequestID: formData.rescueRequestID,
@@ -102,21 +99,47 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
       console.log("Gửi báo cáo sự cố:", payload);
 
       const res = await incidentReportService.reportIncident(payload);
+      const incident = res?.content || {};
 
       if (res?.success || res?.isSuccess) {
-        setSuccessId(res?.incidentReportID || res?.id || Math.random().toString(36).substr(2, 9).toUpperCase());
+        setSuccessId(
+          incident?.incidentReportID ||
+            incident?.IncidentReportID ||
+            res?.incidentReportID ||
+            res?.id ||
+            Math.random().toString(36).substr(2, 9).toUpperCase(),
+        );
+
         setSubmitted(true);
 
-        // Auto-close sau 2 giây
         setTimeout(() => {
           if (onSubmit) {
-            onSubmit(formData);
+            onSubmit({
+              ...formData,
+              incidentReportID:
+                incident?.incidentReportID ||
+                incident?.IncidentReportID ||
+                null,
+              incidentStatus:
+                incident?.incidentStatus || incident?.IncidentStatus || "",
+              missionStatus:
+                incident?.missionStatus || incident?.MissionStatus || "",
+              rescueMissionID:
+                incident?.rescueMissionID ||
+                incident?.RescueMissionID ||
+                formData.rescueMissionID,
+              rescueRequestID:
+                incident?.rescueRequestID ||
+                incident?.RescueRequestID ||
+                formData.rescueRequestID,
+            });
           }
           onClose();
         }, 2000);
       } else {
         setErrors({
-          submit: res?.message || "Lỗi khi gửi báo cáo sự cố. Vui lòng thử lại.",
+          submit:
+            res?.message || "Lỗi khi gửi báo cáo sự cố. Vui lòng thử lại.",
         });
       }
     } catch (error) {
@@ -132,13 +155,19 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
   if (submitted) {
     return (
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content incident-report-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-content incident-report-modal"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="success-container">
             <div className="success-icon">
               <FaCheckCircle size={64} />
             </div>
             <h2>Báo cáo sự cố thành công</h2>
-            <p>Báo cáo sự cố của bạn đã được ghi nhận và chuyển cho nhân viên điều phối.</p>
+            <p>
+              Báo cáo sự cố của bạn đã được ghi nhận và chuyển cho nhân viên
+              điều phối.
+            </p>
             <p className="report-id">ID Báo cáo: {successId}</p>
             <button className="btn-primary" onClick={onClose}>
               Đóng
@@ -151,7 +180,10 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content incident-report-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content incident-report-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="modal-header incident-header">
           <div className="header-title">
@@ -218,7 +250,9 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
                 className={errors.title ? "error" : ""}
                 maxLength="100"
               />
-              {errors.title && <span className="error-text">{errors.title}</span>}
+              {errors.title && (
+                <span className="error-text">{errors.title}</span>
+              )}
               <span className="char-count">{formData.title.length}/100</span>
             </div>
 
@@ -241,7 +275,9 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
                     </option>
                   ))}
                 </select>
-                {errors.type && <span className="error-text">{errors.type}</span>}
+                {errors.type && (
+                  <span className="error-text">{errors.type}</span>
+                )}
               </div>
 
               <div className="form-group">
@@ -252,7 +288,11 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
                       key={level.id}
                       type="button"
                       className={`severity-btn ${formData.severity === level.id ? "active" : ""}`}
-                      style={formData.severity === level.id ? { borderColor: level.color } : {}}
+                      style={
+                        formData.severity === level.id
+                          ? { borderColor: level.color }
+                          : {}
+                      }
                       onClick={() =>
                         setFormData((prev) => ({
                           ...prev,
@@ -287,8 +327,12 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
                 className={errors.description ? "error" : ""}
                 maxLength="500"
               />
-              {errors.description && <span className="error-text">{errors.description}</span>}
-              <span className="char-count">{formData.description.length}/500</span>
+              {errors.description && (
+                <span className="error-text">{errors.description}</span>
+              )}
+              <span className="char-count">
+                {formData.description.length}/500
+              </span>
             </div>
           </div>
 
@@ -328,7 +372,8 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
             <h3>Thông tin người báo cáo</h3>
             <div className="form-group">
               <label htmlFor="reporterName">
-                Tên người báo cáo / Trưởng đội <span className="required">*</span>
+                Tên người báo cáo / Trưởng đội{" "}
+                <span className="required">*</span>
               </label>
               <input
                 type="text"
@@ -339,7 +384,9 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
                 placeholder="Họ và tên của bạn"
                 className={errors.reporterName ? "error" : ""}
               />
-              {errors.reporterName && <span className="error-text">{errors.reporterName}</span>}
+              {errors.reporterName && (
+                <span className="error-text">{errors.reporterName}</span>
+              )}
             </div>
           </div>
 
@@ -363,7 +410,12 @@ export default function IncidentReportForm({ mission, onClose, onSubmit }) {
 
           {/* Form Actions */}
           <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onClose}
+              disabled={submitting}
+            >
               Hủy bỏ
             </button>
             <button type="submit" className="btn-primary" disabled={submitting}>

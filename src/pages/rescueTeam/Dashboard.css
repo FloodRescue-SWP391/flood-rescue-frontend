@@ -510,12 +510,12 @@
   color: #9a3412;
 }
 
-.logout-btn2 {
+.logout-btn5 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 
-  margin-left: 0;
+  margin-left: 750px;
   padding: 10px 16px;
   border-radius: 4px;
   border: 1px solid #e2e8f0;
@@ -530,14 +530,14 @@
   cursor: pointer;
 }
 
-.logout-btn2:hover {
+.logout-btn5:hover {
   background: #fef2f2;
   border-color: #fecaca;
   color: #b91c1c;
   transform: translateY(-1px);
 }
 
-.logout-btn2:active {
+.logout-btn5:active {
   transform: scale(0.98);
 }
 

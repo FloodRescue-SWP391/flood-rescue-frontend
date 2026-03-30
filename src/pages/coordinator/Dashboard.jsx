@@ -338,6 +338,10 @@ const Dashboard = () => {
               ...(prevTeamName ? [prevTeamName] : []),
             ]),
           ),
+          hasIncident: true,
+          incidentResolved: true,
+          incidentReportID:
+            incident?.incidentReportID ?? incident?.IncidentReportID ?? null,
         };
       }),
     );
@@ -375,6 +379,10 @@ const Dashboard = () => {
             ...(prevTeamName ? [prevTeamName] : []),
           ]),
         ),
+        hasIncident: true,
+        incidentResolved: true,
+        incidentReportID:
+          incident?.incidentReportID ?? incident?.IncidentReportID ?? null,
       };
     });
   };
@@ -493,6 +501,7 @@ const Dashboard = () => {
       .toLowerCase()
       .replace(/[\s-]+/g, "_");
 
+    if (s === "pending") return "pending";
     if (m === "completed" || s === "completed") return "completed";
     if (m === "delivered" || s === "delivered") return "completed";
 
@@ -508,8 +517,6 @@ const Dashboard = () => {
     ) {
       return "in_progress";
     }
-
-    if (s === "pending") return "pending";
 
     return "pending";
   };
@@ -541,14 +548,34 @@ const Dashboard = () => {
     const lat = Number(r.LocationLatitude ?? r.locationLatitude ?? 0);
     const lng = Number(r.LocationLongitude ?? r.locationLongitude ?? 0);
 
-    const rawStatus = r.Status ?? r.status;
+    const rawStatus = r.Status ?? r.status ?? "";
+    const requestStatusNormalized = String(rawStatus)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
     const rawMissionStatus =
       r.MissionStatus ??
       r.missionStatus ??
       r.RescueMissionStatus ??
-      r.rescueMissionStatus;
+      r.rescueMissionStatus ??
+      "";
 
-    const uiStatus = mapStatusToUI(rawStatus, rawMissionStatus);
+    const hasIncidentFlag =
+      (r.hasIncident ?? r.HasIncident ?? false) ||
+      (r.incidentResolved ?? r.IncidentResolved ?? false) ||
+      ["pending", "reported", "unresolved"].includes(
+        String(r.incidentStatus ?? r.IncidentStatus ?? "")
+          .trim()
+          .toLowerCase(),
+      );
+
+    const shouldIgnoreMission =
+      requestStatusNormalized === "pending" || hasIncidentFlag;
+
+    const safeMissionStatus = shouldIgnoreMission ? "" : rawMissionStatus;
+
+    const uiStatus = mapStatusToUI(rawStatus, safeMissionStatus);
     const isPendingAgain = uiStatus === "pending";
 
     const requestType =
@@ -595,7 +622,7 @@ const Dashboard = () => {
 
       status: uiStatus,
       rawStatus: rawStatus || "",
-      missionStatus: rawMissionStatus || "",
+      missionStatus: safeMissionStatus || "",
 
       createdAtRaw: createdTimeRaw,
       timestamp: createdTimeRaw
@@ -642,6 +669,12 @@ const Dashboard = () => {
       rescueMissionId: isPendingAgain
         ? null
         : (r.RescueMissionID ?? r.rescueMissionID ?? null),
+
+      hasIncident: r.hasIncident ?? r.HasIncident ?? false,
+
+      incidentResolved: r.incidentResolved ?? r.IncidentResolved ?? false,
+
+      incidentReportID: r.incidentReportID ?? r.IncidentReportID ?? null,
 
       rejectedTeamIds: Array.isArray(r.rejectedTeamIds)
         ? r.rejectedTeamIds
@@ -848,6 +881,8 @@ const Dashboard = () => {
             return {
               ...r,
               status: "in_progress",
+              rawStatus: "Processing",
+              missionStatus: "InProgress",
               assignedTeamName: teamName,
               assignedTeamId: teamId ? String(teamId) : r.assignedTeamId,
               rescueMissionId: missionId,
@@ -866,16 +901,19 @@ const Dashboard = () => {
               ...(Array.isArray(r.rejectedTeamNames)
                 ? r.rejectedTeamNames
                 : []),
-              teamName,
+              ...(teamName ? [teamName] : []),
             ]),
           );
 
           const updatedRequest = {
             ...r,
             status: "pending",
+            rawStatus: "Pending",
+            missionStatus: "",
             assignedTeamName: "",
             assignedTeamId: "",
             rescueMissionId: null,
+            isNew: true,
             rejectedTeamIds: nextRejectedTeamIds,
             rejectedTeamNames: nextRejectedTeamNames,
           };
@@ -904,6 +942,8 @@ const Dashboard = () => {
           return {
             ...prev,
             status: "in_progress",
+            rawStatus: "Processing",
+            missionStatus: "InProgress",
             assignedTeamName: teamName,
             assignedTeamId: teamId ? String(teamId) : prev.assignedTeamId,
             rescueMissionId: missionId,
@@ -924,16 +964,19 @@ const Dashboard = () => {
             ...(Array.isArray(prev.rejectedTeamNames)
               ? prev.rejectedTeamNames
               : []),
-            teamName,
+            ...(teamName ? [teamName] : []),
           ]),
         );
 
         return {
           ...prev,
           status: "pending",
+          rawStatus: "Pending",
+          missionStatus: "",
           assignedTeamName: "",
           assignedTeamId: "",
           rescueMissionId: null,
+          isNew: true,
           rejectedTeamIds: nextRejectedTeamIds,
           rejectedTeamNames: nextRejectedTeamNames,
         };
@@ -1048,43 +1091,111 @@ const Dashboard = () => {
 
       refreshRequestsInBackground();
     };
-    // const handleIncidentReported = (data) => {
-    //   console.log("IncidentReportedNotification:", data);
 
-    //   setPendingIncidents((prev) => [
-    //     {
-    //       incidentReportID: data.incidentReportID,
-    //       rescueMissionID: data.rescueMissionID,
-    //       teamName: data.teamName,
-    //       title: data.title,
-    //       description: data.description,
-    //       createdTime: new Date(data.createdTime),
-    //     },
-    //     ...prev,
-    //   ]);
-    // };
+    const handleIncidentReported = async (data) => {
+      console.log("IncidentReportedNotification:", data);
 
-    const handleIncidentReported = async () => {
+      const missionId =
+        data?.rescueMissionID ??
+        data?.RescueMissionID ??
+        data?.missionId ??
+        data?.MissionId ??
+        null;
+
+      const requestId =
+        data?.rescueRequestID ??
+        data?.RescueRequestID ??
+        data?.requestId ??
+        data?.RequestId ??
+        null;
+
+      const incidentReportID =
+        data?.incidentReportID ?? data?.IncidentReportID ?? null;
+
+      setAllRequests((prev) =>
+        prev.map((req) => {
+          const matched =
+            (missionId && String(req.rescueMissionId) === String(missionId)) ||
+            (requestId && String(req.id) === String(requestId));
+
+          if (!matched) return req;
+
+          const prevTeamId = req.assignedTeamId;
+          const prevTeamName = req.assignedTeamName;
+
+          return {
+            ...req,
+            status: "pending",
+            rawStatus: "Pending",
+            missionStatus: "",
+            assignedTeamId: "",
+            assignedTeamName: "",
+            rescueMissionId: null,
+            isNew: true,
+            hasIncident: true,
+            incidentResolved: false,
+            incidentReportID: incidentReportID || req.incidentReportID || null,
+            rejectedTeamIds: Array.from(
+              new Set([
+                ...(req.rejectedTeamIds || []),
+                ...(prevTeamId ? [String(prevTeamId)] : []),
+              ]),
+            ),
+            rejectedTeamNames: Array.from(
+              new Set([
+                ...(req.rejectedTeamNames || []),
+                ...(prevTeamName ? [prevTeamName] : []),
+              ]),
+            ),
+          };
+        }),
+      );
+
+      setSelectedRequest((prev) => {
+        if (!prev) return prev;
+
+        const matched =
+          (missionId && String(prev.rescueMissionId) === String(missionId)) ||
+          (requestId && String(prev.id) === String(requestId));
+
+        if (!matched) return prev;
+
+        const prevTeamId = prev.assignedTeamId;
+        const prevTeamName = prev.assignedTeamName;
+
+        return {
+          ...prev,
+          status: "pending",
+          rawStatus: "Pending",
+          missionStatus: "",
+          assignedTeamId: "",
+          assignedTeamName: "",
+          rescueMissionId: null,
+          isNew: true,
+          hasIncident: true,
+          incidentResolved: false,
+          incidentReportID: incidentReportID || prev.incidentReportID || null,
+          rejectedTeamIds: Array.from(
+            new Set([
+              ...(prev.rejectedTeamIds || []),
+              ...(prevTeamId ? [String(prevTeamId)] : []),
+            ]),
+          ),
+          rejectedTeamNames: Array.from(
+            new Set([
+              ...(prev.rejectedTeamNames || []),
+              ...(prevTeamName ? [prevTeamName] : []),
+            ]),
+          ),
+        };
+      });
+
+      setRequestStatusTab("new");
+
       await loadPendingIncidents();
+      refreshRequestsInBackground();
     };
-    // const handleNewRescueRequest = (data) => {
-    //   console.log("🔔 NewRescueRequest event:", data);
 
-    //   const code = data.ShortCode || data.shortCode || "UNKNOWN";
-
-    //   setNotifications((prev) => [
-    //     {
-    //       id: Date.now(),
-    //       type: "critical",
-    //       title: "New Rescue Request",
-    //       message: `New rescue request #${code}`,
-    //       requestId: code,
-    //       timestamp: new Date().toLocaleString(),
-    //       read: false,
-    //     },
-    //     ...prev,
-    //   ]);
-    // };
     const handleNewRescueRequest = async (data) => {
       console.log("🔔 NewRescueRequest event:", data);
 
@@ -1285,7 +1396,7 @@ const Dashboard = () => {
 
       await loadPendingIncidents();
       await loadIncidentHistory();
-      await loadRealRequests();
+      refreshRequestsInBackground();
     } catch (e) {
       console.error(e);
       setIncidentError("Không thể xử lý sự cố.");
@@ -1336,6 +1447,9 @@ const Dashboard = () => {
       const priorityOrder = { Critical: 0, High: 1, Medium: 2, Low: 3 };
       const aPriority = priorityOrder[a.priorityLevel] ?? 99;
       const bPriority = priorityOrder[b.priorityLevel] ?? 99;
+
+      if (a.hasIncident && !b.hasIncident) return -1;
+      if (!a.hasIncident && b.hasIncident) return 1;
 
       if (aPriority !== bPriority) return aPriority - bPriority;
       if (a.isNew && !b.isNew) return -1;
@@ -1454,8 +1568,42 @@ const Dashboard = () => {
               (req) => String(req.id) === String(item.id),
             );
 
+            const keepPendingAfterIncident =
+              oldItem?.incidentResolved === true &&
+              oldItem?.hasIncident === true &&
+              oldItem?.status === "pending";
+            if (keepPendingAfterIncident) {
+              return {
+                ...item,
+                status: "pending",
+                rawStatus: "Pending",
+                missionStatus: "",
+                assignedTeamId: "",
+                assignedTeamName: "",
+                rescueMissionId: null,
+                isNew: true,
+                hasIncident: true,
+                incidentResolved: true,
+                incidentReportID:
+                  item.incidentReportID || oldItem?.incidentReportID || null,
+                rejectedTeamIds:
+                  item.rejectedTeamIds?.length > 0
+                    ? item.rejectedTeamIds
+                    : oldItem?.rejectedTeamIds || [],
+                rejectedTeamNames:
+                  item.rejectedTeamNames?.length > 0
+                    ? item.rejectedTeamNames
+                    : oldItem?.rejectedTeamNames || [],
+              };
+            }
+
             return {
               ...item,
+              hasIncident: item.hasIncident || oldItem?.hasIncident || false,
+              incidentResolved:
+                item.incidentResolved || oldItem?.incidentResolved || false,
+              incidentReportID:
+                item.incidentReportID || oldItem?.incidentReportID || null,
               rejectedTeamIds:
                 item.rejectedTeamIds?.length > 0
                   ? item.rejectedTeamIds
@@ -1485,7 +1633,54 @@ const Dashboard = () => {
           (item) => String(item.id) === String(prev.id),
         );
 
-        return fresh || null;
+        if (!fresh) return null;
+
+        const keepPendingAfterIncident =
+          prev?.incidentResolved === true &&
+          prev?.hasIncident === true &&
+          prev?.status === "pending";
+
+        if (keepPendingAfterIncident) {
+          return {
+            ...fresh,
+            status: "pending",
+            rawStatus: "Pending",
+            missionStatus: "",
+            assignedTeamId: "",
+            assignedTeamName: "",
+            rescueMissionId: null,
+            isNew: true,
+            hasIncident: true,
+            incidentResolved: true,
+            incidentReportID:
+              fresh.incidentReportID || prev?.incidentReportID || null,
+            rejectedTeamIds:
+              fresh.rejectedTeamIds?.length > 0
+                ? fresh.rejectedTeamIds
+                : prev?.rejectedTeamIds || [],
+            rejectedTeamNames:
+              fresh.rejectedTeamNames?.length > 0
+                ? fresh.rejectedTeamNames
+                : prev?.rejectedTeamNames || [],
+          };
+        }
+
+        return {
+          ...fresh,
+          hasIncident: fresh.hasIncident || prev?.hasIncident || false,
+          incidentResolved:
+            fresh.incidentResolved || prev?.incidentResolved || false,
+          incidentReportID:
+            fresh.incidentReportID || prev?.incidentReportID || null,
+          rejectedTeamIds:
+            fresh.rejectedTeamIds?.length > 0
+              ? fresh.rejectedTeamIds
+              : prev?.rejectedTeamIds || [],
+          rejectedTeamNames:
+            fresh.rejectedTeamNames?.length > 0
+              ? fresh.rejectedTeamNames
+              : prev?.rejectedTeamNames || [],
+        };
       });
 
       const unresolvedNotifications = latestMapped
@@ -1903,13 +2098,19 @@ const Dashboard = () => {
   });
 
   const getCardStatus = (request) => {
+    const status = String(request?.status || "")
+      .trim()
+      .toLowerCase();
     const missionStatus = String(request?.missionStatus || "")
       .trim()
       .toLowerCase();
-
-    const rawStatus = String(request?.rawStatus || request?.status || "")
+    const rawStatus = String(request?.rawStatus || "")
       .trim()
       .toLowerCase();
+
+    if (status === "pending") return "pending";
+    if (status === "completed") return "completed";
+    if (status === "in_progress") return "in_progress";
 
     if (
       missionStatus === "completed" ||
@@ -1938,6 +2139,10 @@ const Dashboard = () => {
   };
 
   const getCardStatusLabel = (request) => {
+    if (request?.hasIncident && request?.status === "pending") {
+      return "⚠️ Có sự cố - chờ điều phối lại";
+    }
+
     const status = getCardStatus(request);
     const supply = isSupplyRequest(request);
 
