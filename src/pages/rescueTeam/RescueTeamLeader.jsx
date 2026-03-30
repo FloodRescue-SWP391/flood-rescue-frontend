@@ -520,6 +520,52 @@ export default function RescueTeamLeader({ teamId }) {
     mission?.rescueRequest?.rescueRequestID ||
     mission?.rescueRequest?.rescueRequestId;
 
+  const normalizeRequestFlowToken = (value) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, "");
+
+  const getMissionRequestType = (mission) =>
+    pickFirstValue(
+      mission?.requestType,
+      mission?.RequestType,
+      mission?.rescueType,
+      mission?.RescueType,
+      mission?.requestInfo?.requestType,
+      mission?.requestInfo?.RequestType,
+      mission?.requestInfo?.rescueType,
+      mission?.requestInfo?.RescueType,
+      mission?.rescueRequest?.requestType,
+      mission?.rescueRequest?.RequestType,
+      mission?.rescueRequest?.rescueType,
+      mission?.rescueRequest?.RescueType,
+    );
+
+  const isReliefOrderRequestType = (value) => {
+    const token = normalizeRequestFlowToken(value);
+    return token === "relieforder" || token === "supply";
+  };
+
+  const isRescueRequestType = (value) => {
+    const token = normalizeRequestFlowToken(value);
+    return token === "rescuerequest" || token === "rescue";
+  };
+
+  const isReliefOrderMission = (mission) => {
+    const requestType = getMissionRequestType(mission);
+
+    if (isReliefOrderRequestType(requestType)) {
+      return true;
+    }
+
+    if (isRescueRequestType(requestType)) {
+      return false;
+    }
+
+    return Boolean(getReliefOrderId(mission));
+  };
+
   const matchesMissionIdentifiers = (mission, identifiers = {}) =>
     sameValue(getMissionId(mission), identifiers?.rescueMissionID) ||
     sameValue(getReliefOrderId(mission), identifiers?.reliefOrderID) ||
@@ -648,7 +694,7 @@ export default function RescueTeamLeader({ teamId }) {
       return normalizedMissionStatus;
     }
 
-    if (mission?.orderStatus) {
+    if (isReliefOrderMission(mission) && mission?.orderStatus) {
       return normalizeStatus(mission.orderStatus);
     }
 
@@ -673,6 +719,7 @@ export default function RescueTeamLeader({ teamId }) {
     const status = getMissionStatus(mission);
 
     return (
+      isReliefOrderMission(mission) &&
       Boolean(getReliefOrderId(mission)) &&
       hasPickupInfo(mission) &&
       !hasPickupConfirmed(mission) &&
@@ -680,8 +727,15 @@ export default function RescueTeamLeader({ teamId }) {
     );
   };
 
-  const canCompleteMission = (mission) =>
-    getMissionStatus(mission) === "InProgress" && hasPickupConfirmed(mission);
+  const canCompleteMission = (mission) => {
+    const status = getMissionStatus(mission);
+
+    if (isReliefOrderMission(mission)) {
+      return status === "InProgress" && hasPickupConfirmed(mission);
+    }
+
+    return ["Accepted", "InProgress"].includes(status);
+  };
 
   const isActivePickupMission = (mission) => {
     const status = getMissionStatus(mission);
@@ -767,11 +821,36 @@ export default function RescueTeamLeader({ teamId }) {
           null,
 
         requestType:
-          mission?.requestType ||
-          detail?.requestType ||
-          requestInfo?.requestType ||
-          requestInfo?.type ||
-          null,
+          pickFirstValue(
+            mission?.requestType,
+            mission?.RequestType,
+            mission?.rescueType,
+            mission?.RescueType,
+            detail?.requestType,
+            detail?.RequestType,
+            detail?.rescueType,
+            detail?.RescueType,
+            requestInfo?.requestType,
+            requestInfo?.RequestType,
+            requestInfo?.type,
+            requestInfo?.Type,
+            requestInfo?.rescueType,
+            requestInfo?.RescueType,
+            null,
+          ),
+
+        rescueType:
+          pickFirstValue(
+            mission?.rescueType,
+            mission?.RescueType,
+            detail?.rescueType,
+            detail?.RescueType,
+            requestInfo?.rescueType,
+            requestInfo?.RescueType,
+            requestInfo?.requestType,
+            requestInfo?.RequestType,
+            null,
+          ),
 
         peopleCount:
           mission?.peopleCount ??
@@ -872,8 +951,10 @@ export default function RescueTeamLeader({ teamId }) {
 
       let resolvedPickupInfo = mergePickupInfo(mission, detail, requestInfo);
       const reliefOrderId = getReliefOrderId(enrichedMission);
+      const reliefOrderMission = isReliefOrderMission(enrichedMission);
 
       if (
+        reliefOrderMission &&
         reliefOrderId &&
         (!resolvedPickupInfo?.pickupAddress ||
           resolvedPickupInfo?.pickupLatitude == null ||
@@ -1699,6 +1780,12 @@ export default function RescueTeamLeader({ teamId }) {
       }
 
       if (!canCompleteMission(mission)) {
+        if (!isReliefOrderMission(mission)) {
+          window.alert(
+            "Khong the hoan thanh nhiem vu o trang thai hien tai.",
+          );
+          return;
+        }
         window.alert(
           "Không thể hoàn thành: hãy xác nhận pickup trước khi kết thúc nhiệm vụ.",
         );
@@ -1713,6 +1800,10 @@ export default function RescueTeamLeader({ teamId }) {
   };
 
   const renderPickupSummary = (mission) => {
+    if (!isReliefOrderMission(mission)) {
+      return null;
+    }
+
     const pickupInfo = mergePickupInfo(mission);
     const pickupLabel =
       pickupInfo?.pickupAddress ||
@@ -2048,7 +2139,8 @@ export default function RescueTeamLeader({ teamId }) {
 
                   {renderPickupSummary(mission)}
 
-                  {!canConfirmPickupMission(mission) &&
+                  {isReliefOrderMission(mission) &&
+                    !canConfirmPickupMission(mission) &&
                     !canCompleteMission(mission) && (
                       <p>
                         <small>
