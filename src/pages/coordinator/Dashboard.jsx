@@ -197,6 +197,12 @@ const normalizeEmergencyText = (value) =>
     .trim()
     .toLowerCase();
 
+const normalizeRequestFlowToken = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+
 const readRequestType = (request) =>
   pickFirstValue(
     request?.rescueType,
@@ -209,7 +215,62 @@ const readRequestType = (request) =>
     request?.Type,
   );
 
+const isExplicitReliefOrderType = (value) => {
+  const token = normalizeRequestFlowToken(value);
+  return token === "relieforder" || token === "supply";
+};
+
+const isExplicitRescueRequestType = (value) => {
+  const token = normalizeRequestFlowToken(value);
+  return token === "rescuerequest" || token === "rescue";
+};
+
+const resolveRequestFlowCategory = (request) => {
+  const rawType = readRequestType(request);
+
+  if (isExplicitReliefOrderType(rawType)) {
+    return "supply";
+  }
+
+  if (isExplicitRescueRequestType(rawType)) {
+    return "rescue";
+  }
+
+  const emergencyCategory = normalizeEmergencyText(request?.emergencyCategory);
+
+  if (emergencyCategory === "supply") {
+    return "supply";
+  }
+
+  if (
+    emergencyCategory === "life_threatening" ||
+    emergencyCategory === "lifethreatening" ||
+    emergencyCategory === "rescue"
+  ) {
+    return "rescue";
+  }
+
+  const text = normalizeEmergencyText(rawType);
+
+  if (
+    text === "supply" ||
+    text.includes("food") ||
+    text.includes("water") ||
+    text.includes("medicine") ||
+    text.includes("thá»±c pháº©m") ||
+    text.includes("nÆ°á»›c") ||
+    text.includes("thuá»‘c") ||
+    text.includes("Ã¡o phao") ||
+    text.includes("thuyá»n")
+  ) {
+    return "supply";
+  }
+
+  return "rescue";
+};
+
 const isSupplyRequest = (request) => {
+  return resolveRequestFlowCategory(request) === "supply";
   const text = normalizeEmergencyText(readRequestType(request));
 
   return (
@@ -226,7 +287,8 @@ const isSupplyRequest = (request) => {
   );
 };
 
-const isRescueRequest = (request) => !isSupplyRequest(request);
+const isRescueRequest = (request) =>
+  resolveRequestFlowCategory(request) === "rescue";
 
 const Dashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
@@ -584,6 +646,11 @@ const Dashboard = () => {
       r.RequestType ??
       r.requestType ??
       "Unknown";
+    const requestFlowCategory = resolveRequestFlowCategory({
+      ...r,
+      requestType,
+      rescueType: requestType,
+    });
 
     const createdTimeRaw = r.CreatedTime ?? r.createdTime ?? null;
 
@@ -614,9 +681,7 @@ const Dashboard = () => {
       rescueType: requestType,
       requestType,
       emergencyCategory:
-        String(requestType).trim().toLowerCase() === "supply"
-          ? "supply"
-          : "life_threatening",
+        requestFlowCategory === "supply" ? "supply" : "life_threatening",
 
       description: r.Description ?? r.description ?? "",
 
@@ -646,9 +711,7 @@ const Dashboard = () => {
       priorityLevel:
         r.PriorityLevel ??
         r.priorityLevel ??
-        (String(requestType).trim().toLowerCase() === "supply"
-          ? "Medium"
-          : "Critical"),
+        (requestFlowCategory === "supply" ? "Medium" : "Critical"),
 
       assignedTeamId: isPendingAgain
         ? ""
@@ -1391,7 +1454,12 @@ const Dashboard = () => {
         "";
 
       setRequestBoxType(
-        String(relatedType).toLowerCase() === "supply" ? "supply" : "rescue",
+        resolveRequestFlowCategory({
+          requestType: relatedType,
+          rescueType: relatedType,
+        }) === "supply"
+          ? "supply"
+          : "rescue",
       );
 
       await loadPendingIncidents();
