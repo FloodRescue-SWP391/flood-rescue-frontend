@@ -319,11 +319,20 @@ const Dashboard = () => {
   const [resolvingIncident, setResolvingIncident] = useState(false);
   // State cho thông báo
   const NOTI_STORAGE_KEY = "coordinator_notifications";
+  const REJECTED_STORAGE_KEY = "coordinator_rejected_requests";
 
   // Bộ lọc mới
   const [requestBoxType, setRequestBoxType] = useState("rescue");
   // rescue | supply | rejected
-  const [teamRejectedRequests, setTeamRejectedRequests] = useState([]);
+  const [teamRejectedRequests, setTeamRejectedRequests] = useState(() => {
+    try {
+      const saved = localStorage.getItem(REJECTED_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error("Load rejected requests from localStorage failed:", error);
+      return [];
+    }
+  });
   const [rejectedToast, setRejectedToast] = useState(null);
 
   const [requestStatusTab, setRequestStatusTab] = useState("new");
@@ -366,6 +375,22 @@ const Dashboard = () => {
       incident?.requestId ??
       incident?.RequestId;
 
+    const incidentTeamId =
+      incident?.rescueTeamID ??
+      incident?.RescueTeamID ??
+      incident?.teamId ??
+      incident?.TeamId ??
+      incident?.reportedTeamId ??
+      incident?.ReportedTeamId ??
+      null;
+
+    const incidentTeamName =
+      incident?.teamName ??
+      incident?.TeamName ??
+      incident?.rescueTeamName ??
+      incident?.RescueTeamName ??
+      null;
+
     if (!missionId && !requestId) return;
 
     setAllRequests((prev) =>
@@ -376,8 +401,8 @@ const Dashboard = () => {
 
         if (!matched) return req;
 
-        const prevTeamId = req.assignedTeamId;
-        const prevTeamName = req.assignedTeamName;
+        const effectiveTeamId = req.assignedTeamId || incidentTeamId;
+        const effectiveTeamName = req.assignedTeamName || incidentTeamName;
 
         return {
           ...req,
@@ -391,13 +416,13 @@ const Dashboard = () => {
           rejectedTeamIds: Array.from(
             new Set([
               ...(req.rejectedTeamIds || []),
-              ...(prevTeamId ? [String(prevTeamId)] : []),
+              ...(effectiveTeamId ? [String(effectiveTeamId)] : []),
             ]),
           ),
           rejectedTeamNames: Array.from(
             new Set([
               ...(req.rejectedTeamNames || []),
-              ...(prevTeamName ? [prevTeamName] : []),
+              ...(effectiveTeamName ? [effectiveTeamName] : []),
             ]),
           ),
           hasIncident: true,
@@ -417,8 +442,8 @@ const Dashboard = () => {
 
       if (!matched) return prev;
 
-      const prevTeamId = prev.assignedTeamId;
-      const prevTeamName = prev.assignedTeamName;
+      const effectiveTeamId = prev.assignedTeamId || incidentTeamId;
+      const effectiveTeamName = prev.assignedTeamName || incidentTeamName;
 
       return {
         ...prev,
@@ -432,13 +457,13 @@ const Dashboard = () => {
         rejectedTeamIds: Array.from(
           new Set([
             ...(prev.rejectedTeamIds || []),
-            ...(prevTeamId ? [String(prevTeamId)] : []),
+            ...(effectiveTeamId ? [String(effectiveTeamId)] : []),
           ]),
         ),
         rejectedTeamNames: Array.from(
           new Set([
             ...(prev.rejectedTeamNames || []),
-            ...(prevTeamName ? [prevTeamName] : []),
+            ...(effectiveTeamName ? [effectiveTeamName] : []),
           ]),
         ),
         hasIncident: true,
@@ -490,6 +515,17 @@ const Dashboard = () => {
       console.error("Save notifications to localStorage failed:", error);
     }
   }, [notifications]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        REJECTED_STORAGE_KEY,
+        JSON.stringify(teamRejectedRequests),
+      );
+    } catch (error) {
+      console.error("Save rejected requests to localStorage failed:", error);
+    }
+  }, [teamRejectedRequests]);
 
   // tránh trùng và lọc request chưa xử lý
   const isUnprocessedStatus = (status) => {
@@ -735,6 +771,8 @@ const Dashboard = () => {
 
       hasIncident: r.hasIncident ?? r.HasIncident ?? false,
 
+      wasRejected: r.wasRejected ?? r.WasRejected ?? false,
+
       incidentResolved: r.incidentResolved ?? r.IncidentResolved ?? false,
 
       incidentReportID: r.incidentReportID ?? r.IncidentReportID ?? null,
@@ -977,6 +1015,7 @@ const Dashboard = () => {
             assignedTeamId: "",
             rescueMissionId: null,
             isNew: true,
+            wasRejected: true,
             rejectedTeamIds: nextRejectedTeamIds,
             rejectedTeamNames: nextRejectedTeamNames,
           };
@@ -1040,6 +1079,7 @@ const Dashboard = () => {
           assignedTeamId: "",
           rescueMissionId: null,
           isNew: true,
+          wasRejected: true,
           rejectedTeamIds: nextRejectedTeamIds,
           rejectedTeamNames: nextRejectedTeamNames,
         };
@@ -1053,6 +1093,12 @@ const Dashboard = () => {
           shortCode: code,
           rejectedByTeamId: teamId ? String(teamId) : "",
           rejectedByTeamName: teamName,
+          rejectedTeamIds:
+            rejectedRequestSnapshot?.rejectedTeamIds ||
+            (teamId ? [String(teamId)] : []),
+          rejectedTeamNames:
+            rejectedRequestSnapshot?.rejectedTeamNames ||
+            (teamName ? [teamName] : []),
           message: `[${teamName}] đã từ chối nhận nhiệm vụ có ID [${code}]`,
           createdAt: new Date().toISOString(),
         };
@@ -1667,6 +1713,7 @@ const Dashboard = () => {
 
             return {
               ...item,
+              wasRejected: item.wasRejected || oldItem?.wasRejected || false,
               hasIncident: item.hasIncident || oldItem?.hasIncident || false,
               incidentResolved:
                 item.incidentResolved || oldItem?.incidentResolved || false,
@@ -1735,6 +1782,7 @@ const Dashboard = () => {
 
         return {
           ...fresh,
+          wasRejected: fresh.wasRejected || prev?.wasRejected || false,
           hasIncident: fresh.hasIncident || prev?.hasIncident || false,
           incidentResolved:
             fresh.incidentResolved || prev?.incidentResolved || false,
@@ -1809,21 +1857,38 @@ const Dashboard = () => {
   }, []);
   // Các hàm xử lý
   const handleRequestClick = (request) => {
-    setSelectedRequest(request);
-    setMapCenter([request.location.lat, request.location.lng]);
+    const latestRequest = allRequests.find(
+      (req) => String(req.id) === String(request.id),
+    );
+
+    const mergedRequest = latestRequest
+      ? {
+          ...latestRequest,
+          rejectedTeamIds:
+            latestRequest.rejectedTeamIds?.length > 0
+              ? latestRequest.rejectedTeamIds
+              : request.rejectedTeamIds || [],
+          rejectedTeamNames:
+            latestRequest.rejectedTeamNames?.length > 0
+              ? latestRequest.rejectedTeamNames
+              : request.rejectedTeamNames || [],
+        }
+      : request;
+
+    setSelectedRequest(mergedRequest);
+    setMapCenter([mergedRequest.location.lat, mergedRequest.location.lng]);
     setMapZoom(16);
-    // reset dispatch messages mỗi lần chọn request
     setDispatchError("");
     setDispatchSuccess("");
-    // nếu đã assign team thì set dropdown theo
-    if (request?.assignedTeamId)
-      setSelectedTeamId(String(request.assignedTeamId));
+
+    if (mergedRequest?.assignedTeamId)
+      setSelectedTeamId(String(mergedRequest.assignedTeamId));
     else setSelectedTeamId("");
 
-    if (request.isNew) {
+    if (mergedRequest.isNew) {
       setAllRequests((prev) =>
         prev.map((req) =>
-          req.id === request.id ? { ...req, isNew: false } : req,
+          req.id === mergedRequest.id ? { ...req, isNew: false } : req,
         ),
       );
     }
@@ -2070,6 +2135,7 @@ const Dashboard = () => {
           assignedTeamName: payload.assignedTeamName,
           rescueMissionId: payload.rescueMissionId,
           reliefOrderId: payload.reliefOrderId,
+          wasRejected: false,
         };
       }),
     );
@@ -2086,6 +2152,7 @@ const Dashboard = () => {
         assignedTeamName: payload.assignedTeamName,
         rescueMissionId: payload.rescueMissionId,
         reliefOrderId: payload.reliefOrderId,
+        wasRejected: false,
       }));
     }
   };
