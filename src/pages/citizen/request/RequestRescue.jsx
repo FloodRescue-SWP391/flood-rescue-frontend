@@ -16,10 +16,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 //api
-import {
-  createRescueRequest,
-  trackRescueRequest,
-} from "../../../services/rescueRequestService.js";
+import { createRescueRequest } from "../../../services/rescueRequestService.js";
 
 import { uploadToCloudinary } from "../../../utils/cloudinary.js";
 /* FIX ICON */
@@ -38,28 +35,6 @@ const emergencyIcon = new L.Icon({
   iconAnchor: [20, 40],
   popupAnchor: [0, -40],
 });
-
-// Custom location icon
-const locationIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
-
-const toApiRequestType = (uiValue) => {
-  // nếu UI đang lưu key dạng enum/string khác, map về chuẩn BE
-  if (uiValue === "Rescue" || uiValue === "Supply") return uiValue;
-
-  // ví dụ UI đang dùng: "Supplies" hoặc "SUPPLY_TYPE"
-  if (uiValue === "Supplies" || uiValue === "SUPPLY_TYPE") return "Supply";
-
-  // ví dụ UI đang dùng: "RESCUE" hoặc "RESCUE_TYPE"
-  if (uiValue === "RESCUE" || uiValue === "RESCUE_TYPE") return "Rescue";
-
-  // fallback
-  return "Rescue";
-};
 
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
@@ -115,41 +90,6 @@ const RequestRescue = () => {
   const [mapCenter, setMapCenter] = useState([10.8231, 106.6297]); // Ho Chi Minh City
   const [mapZoom, setMapZoom] = useState(13);
   const [userLocation, setUserLocation] = useState(null);
-
-  // Check existing request
-  useEffect(() => {
-    const checkExistingRequest = async () => {
-      const lastShortCode = localStorage.getItem("lastShortCode");
-      if (!lastShortCode) return;
-
-      try {
-        const res = await trackRescueRequest(lastShortCode);
-        const status = (res?.content?.status || "").toLowerCase();
-
-        const isActive =
-          status === "pending" ||
-          status === "processing" ||
-          status === "in_progress";
-
-        if (isActive) {
-          alert(
-            "Bạn đang có một yêu cầu cứu hộ chưa hoàn thành. Hệ thống sẽ chuyển bạn đến trang theo dõi yêu cầu hiện tại.",
-          );
-
-          navigate(`/citizen/request-status?code=${lastShortCode}`, {
-            replace: true,
-          });
-        } else {
-          localStorage.removeItem("lastShortCode");
-        }
-      } catch (error) {
-        console.error("Check existing request failed:", error);
-        localStorage.removeItem("lastShortCode");
-      }
-    };
-
-    checkExistingRequest();
-  }, [navigate]);
 
   const categories = [
     { categoryID: 1, categoryName: "Nước uống" },
@@ -484,6 +424,7 @@ const RequestRescue = () => {
       // Lưu shortCode để trang status dùng
       setShowSuccess(true);
       localStorage.setItem("lastShortCode", shortCode);
+
       setTimeout(() => {
         navigate("/citizen/request-status", {
           replace: true,
@@ -530,10 +471,12 @@ const RequestRescue = () => {
       {showSuccess && (
         <div className="success-toast show">
           <div className="toast-content">
-            
             <div className="toastcontent">
-              <p> ✅ Gửi yêu cầu cứu hộ thành công! <br /> Đội cứu hộ đã được thông báo. Sự hỗ trợ đang đến.</p>
-             
+              <p>
+                {" "}
+                ✅ Gửi yêu cầu cứu hộ thành công! <br /> Đội cứu hộ đã được
+                thông báo. Sự hỗ trợ đang đến.
+              </p>
             </div>
           </div>
         </div>

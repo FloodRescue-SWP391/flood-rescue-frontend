@@ -10,8 +10,6 @@ import Footer from "../../../components/common/Footer";
 const RequestStatus = () => {
   const [request, setRequest] = useState(null);
   const [rescueTeam, setRescueTeam] = useState(null);
-  const [eta, setEta] = useState("8-10");
-  const [distance, setDistance] = useState("3.2");
 
   const [inputCode, setInputCode] = useState("");
   const [lookupError, setLookupError] = useState("");
@@ -26,8 +24,6 @@ const RequestStatus = () => {
     return (qs.get("code") || qs.get("shortCode") || "").trim();
   }, [location.search]);
 
-  // Lấy thời gian thực
-  //const createdAt = request?.timestamp || "";
   const createdAt = localStorage.getItem("requestCreatedAt");
 
   const navigate = useNavigate();
@@ -38,176 +34,6 @@ const RequestStatus = () => {
       loadRequestByShortCode(shortCode);
     }
   }, [shortCode]);
-  // SIGNALR REALTIME FOR CITIZEN
-  // Citizen sẽ nhận update realtime khi mission thay đổi
-  // useEffect(() => {
-  //   if (!shortCode) return;
-
-  //   // Khi backend báo request có thay đổi trạng thái, citizen sẽ gọi lại API track theo shortCode.
-  //   // const handleMissionUpdate = (data) => {
-  //   //   console.log("Citizen realtime update:", data);
-
-  //   //   const code =
-  //   //     data?.requestShortCode ??
-  //   //     data?.RequestShortCode ??
-  //   //     data?.shortCode ??
-  //   //     "";
-
-  //   //   if (code.trim().toUpperCase() !== shortCode.trim().toUpperCase()) {
-  //   //     return;
-  //   //   }
-
-  //   //   loadRequestByShortCode(shortCode);
-
-  //   //   // gọi lại thêm 1 nhịp để bắt trường hợp BE sync request.status chậm
-  //   //   setTimeout(() => {
-  //   //     loadRequestByShortCode(shortCode);
-  //   //   }, 1200);
-
-  //   //   setTimeout(() => {
-  //   //     loadRequestByShortCode(shortCode);
-  //   //   }, 2500);
-  //   // };
-
-  //   // vá ui để demo
-  //   const handleMissionUpdate = (eventName) => (data) => {
-  //     console.log("Citizen realtime update:", eventName, data);
-
-  //     const code =
-  //       data?.requestShortCode ??
-  //       data?.RequestShortCode ??
-  //       data?.shortCode ??
-  //       "";
-
-  //     if (code.trim().toUpperCase() !== shortCode.trim().toUpperCase()) {
-  //       return;
-  //     }
-
-  //     // Vá UI ngay lập tức cho demo
-  //     if (
-  //       eventName === "ReceiveTeamAcceptedNotification" ||
-  //       eventName === "ReceiveTeamResponse"
-  //     ) {
-  //       setForcedStatus("processing");
-
-  //       setRequest((prev) =>
-  //         prev
-  //           ? {
-  //               ...prev,
-  //               missionStatus: prev?.missionStatus || "InProgress",
-  //               status:
-  //                 prev?.status?.toLowerCase() === "pending"
-  //                   ? "Processing"
-  //                   : prev?.status,
-  //             }
-  //           : prev,
-  //       );
-  //     }
-
-  //     if (
-  //       eventName === "MissionCompleted" ||
-  //       eventName === "ReceiveMissionCompletedNotification"
-  //     ) {
-  //       setForcedStatus("completed");
-
-  //       setRequest((prev) =>
-  //         prev
-  //           ? {
-  //               ...prev,
-  //               missionStatus: "Completed",
-  //               status: "Completed",
-  //             }
-  //           : prev,
-  //       );
-  //     }
-
-  //     // đồng bộ lại từ API sau
-  //     loadRequestByShortCode(shortCode);
-  //     setTimeout(() => loadRequestByShortCode(shortCode), 1200);
-  //     setTimeout(() => loadRequestByShortCode(shortCode), 2500);
-  //   };
-  //   const initSignalR = async () => {
-  //     // await signalRService.startConnection();
-
-  //     // try {
-  //     //   await signalRService.startConnection();
-  //     //   // Event mới: mission hoàn thành.
-  //     //   signalRService.on("MissionCompleted", handleMissionUpdate);
-  //     //   // Event mới dạng tổng quát cho accept/reject nếu backend đã chuẩn hóa.
-  //     //   signalRService.on("ReceiveTeamResponse", handleMissionUpdate);
-  //     //   // Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
-  //     //   // Mission completed
-  //     //   signalRService.on(
-  //     //     "ReceiveMissionCompletedNotification",
-  //     //     handleMissionUpdate,
-  //     //   );
-
-  //     //   // Team accepted
-  //     //   signalRService.on(
-  //     //     "ReceiveTeamAcceptedNotification",
-  //     //     handleMissionUpdate,
-  //     //   );
-
-  //     //   // Team rejected
-  //     //   signalRService.on(
-  //     //     "ReceiveTeamRejectedNotification",
-  //     //     handleMissionUpdate,
-  //     //   );
-  //     // } catch (err) {
-  //     //   console.error("Citizen SignalR init error:", err);
-  //     // }
-
-  //     const onMissionCompleted = handleMissionUpdate("MissionCompleted");
-  //     const onReceiveTeamResponse = handleMissionUpdate("ReceiveTeamResponse");
-  //     const onMissionCompletedOld = handleMissionUpdate(
-  //       "ReceiveMissionCompletedNotification",
-  //     );
-  //     const onTeamAccepted = handleMissionUpdate(
-  //       "ReceiveTeamAcceptedNotification",
-  //     );
-  //     const onTeamRejected = handleMissionUpdate(
-  //       "ReceiveTeamRejectedNotification",
-  //     );
-
-  //     signalRService.on("MissionCompleted", onMissionCompleted);
-  //     signalRService.on("ReceiveTeamResponse", onReceiveTeamResponse);
-  //     signalRService.on(
-  //       "ReceiveMissionCompletedNotification",
-  //       onMissionCompletedOld,
-  //     );
-  //     signalRService.on("ReceiveTeamAcceptedNotification", onTeamAccepted);
-  //     signalRService.on("ReceiveTeamRejectedNotification", onTeamRejected);
-  //   };
-
-  //   initSignalR();
-
-  //   return () => {
-  //     // signalRService.off("MissionCompleted", handleMissionUpdate);
-  //     // signalRService.off("ReceiveTeamResponse", handleMissionUpdate);
-  //     // // -------- Giữ lại event cũ để tương thích nếu backend citizen vẫn đang bắn tên cũ.
-  //     // signalRService.off(
-  //     //   "ReceiveMissionCompletedNotification",
-  //     //   handleMissionUpdate,
-  //     // );
-  //     // signalRService.off(
-  //     //   "ReceiveTeamAcceptedNotification",
-  //     //   handleMissionUpdate,
-  //     // );
-  //     // signalRService.off(
-  //     //   "ReceiveTeamRejectedNotification",
-  //     //   handleMissionUpdate,
-  //     // );
-
-  //     signalRService.off("MissionCompleted", onMissionCompleted);
-  //     signalRService.off("ReceiveTeamResponse", onReceiveTeamResponse);
-  //     signalRService.off(
-  //       "ReceiveMissionCompletedNotification",
-  //       onMissionCompletedOld,
-  //     );
-  //     signalRService.off("ReceiveTeamAcceptedNotification", onTeamAccepted);
-  //     signalRService.off("ReceiveTeamRejectedNotification", onTeamRejected);
-  //   };
-  // }, [shortCode]);
 
   useEffect(() => {
     if (!shortCode) return;
@@ -250,17 +76,24 @@ const RequestStatus = () => {
         eventName === "MissionCompleted" ||
         eventName === "ReceiveMissionCompletedNotification"
       ) {
-        setForcedStatus("completed");
+        setRequest((prev) => {
+          if (!prev) return prev;
 
-        setRequest((prev) =>
-          prev
-            ? {
-                ...prev,
-                missionStatus: "Completed",
-                status: "Completed",
-              }
-            : prev,
-        );
+          const requestType = (
+            prev?.emergencyType ||
+            prev?.requestType ||
+            ""
+          ).toLowerCase();
+          const isSupply = requestType === "supply";
+
+          setForcedStatus(isSupply ? "delivered" : "completed");
+
+          return {
+            ...prev,
+            missionStatus: isSupply ? "Delivered" : "Completed",
+            status: isSupply ? "Delivered" : "Completed",
+          };
+        });
       }
 
       loadRequestByShortCode(shortCode);
@@ -311,8 +144,6 @@ const RequestStatus = () => {
     };
   }, [shortCode]);
 
-  // AUTO REFRESH REQUEST STATUS
-  // Citizen sẽ tự động cập nhật trạng thái mỗi 10 giây
   useEffect(() => {
     if (!request?.shortCode) return;
 
@@ -325,7 +156,6 @@ const RequestStatus = () => {
       clearInterval(interval);
     };
   }, [request?.shortCode]);
-  //
 
   const getStatusFlow = (requestType) => {
     const type = (requestType || "").toLowerCase();
@@ -354,9 +184,6 @@ const RequestStatus = () => {
     try {
       setIsSearching(true);
       setLookupError("");
-
-      setEta("8-10");
-      setDistance("3.2");
 
       const res = await trackRescueRequest(code.trim());
       const dto = res?.content;
@@ -410,6 +237,11 @@ const RequestStatus = () => {
       if (forcedStatus === "completed") {
         safeRequestData.status = "Completed";
         safeRequestData.missionStatus = "Completed";
+      }
+
+      if (forcedStatus === "delivered") {
+        safeRequestData.status = "Delivered";
+        safeRequestData.missionStatus = "Delivered";
       }
       console.log("TRACK CONTENT FULL:", dto);
       console.log("STATUS:", dto?.status);
@@ -476,7 +308,7 @@ const RequestStatus = () => {
           },
         );
       }
-    }, 1000); // đợi trang render xong rồi mới hỏi
+    }, 2000); // đợi trang render xong rồi mới hỏi
 
     return () => clearTimeout(timer);
   }, [shortCode]);
@@ -509,15 +341,20 @@ const RequestStatus = () => {
     const forced = (forcedStatus || "").toLowerCase();
     const mission = (request?.missionStatus || "").toLowerCase();
     const status = (request?.status || "").toLowerCase();
+    const requestType = (
+      request?.emergencyType ||
+      request?.requestType ||
+      ""
+    ).toLowerCase();
+    const isSupply = requestType === "supply";
     const hasTeam = !!request?.teamName;
 
-    // 1. Ưu tiên forced status từ realtime event
-    if (forced === "completed" || forced === "delivered") return forced;
     if (forced === "processing") return "processing";
+    if (forced === "delivered") return "delivered";
+    if (forced === "completed") return isSupply ? "delivered" : "completed";
 
-    // 2. Ưu tiên mission status
-    if (mission === "completed") return "completed";
     if (mission === "delivered") return "delivered";
+    if (mission === "completed") return isSupply ? "delivered" : "completed";
 
     if (
       mission === "inprogress" ||
@@ -528,14 +365,12 @@ const RequestStatus = () => {
       return "processing";
     }
 
-    // 3. Có team mà mission chưa kịp về thì vẫn cho processing
     if (hasTeam && !mission) {
       return "processing";
     }
 
-    // 4. fallback qua request.status
-    if (status === "completed") return "completed";
     if (status === "delivered") return "delivered";
+    if (status === "completed") return isSupply ? "delivered" : "completed";
 
     if (
       status === "processing" ||
@@ -862,29 +697,6 @@ const RequestStatus = () => {
                 </span>
               </span>
             </div>
-
-            {/* <div className="detail-item">
-              <span className="detail-label">Trạng thái</span>
-              <span
-                className="detail-value status-text"
-                style={{ color: getStatusColor(request.status) }}
-              >
-                {request.status || "Không có"}
-              </span>
-            </div> */}
-
-            {/* MISSION STATUS */}
-            {/* <div className="detail-item">
-              <span className="detail-label">Trạng thái nhiệm vụ</span>
-              <span
-                className="detail-value"
-                style={{ color: getStatusColor(request.missionStatus) }}
-              >
-                {request.missionStatus || "Đang chọn đội cứu hộ....."}
-              </span>
-            </div>
-          </div>
-        </div> */}
 
             <div className="detail-item">
               <span className="detail-label">Trạng thái nhiệm vụ</span>
