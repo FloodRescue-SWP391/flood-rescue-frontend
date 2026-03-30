@@ -14,12 +14,7 @@ import {
   FaClipboardList,
   FaMapMarkerAlt,
 } from "react-icons/fa";
-import {
-  MapContainer,
-  Marker,
-  Popup,
-  TileLayer,
-} from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
 import L from "leaflet";
@@ -62,7 +57,10 @@ const isPresent = (value) =>
 
 const pickFirstValue = (...values) => values.find((value) => isPresent(value));
 
-const toComparable = (value) => String(value ?? "").trim().toLowerCase();
+const toComparable = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
 
 const sameValue = (left, right) =>
   Boolean(toComparable(left)) && toComparable(left) === toComparable(right);
@@ -94,8 +92,12 @@ const extractPickupInfo = (source = {}) => {
       : []),
     ...(Array.isArray(source?.data?.items) ? source.data.items : []),
     ...(Array.isArray(source?.data?.Items) ? source.data.Items : []),
-    ...(Array.isArray(source?.data?.itemTrackings) ? source.data.itemTrackings : []),
-    ...(Array.isArray(source?.data?.ItemTrackings) ? source.data.ItemTrackings : []),
+    ...(Array.isArray(source?.data?.itemTrackings)
+      ? source.data.itemTrackings
+      : []),
+    ...(Array.isArray(source?.data?.ItemTrackings)
+      ? source.data.ItemTrackings
+      : []),
   ];
   const pickupItem =
     itemSources.find(
@@ -115,7 +117,10 @@ const extractPickupInfo = (source = {}) => {
   const requestInfo =
     source?.rescueRequest || source?.requestInfo || source?.request || {};
   const warehouse =
-    source?.warehouse || source?.pickupWarehouse || source?.assignedWarehouse || {};
+    source?.warehouse ||
+    source?.pickupWarehouse ||
+    source?.assignedWarehouse ||
+    {};
   const pickupItemWarehouse =
     pickupItem?.warehouse ||
     pickupItem?.pickupWarehouse ||
@@ -325,7 +330,8 @@ const mergePickupInfo = (...sources) => {
         warehouseID: accumulator.warehouseID ?? info.warehouseID ?? null,
         warehouseName: accumulator.warehouseName || info.warehouseName || "",
         pickupAddress: accumulator.pickupAddress || info.pickupAddress || "",
-        pickupLatitude: accumulator.pickupLatitude ?? info.pickupLatitude ?? null,
+        pickupLatitude:
+          accumulator.pickupLatitude ?? info.pickupLatitude ?? null,
         pickupLongitude:
           accumulator.pickupLongitude ?? info.pickupLongitude ?? null,
       };
@@ -382,8 +388,10 @@ const mergePickupInfoIntoMission = (mission, pickupInfo) => {
     ...mission,
     warehouseID: mission?.warehouseID ?? resolvedPickupInfo.warehouseID ?? null,
     warehouseId: mission?.warehouseId ?? resolvedPickupInfo.warehouseID ?? null,
-    warehouseName: mission?.warehouseName || resolvedPickupInfo.warehouseName || "",
-    pickupAddress: mission?.pickupAddress || resolvedPickupInfo.pickupAddress || "",
+    warehouseName:
+      mission?.warehouseName || resolvedPickupInfo.warehouseName || "",
+    pickupAddress:
+      mission?.pickupAddress || resolvedPickupInfo.pickupAddress || "",
     pickupLatitude:
       mission?.pickupLatitude ?? resolvedPickupInfo.pickupLatitude ?? null,
     pickupLongitude:
@@ -526,7 +534,9 @@ export default function RescueTeamLeader({ teamId }) {
     sameValue(getRequestId(mission), identifiers?.rescueRequestID);
 
   const findMissionByIdentifiers = (missionList = [], identifiers = {}) =>
-    missionList.find((mission) => matchesMissionIdentifiers(mission, identifiers));
+    missionList.find((mission) =>
+      matchesMissionIdentifiers(mission, identifiers),
+    );
 
   const getMissionIdentifiers = (mission = {}) => ({
     rescueMissionID: getMissionId(mission),
@@ -644,7 +654,9 @@ export default function RescueTeamLeader({ teamId }) {
       "";
     const normalizedMissionStatus = normalizeStatus(missionStatus);
 
-    if (["Assigned", "InProgress", "Completed"].includes(normalizedMissionStatus)) {
+    if (
+      ["Assigned", "InProgress", "Completed"].includes(normalizedMissionStatus)
+    ) {
       return normalizedMissionStatus;
     }
 
@@ -662,8 +674,8 @@ export default function RescueTeamLeader({ teamId }) {
   const hasPickupConfirmed = (mission) =>
     Boolean(
       mission?.pickedUpAt ||
-        mission?.pickupConfirmedAt ||
-        mission?.deliveryStartedAt,
+      mission?.pickupConfirmedAt ||
+      mission?.deliveryStartedAt,
     ) ||
     ["pickup", "picked_up", "pickup_confirmed", "delivering"].some((value) =>
       normalizeStatusToken(mission?.orderStatus).includes(value),
@@ -884,16 +896,19 @@ export default function RescueTeamLeader({ teamId }) {
           const orderDetail = reliefOrderId
             ? await reliefOrdersService.getById(reliefOrderId)
             : null;
-          resolvedPickupInfo = mergePickupInfo(
-            resolvedPickupInfo,
-            orderDetail,
-          );
+          resolvedPickupInfo = mergePickupInfo(resolvedPickupInfo, orderDetail);
         } catch (orderError) {
-          console.warn("Load relief order detail for pickup failed:", orderError);
+          console.warn(
+            "Load relief order detail for pickup failed:",
+            orderError,
+          );
         }
       }
 
-      if (resolvedPickupInfo?.warehouseID && !resolvedPickupInfo?.pickupAddress) {
+      if (
+        resolvedPickupInfo?.warehouseID &&
+        !resolvedPickupInfo?.pickupAddress
+      ) {
         try {
           const warehouseDetail = await getWarehouseById(
             resolvedPickupInfo.warehouseID,
@@ -997,11 +1012,10 @@ export default function RescueTeamLeader({ teamId }) {
     const assignedList = missionList.filter(
       (mission) => getMissionStatus(mission) === "Assigned",
     );
-    const inProgressList = missionList.filter(
-      (mission) =>
-        ["Accepted", "AwaitingPickup", "InProgress"].includes(
-          getMissionStatus(mission),
-        ),
+    const inProgressList = missionList.filter((mission) =>
+      ["Accepted", "AwaitingPickup", "InProgress"].includes(
+        getMissionStatus(mission),
+      ),
     );
     const completedList = missionList
       .filter((mission) => getMissionStatus(mission) === "Completed")
@@ -1126,39 +1140,50 @@ export default function RescueTeamLeader({ teamId }) {
           identifiers.rescueMissionID,
         );
         const missionDetail =
-          missionResponse?.content || missionResponse?.data || missionResponse || {};
+          missionResponse?.content ||
+          missionResponse?.data ||
+          missionResponse ||
+          {};
 
         matchedMission = mergePickupInfoIntoMission(
           matchedMission || missionDetail,
           missionDetail,
         );
-        resolvedPickupInfo = mergePickupInfo(
-          resolvedPickupInfo,
-          missionDetail,
-        );
+        resolvedPickupInfo = mergePickupInfo(resolvedPickupInfo, missionDetail);
       } catch (missionError) {
-        console.warn("Load mission detail for prepared order failed:", missionError);
+        console.warn(
+          "Load mission detail for prepared order failed:",
+          missionError,
+        );
       }
     }
 
     let orderDetail = null;
     const needsOrderContext = Boolean(
       identifiers.reliefOrderID &&
-        (!resolvedPickupInfo?.pickupAddress ||
-          resolvedPickupInfo?.pickupLatitude == null ||
-          resolvedPickupInfo?.pickupLongitude == null ||
-          !resolvedPickupInfo?.warehouseName),
+      (!resolvedPickupInfo?.pickupAddress ||
+        resolvedPickupInfo?.pickupLatitude == null ||
+        resolvedPickupInfo?.pickupLongitude == null ||
+        !resolvedPickupInfo?.warehouseName),
     );
 
     if (needsOrderContext) {
       try {
-        orderDetail = await reliefOrdersService.getById(identifiers.reliefOrderID);
+        orderDetail = await reliefOrdersService.getById(
+          identifiers.reliefOrderID,
+        );
         identifiers.rescueMissionID =
           identifiers.rescueMissionID ||
-          pickFirstValue(orderDetail?.rescueMissionID, orderDetail?.rescueMissionId);
+          pickFirstValue(
+            orderDetail?.rescueMissionID,
+            orderDetail?.rescueMissionId,
+          );
         identifiers.rescueRequestID =
           identifiers.rescueRequestID ||
-          pickFirstValue(orderDetail?.rescueRequestID, orderDetail?.rescueRequestId);
+          pickFirstValue(
+            orderDetail?.rescueRequestID,
+            orderDetail?.rescueRequestId,
+          );
 
         matchedMission =
           matchedMission ||
@@ -1166,7 +1191,10 @@ export default function RescueTeamLeader({ teamId }) {
           matchedMission;
         resolvedPickupInfo = mergePickupInfo(resolvedPickupInfo, orderDetail);
       } catch (orderError) {
-        console.warn("Load relief order detail for prepared order failed:", orderError);
+        console.warn(
+          "Load relief order detail for prepared order failed:",
+          orderError,
+        );
       }
     }
 
@@ -1194,7 +1222,10 @@ export default function RescueTeamLeader({ teamId }) {
           warehouseDetail,
         );
       } catch (warehouseError) {
-        console.warn("Load warehouse detail for prepared order failed:", warehouseError);
+        console.warn(
+          "Load warehouse detail for prepared order failed:",
+          warehouseError,
+        );
       }
     }
 
@@ -1301,10 +1332,16 @@ export default function RescueTeamLeader({ teamId }) {
     }
 
     const intervalId = window.setInterval(() => {
-      Promise.allSettled([loadMissions({ force: true }), loadIncidentReports()]).then((results) => {
+      Promise.allSettled([
+        loadMissions({ force: true }),
+        loadIncidentReports(),
+      ]).then((results) => {
         results.forEach((result) => {
           if (result.status === "rejected") {
-            console.warn("[RescueTeamLeader] Auto refresh failed:", result.reason);
+            console.warn(
+              "[RescueTeamLeader] Auto refresh failed:",
+              result.reason,
+            );
           }
         });
       });
@@ -1421,7 +1458,10 @@ export default function RescueTeamLeader({ teamId }) {
           typeof rawValue === "string" ? JSON.parse(rawValue) : rawValue;
         const sharedEvents = Array.isArray(parsedValue) ? parsedValue : [];
         const relevantEvents = sharedEvents
-          .filter((entry) => entry && sameValue(getPreparedOrderTeamId(entry), teamId))
+          .filter(
+            (entry) =>
+              entry && sameValue(getPreparedOrderTeamId(entry), teamId),
+          )
           .sort(
             (left, right) =>
               new Date(left?.createdAt || 0).getTime() -
@@ -1748,13 +1788,9 @@ export default function RescueTeamLeader({ teamId }) {
         }
       : null;
 
-  const defaultCenter =
-    firstMapPoint
-      ? [
-          Number(firstMapPoint.latitude),
-          Number(firstMapPoint.longitude),
-        ]
-      : [10.8231, 106.6297];
+  const defaultCenter = firstMapPoint
+    ? [Number(firstMapPoint.latitude), Number(firstMapPoint.longitude)]
+    : [10.8231, 106.6297];
 
   const getNotificationStyleMeta = (type) => {
     switch (type) {
@@ -1788,7 +1824,9 @@ export default function RescueTeamLeader({ teamId }) {
                         unreadNotificationCount > 0 ? "active" : ""
                       }`}
                       type="button"
-                      onClick={() => setShowNotifications((previous) => !previous)}
+                      onClick={() =>
+                        setShowNotifications((previous) => !previous)
+                      }
                     >
                       <FaBell className="rescue-notification-bell-icon" />
                       {unreadNotificationCount > 0 && (
@@ -1876,10 +1914,10 @@ export default function RescueTeamLeader({ teamId }) {
                     )}
                   </div>
 
-                  <button className="logout-btn2" onClick={handleLogout}>
-                  🚪 Đăng xuất
-                </button>
-              </div>
+                  <button className="logout-btn5" onClick={handleLogout}>
+                    🚪 Đăng xuất
+                  </button>
+                </div>
               </div>
               <div className="a">
                 <p className="dashboard-sub">
@@ -1960,15 +1998,6 @@ export default function RescueTeamLeader({ teamId }) {
                     </small>
                   </p>
 
-                  <p>
-                    <FaMapMarkerAlt />{" "}
-                    <span>
-                      {mission?.address ||
-                        mission?.rescueRequest?.address ||
-                        "Chưa có địa chỉ"}
-                    </span>
-                  </p>
-
                   {renderPickupSummary(mission)}
 
                   <div className="btn-group">
@@ -1984,13 +2013,6 @@ export default function RescueTeamLeader({ teamId }) {
                       onClick={() => handleReject(mission)}
                     >
                       Từ chối
-                    </button>
-
-                    <button
-                      className="btn-report"
-                      onClick={() => handleReportIncident(mission)}
-                    >
-                      Báo cáo sự cố
                     </button>
 
                     <button
@@ -2037,22 +2059,14 @@ export default function RescueTeamLeader({ teamId }) {
                     </small>
                   </p>
 
-                  <p>
-                    <FaMapMarkerAlt />{" "}
-                    <span>
-                      {mission?.address ||
-                        mission?.rescueRequest?.address ||
-                        "Chưa có địa chỉ"}
-                    </span>
-                  </p>
-
                   {renderPickupSummary(mission)}
 
                   {!canConfirmPickupMission(mission) &&
                     !canCompleteMission(mission) && (
                       <p>
                         <small>
-                          Đang chờ manager prepare đơn và gửi thông tin kho.
+                          Đang chờ người quản lý chuẩn bị đơn và gửi kho thông
+                          tin.
                         </small>
                       </p>
                     )}
@@ -2327,7 +2341,17 @@ export default function RescueTeamLeader({ teamId }) {
             <IncidentReportForm
               mission={selectedMission}
               onClose={handleCloseIncident}
-              onSubmit={handleIncidentSubmit}
+              onSubmit={(incidentData) => {
+                setMissions((prev) =>
+                  prev.filter(
+                    (item) =>
+                      String(item.rescueMissionID || item.rescueMissionId) !==
+                      String(incidentData.rescueMissionID),
+                  ),
+                );
+
+                loadMissions();
+              }}
             />
           )}
         </div>
