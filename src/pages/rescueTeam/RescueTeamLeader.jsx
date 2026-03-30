@@ -26,7 +26,7 @@ import { useNavigate } from "react-router-dom";
 import { reliefOrdersService } from "../../services/reliefOrdersService";
 import { getWarehouseById } from "../../services/warehouseService";
 
-const RESCUE_TEAM_AUTO_REFRESH_INTERVAL_MS = 10000;
+const RESCUE_TEAM_AUTO_REFRESH_INTERVAL_MS = 2000;
 const RESCUE_TEAM_NOTIFICATION_STORAGE_KEY = "rescue_team_leader_notifications";
 const SHARED_PREPARED_ORDER_STORAGE_KEY = "shared_prepared_order_notifications";
 
@@ -717,41 +717,6 @@ export default function RescueTeamLeader({ teamId }) {
     return "Unknown";
   };
 
-  const getMarkerColor = (mission) => {
-    const status = getMissionStatus(mission);
-
-    if (["Accepted", "AwaitingPickup", "InProgress"].includes(status)) {
-      return "#dc2626"; // đỏ
-    }
-
-    if (status === "Completed") {
-      return "#16a34a"; // xanh lá
-    }
-
-    return "#2563eb"; // mặc định
-  };
-
-  const getMissionMarkerIcon = (mission) => {
-    const color = getMarkerColor(mission);
-
-    return L.divIcon({
-      className: "custom-mission-marker",
-      html: `
-      <div style="
-        width: 18px;
-        height: 18px;
-        background: ${color};
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 0 0 2px rgba(0,0,0,0.15);
-      "></div>
-    `,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
-      popupAnchor: [0, -10],
-    });
-  };
-
   const hasPickupConfirmed = (mission) =>
     Boolean(
       mission?.pickedUpAt ||
@@ -1407,7 +1372,7 @@ export default function RescueTeamLeader({ teamId }) {
 
       if (!json?.success) {
         console.error("Filter missions failed:", json?.message);
-        return missionsRef.current;
+        return;
       }
 
       let missionList =
@@ -1419,21 +1384,12 @@ export default function RescueTeamLeader({ teamId }) {
         );
       }
 
-      // 1. hiện ngay dữ liệu cơ bản
-      applyMissionGroups(missionList, { suppressPickupNotifications });
-
-      // 2. enrich nền, không chặn giao diện
-      Promise.allSettled(missionList.map(enrichMissionDetail)).then(
-        (results) => {
-          const enriched = results.map((result, index) =>
-            result.status === "fulfilled" ? result.value : missionList[index],
-          );
-
-          applyMissionGroups(enriched, { suppressPickupNotifications: true });
-        },
+      const enrichedMissions = await Promise.all(
+        missionList.map(enrichMissionDetail),
       );
-
-      return missionList;
+      return applyMissionGroups(enrichedMissions, {
+        suppressPickupNotifications,
+      });
     } catch (err) {
       console.error("Load mission error:", err?.message);
       return missionsRef.current;
@@ -1612,11 +1568,11 @@ export default function RescueTeamLeader({ teamId }) {
 
     const handleIncidentResolved = async (data) => {
       console.log("IncidentResolved:", data);
-      await loadMissions({ force: true });
-      await loadIncidentReports();
       window.alert(
         "Điều phối viên đã xử lý sự cố. Nhiệm vụ này sẽ được thu hồi để điều phối lại.",
       );
+      await loadMissions({ force: true });
+      await loadIncidentReports();
     };
 
     const init = async () => {
@@ -2253,72 +2209,19 @@ export default function RescueTeamLeader({ teamId }) {
                 <Marker
                   key={getMissionId(m)}
                   position={[Number(getLatitude(m)), Number(getLongitude(m))]}
-                  icon={getMissionMarkerIcon(m)}
                 >
                   <Popup>
                     <b>{getCitizenName(m)}</b>
                     <br />
                     {getDescription(m)}
                     <br />
-                    Trạng thái:{" "}
-                    {getMissionStatus(m) === "Completed"
-                      ? "Hoàn thành"
-                      : ["Accepted", "AwaitingPickup", "InProgress"].includes(
-                            getMissionStatus(m),
-                          )
-                        ? "Đang thực hiện"
-                        : getMissionStatus(m)}
+                    Trạng thái: {getMissionStatus(m)}
                   </Popup>
                 </Marker>
               ))}
             </MapContainer>
           </div>
-          <div
-            style={{
-              position: "absolute",
-              bottom: "60px",
-              right: "40px",
-              background: "white",
-              padding: "10px 14px",
-              borderRadius: "10px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-              fontSize: "14px",
-              zIndex: 1000,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "6px",
-              }}
-            >
-              <span
-                style={{
-                  width: "12px",
-                  height: "12px",
-                  background: "#16a34a",
-                  borderRadius: "50%",
-                  display: "inline-block",
-                }}
-              ></span>
-              <span>Đã hoàn thành</span>
-            </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span
-                style={{
-                  width: "12px",
-                  height: "12px",
-                  background: "#dc2626",
-                  borderRadius: "50%",
-                  display: "inline-block",
-                }}
-              ></span>
-              <span>Đang thực hiện</span>
-            </div>
-          </div>
           <div
             style={{
               marginTop: 50,
@@ -2517,16 +2420,11 @@ export default function RescueTeamLeader({ teamId }) {
             <IncidentReportForm
               mission={selectedMission}
               onClose={handleCloseIncident}
-              onSubmit={(incidentData) => {
-                setMissions((prev) =>
-                  prev.filter(
-                    (item) =>
-                      String(item.rescueMissionID || item.rescueMissionId) !==
-                      String(incidentData.rescueMissionID),
-                  ),
-                );
-
-                loadMissions();
+              onSubmit={async () => {
+                await loadIncidentReports();
+                await loadMissions({ force: true });
+                setShowIncidentModal(false);
+                setSelectedMission(null);
               }}
             />
           )}
