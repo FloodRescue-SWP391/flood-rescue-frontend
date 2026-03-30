@@ -1647,6 +1647,26 @@ const Dashboard = () => {
           createdOrderData?.ID,
           null,
         );
+        const createdRescueMissionId = pickFirstValue(
+          createdOrderData?.rescueMissionID,
+          createdOrderData?.RescueMissionID,
+          createdOrderData?.rescueMissionId,
+          createdOrderData?.RescueMissionId,
+          createdOrderData?.missionID,
+          createdOrderData?.MissionID,
+          createdOrderData?.missionId,
+          createdOrderData?.MissionId,
+          null,
+        );
+        const createdMissionStatus = pickFirstValue(
+          createdOrderData?.missionStatus,
+          createdOrderData?.MissionStatus,
+          createdOrderData?.newMissionStatus,
+          createdOrderData?.NewMissionStatus,
+          createdOrderData?.status,
+          createdOrderData?.Status,
+          "Pending",
+        );
 
         if (!createdReliefOrderId) {
           throw new Error(
@@ -1657,8 +1677,9 @@ const Dashboard = () => {
         updateRequestAfterDispatch(selectedRequest.id, {
           assignedTeamId: selectedTeamId,
           assignedTeamName,
-          rescueMissionId: null,
+          rescueMissionId: createdRescueMissionId,
           reliefOrderId: createdReliefOrderId,
+          missionStatus: createdMissionStatus,
         });
 
         setTeamRejectedRequests((prev) =>
@@ -1777,9 +1798,11 @@ const Dashboard = () => {
 
         return {
           ...req,
-          status: "in_progress",
-          rawStatus: "Processing",
-          missionStatus: isSupplyRequest(req) ? "Processing" : "InProgress",
+          status: payload.status || "in_progress",
+          rawStatus: payload.rawStatus || "Processing",
+          missionStatus:
+            payload.missionStatus ||
+            (isSupplyRequest(req) ? "Processing" : "InProgress"),
           assignedTeamId: payload.assignedTeamId,
           assignedTeamName: payload.assignedTeamName,
           rescueMissionId: payload.rescueMissionId,
@@ -1791,7 +1814,11 @@ const Dashboard = () => {
     if (selectedRequest?.id === requestId) {
       setSelectedRequest((prev) => ({
         ...prev,
-        status: "in_progress",
+        status: payload.status || "in_progress",
+        rawStatus: payload.rawStatus || prev?.rawStatus || "Processing",
+        missionStatus:
+          payload.missionStatus ||
+          (prev && isSupplyRequest(prev) ? "Processing" : "InProgress"),
         assignedTeamId: payload.assignedTeamId,
         assignedTeamName: payload.assignedTeamName,
         rescueMissionId: payload.rescueMissionId,
