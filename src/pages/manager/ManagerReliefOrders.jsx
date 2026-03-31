@@ -1964,22 +1964,6 @@ export default function ManagerReliefOrders() {
         normalizedOrder,
         relatedRequest,
       );
-      if (!hasDisplayText(resolvedDescription)) {
-        console.warn("[ManagerReliefOrders] Missing description for order:", {
-          reliefOrderID: normalizedOrder?.reliefOrderID || "",
-          rescueRequestID: normalizedOrder?.rescueRequestID || "",
-          requestShortCode: normalizedOrder?.requestShortCode || "",
-          orderTokens: collectRequestLinkTokens(normalizedOrder),
-          matchedRequest: relatedRequest
-            ? {
-                rescueRequestID: relatedRequest?.rescueRequestID || "",
-                shortCode: relatedRequest?.shortCode || "",
-                requestShortCode: relatedRequest?.requestShortCode || "",
-                description: relatedRequest?.description || "",
-              }
-            : null,
-        });
-      }
       const assignedTeam = findAssignedTeamForOrder(
         normalizedOrder,
         [],

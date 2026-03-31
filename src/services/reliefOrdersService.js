@@ -1448,21 +1448,25 @@ export const reliefOrdersService = {
     }
 
     try {
-      const cachedItems = await loadCachedReliefOrderLookup();
-      const matchedOrder = cachedItems.find((order) =>
-        valuesMatch(normalizeReliefOrder(order)?.reliefOrderID, normalizedId),
-      );
+      return await requestReliefOrder(`${BASE}/${id}`, {
+        method: "GET",
+      });
+    } catch (detailError) {
+      try {
+        const cachedItems = await loadCachedReliefOrderLookup();
+        const matchedOrder = cachedItems.find((order) =>
+          valuesMatch(normalizeReliefOrder(order)?.reliefOrderID, normalizedId),
+        );
 
-      if (matchedOrder) {
-        return normalizeReliefOrder(matchedOrder);
+        if (matchedOrder) {
+          return normalizeReliefOrder(matchedOrder);
+        }
+      } catch (lookupError) {
+        console.warn("[reliefOrdersService.getById] Lookup cache miss:", lookupError);
       }
-    } catch (lookupError) {
-      console.warn("[reliefOrdersService.getById] Lookup cache miss:", lookupError);
-    }
 
-    return await requestReliefOrder(`${BASE}/${id}`, {
-      method: "GET",
-    });
+      throw detailError;
+    }
   },
 
   getPending: async () =>
