@@ -79,6 +79,136 @@ const formatDisplayValue = (value, fallback = "Không rõ") =>
     ? String(value)
     : fallback;
 
+const DESCRIPTION_KEYS = [
+  "description",
+  "Description",
+  "discription",
+  "Discription",
+  "citizenNote",
+  "CitizenNote",
+  "specialNeeds",
+  "SpecialNeeds",
+  "note",
+  "Note",
+  "details",
+  "Details",
+  "message",
+  "Message",
+  "requestDescription",
+  "RequestDescription",
+  "incidentDescription",
+  "IncidentDescription",
+];
+
+const hasDisplayText = (value) => {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  const normalizedValue = String(value).replace(/\s+/g, " ").trim();
+  if (!normalizedValue) {
+    return false;
+  }
+
+  const token = normalizedValue.toLowerCase();
+  return token !== "undefined" && token !== "null";
+};
+
+const extractApiObject = (res) => {
+  if (!res || Array.isArray(res)) return null;
+
+  if (res.content && !Array.isArray(res.content)) {
+    if (res.content.data && !Array.isArray(res.content.data)) {
+      return res.content.data;
+    }
+
+    return res.content;
+  }
+
+  if (res.data && !Array.isArray(res.data)) {
+    if (res.data.data && !Array.isArray(res.data.data)) {
+      return res.data.data;
+    }
+
+    if (res.data.content && !Array.isArray(res.data.content)) {
+      return res.data.content;
+    }
+
+    return res.data;
+  }
+
+  return res;
+};
+
+const resolveDescriptionFromSource = (source = null) => {
+  if (!source || typeof source !== "object") {
+    return "";
+  }
+
+  const directValue = pickFirst(source, DESCRIPTION_KEYS, "");
+  if (hasDisplayText(directValue)) {
+    return String(directValue).trim();
+  }
+
+  const nestedCandidates = [
+    source?.requestInfo,
+    source?.rescueRequest,
+    source?.request,
+    source?.orderInfo,
+  ];
+
+  for (const candidate of nestedCandidates) {
+    const nestedValue = pickFirst(candidate, DESCRIPTION_KEYS, "");
+    if (hasDisplayText(nestedValue)) {
+      return String(nestedValue).trim();
+    }
+  }
+
+  return "";
+};
+
+const resolveOrderDescription = (order, relatedRequest = null) => {
+  const normalizedOrder = normalizeReliefOrder(order || {});
+  const normalizedInputRequest = normalizeRescueRequestSummary(order || {});
+  const normalizedRelatedRequest = normalizeRescueRequestSummary(
+    relatedRequest || {},
+  );
+
+  const descriptionCandidates = [
+    normalizedOrder?.description,
+    normalizedInputRequest?.description,
+    resolveDescriptionFromSource(order),
+    normalizedRelatedRequest?.description,
+    resolveDescriptionFromSource(relatedRequest),
+  ];
+
+  for (const candidate of descriptionCandidates) {
+    if (hasDisplayText(candidate)) {
+      return String(candidate).trim();
+    }
+  }
+
+  const directItems = extractOrderItems(order);
+  if (directItems.length > 0) {
+    return directItems
+      .map((item) => {
+        const itemName = item?.reliefItemName || item?.itemName || "";
+        if (!hasDisplayText(itemName)) {
+          return "";
+        }
+
+        const quantity = Number(item?.quantity);
+        return Number.isFinite(quantity) && quantity > 0
+          ? `${String(itemName).trim()} x${quantity}`
+          : String(itemName).trim();
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  return "";
+};
+
 const toComparable = (value) =>
   String(value ?? "")
     .trim()
@@ -86,6 +216,78 @@ const toComparable = (value) =>
 
 const valuesMatch = (left, right) =>
   Boolean(toComparable(left)) && toComparable(left) === toComparable(right);
+
+const REQUEST_LINK_KEYS = [
+  "rescueRequestID",
+  "RescueRequestID",
+  "rescueRequestId",
+  "RescueRequestId",
+  "requestID",
+  "RequestID",
+  "requestId",
+  "RequestId",
+  "requestShortCode",
+  "RequestShortCode",
+  "shortCode",
+  "ShortCode",
+  "requestCode",
+  "RequestCode",
+  "rescueRequestCode",
+  "RescueRequestCode",
+];
+
+const collectRequestLinkTokens = (source = null) => {
+  if (!source || typeof source !== "object") {
+    return [];
+  }
+
+  const candidates = [
+    source,
+    source?.requestInfo,
+    source?.rescueRequest,
+    source?.request,
+    source?.orderInfo,
+    source?.content,
+    source?.data,
+  ];
+  const tokens = new Set();
+
+  candidates.forEach((entry) => {
+    REQUEST_LINK_KEYS.forEach((key) => {
+      const value = entry?.[key];
+      if (value !== undefined && value !== null && value !== "") {
+        tokens.add(toComparable(value));
+      }
+    });
+  });
+
+  return Array.from(tokens);
+};
+
+const findRelatedRequestForOrderLoose = (order, requests = []) => {
+  const strictMatch = findRelatedRequestForOrder(order, requests);
+  if (strictMatch) {
+    return strictMatch;
+  }
+
+  if (!Array.isArray(requests) || requests.length === 0) {
+    return null;
+  }
+
+  const orderTokens = collectRequestLinkTokens(order);
+  if (orderTokens.length === 0) {
+    return null;
+  }
+
+  const normalizedRequests = normalizeRescueRequests(requests);
+
+  return (
+    normalizedRequests.find((request) => {
+      const requestTokens = collectRequestLinkTokens(request);
+      return requestTokens.some((token) => orderTokens.includes(token));
+    }) || null
+  );
+};
 
 const ACCEPTED_AT_KEYS = [
   "acceptedAt",
@@ -1187,7 +1389,10 @@ const mergeNotifications = (oldList, newList) => {
 
 const buildOrderNotification = (order, requests = []) => {
   const normalizedOrder = normalizeReliefOrder(order);
-  const relatedRequest = findRelatedRequestForOrder(normalizedOrder, requests);
+  const relatedRequest = findRelatedRequestForOrderLoose(
+    normalizedOrder,
+    requests,
+  );
   const requestLabel =
     relatedRequest?.shortCode ||
     relatedRequest?.requestShortCode ||
@@ -1387,6 +1592,20 @@ export default function ManagerReliefOrders() {
           resolvedPickedUpAt ||
           resolvedPreparedAt ||
           resolvedCreatedAt;
+        const resolvedRescueRequestID =
+          normalizedDetail?.rescueRequestID ||
+          normalizedSummary?.rescueRequestID ||
+          null;
+        const resolvedRequestShortCode =
+          normalizedDetail?.requestShortCode ||
+          normalizedSummary?.requestShortCode ||
+          null;
+        const resolvedDescription =
+          normalizedDetail?.description ||
+          normalizedSummary?.description ||
+          "";
+        const resolvedTeamName =
+          normalizedDetail?.teamName || normalizedSummary?.teamName || "";
 
         return {
           ...orderSummary,
@@ -1405,6 +1624,12 @@ export default function ManagerReliefOrders() {
           preparedAt: resolvedPreparedAt,
           pickedUpAt: resolvedPickedUpAt,
           updatedAt: resolvedUpdatedAt,
+          rescueRequestID: resolvedRescueRequestID,
+          rescueRequestId: resolvedRescueRequestID,
+          requestShortCode: resolvedRequestShortCode,
+          shortCode: resolvedRequestShortCode,
+          description: resolvedDescription,
+          teamName: resolvedTeamName,
           items:
             normalizedDetail.items?.length > 0
               ? normalizedDetail.items
@@ -1501,9 +1726,10 @@ export default function ManagerReliefOrders() {
     }
 
     if (requestsResult.status === "fulfilled") {
-      setRescueRequests(
-        normalizeRescueRequests(extractList(requestsResult.value)),
+      nextRescueRequests = normalizeRescueRequests(
+        extractList(requestsResult.value),
       );
+      setRescueRequests(nextRescueRequests);
     } else {
       nextRescueRequests = [];
       errors.push(
@@ -1517,6 +1743,20 @@ export default function ManagerReliefOrders() {
         nextOrders,
         nextRescueRequests,
       );
+
+      nextOrders = nextOrders.map((order) => {
+        const relatedRequest = findRelatedRequestForOrderLoose(
+          order,
+          nextRescueRequests,
+        );
+        const resolvedDescription = resolveOrderDescription(order, relatedRequest);
+
+        return hasDisplayText(resolvedDescription)
+          ? { ...order, description: resolvedDescription }
+          : order;
+      });
+
+      setOrders(nextOrders);
 
       setNotifications((prev) =>
         mergeNotifications(
@@ -1710,7 +1950,7 @@ export default function ManagerReliefOrders() {
   const orderCards = orders
     .map((order) => {
       const normalizedOrder = normalizeReliefOrder(order);
-      const relatedRequest = findRelatedRequestForOrder(
+      const relatedRequest = findRelatedRequestForOrderLoose(
         normalizedOrder,
         rescueRequests,
       );
@@ -1724,6 +1964,22 @@ export default function ManagerReliefOrders() {
         normalizedOrder,
         relatedRequest,
       );
+      if (!hasDisplayText(resolvedDescription)) {
+        console.warn("[ManagerReliefOrders] Missing description for order:", {
+          reliefOrderID: normalizedOrder?.reliefOrderID || "",
+          rescueRequestID: normalizedOrder?.rescueRequestID || "",
+          requestShortCode: normalizedOrder?.requestShortCode || "",
+          orderTokens: collectRequestLinkTokens(normalizedOrder),
+          matchedRequest: relatedRequest
+            ? {
+                rescueRequestID: relatedRequest?.rescueRequestID || "",
+                shortCode: relatedRequest?.shortCode || "",
+                requestShortCode: relatedRequest?.requestShortCode || "",
+                description: relatedRequest?.description || "",
+              }
+            : null,
+        });
+      }
       const assignedTeam = findAssignedTeamForOrder(
         normalizedOrder,
         [],
@@ -2792,9 +3048,6 @@ export default function ManagerReliefOrders() {
                       <small>
                         Chuẩn bị: {formatDateTime(order.preparedAt)}
                       </small>
-                      <small>
-                        Nhận hàng: {formatDateTime(order.pickedUpAt)}
-                      </small>
                     </div>
                   </div>
 
@@ -3045,57 +3298,6 @@ export default function ManagerReliefOrders() {
               <span className="manager-relief-order-modal-label">Mô tả</span>
               <div className="manager-relief-order-modal-description">
                 {detailModalOrder.descriptionText}
-              </div>
-            </div>
-            <div className="manager-relief-order-modal-field">
-              <span
-                className="manager-relief-order-modal-label"
-                style={{ marginTop: "10px" }}
-              >
-                Vật Phẩm
-              </span>
-              <div className="manager-relief-order-items-box">
-                {detailModalOrder?.items?.length > 0 ? (
-                  <div className="manager-relief-order-item-editor">
-                    {detailModalOrder.items.map((item, index) => (
-                      <div
-                        className="manager-relief-order-item-row"
-                        key={`${item?.reliefItemID || item?.itemID || index}`}
-                      >
-                        <div className="manager-relief-order-item-copy">
-                          <strong>
-                            {formatDisplayValue(
-                              item?.reliefItemName || item?.itemName,
-                              `Vat pham ${index + 1}`,
-                            )}
-                          </strong>
-                          <span>
-                            Mã vật phẩm:{" "}
-                            {formatDisplayValue(item?.reliefItemID, "Chưa có")}
-                          </span>
-                          {item?.isInferred && (
-                            <span>
-                              Suy ra từ mô tả:{" "}
-                              {formatDisplayValue(item?.sourceText, "Không rõ")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="manager-relief-order-prepare-field">
-                          <span>Số lượng</span>
-                          <input
-                            type="number"
-                            value={Number(item?.quantity) || 0}
-                            readOnly
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="manager-relief-order-modal-description">
-                    Chưa map được vật phẩm từ dữ liệu đơn.
-                  </div>
-                )}
               </div>
             </div>
           </div>

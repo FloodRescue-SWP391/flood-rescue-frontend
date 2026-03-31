@@ -61,6 +61,8 @@ const REQUEST_SHORT_CODE_KEYS = [
   "ShortCode",
   "requestCode",
   "RequestCode",
+  "rescueRequestCode",
+  "RescueRequestCode",
 ];
 
 const STATUS_KEYS = [
@@ -89,12 +91,18 @@ const TEAM_NAME_KEYS = [
 const DESCRIPTION_KEYS = [
   "description",
   "Description",
+  "discription",
+  "Discription",
+  "citizenNote",
+  "CitizenNote",
   "specialNeeds",
   "SpecialNeeds",
   "note",
   "Note",
   "details",
   "Details",
+  "message",
+  "Message",
   "requestDescription",
   "RequestDescription",
   "incidentDescription",
@@ -197,6 +205,11 @@ const pickDescriptionValue = (source, fallback = "") =>
   pickFirstValue(source, DESCRIPTION_KEYS, fallback);
 
 const toComparable = (value) => String(value ?? "").trim().toLowerCase();
+
+const isLikelyGuid = (value) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(value ?? "").trim(),
+  );
 
 const valuesMatch = (left, right) =>
   isPresent(left) && isPresent(right) && toComparable(left) === toComparable(right);
@@ -340,10 +353,11 @@ export function normalizeRescueTeams(teams) {
 
 export function normalizeRescueRequestSummary(request = {}) {
   const rescueRequestID = pickFirstValue(request, RESCUE_REQUEST_ID_KEYS, null);
+  const requestAlias = pickFirstValue(request, ["requestId", "RequestId"], null);
   const shortCode = pickFirstValue(
     request,
     REQUEST_SHORT_CODE_KEYS,
-    pickFirstValue(request, ["requestId", "RequestId"], null),
+    !isLikelyGuid(requestAlias) ? requestAlias : null,
   );
   const assignedTeamID = pickNestedValue(
     request,
@@ -634,6 +648,25 @@ export function normalizeReliefOrder(order = {}) {
   }
 
   const reliefOrderID = pickFirstValue(order, RELIEF_ORDER_ID_KEYS, null);
+  const requestAlias = pickNestedValue(
+    order,
+    [
+      (item) => pickFirstValue(item, ["requestID", "RequestID", "requestId", "RequestId"], null),
+      (item) =>
+        pickFirstValue(
+          item?.rescueRequest,
+          ["requestID", "RequestID", "requestId", "RequestId"],
+          null,
+        ),
+      (item) =>
+        pickFirstValue(
+          item?.requestInfo,
+          ["requestID", "RequestID", "requestId", "RequestId"],
+          null,
+        ),
+    ],
+    null,
+  );
   const rescueRequestID = pickNestedValue(
     order,
     [
@@ -650,7 +683,7 @@ export function normalizeReliefOrder(order = {}) {
       (item) => pickFirstValue(item?.rescueRequest, REQUEST_SHORT_CODE_KEYS, null),
       (item) => pickFirstValue(item?.requestInfo, REQUEST_SHORT_CODE_KEYS, null),
     ],
-    null,
+    !isLikelyGuid(requestAlias) ? requestAlias : null,
   );
   const rescueMissionID = pickNestedValue(
     order,
@@ -795,6 +828,15 @@ export function findRelatedRequestForOrder(order, requests = []) {
     ) ||
     normalizedRequests.find((request) =>
       valuesMatch(request.requestShortCode, normalizedOrder.requestShortCode),
+    ) ||
+    normalizedRequests.find((request) =>
+      valuesMatch(request.shortCode, normalizedOrder.rescueRequestID),
+    ) ||
+    normalizedRequests.find((request) =>
+      valuesMatch(request.requestShortCode, normalizedOrder.rescueRequestID),
+    ) ||
+    normalizedRequests.find((request) =>
+      valuesMatch(request.rescueRequestID, normalizedOrder.requestShortCode),
     ) ||
     null
   );
@@ -1276,6 +1318,9 @@ export async function createReliefOrder(payload) {
   const normalizedPayload = {
     rescueRequestID: payload?.rescueRequestID ?? payload?.rescueRequestId ?? null,
     rescueTeamID: payload?.rescueTeamID ?? payload?.rescueTeamId ?? null,
+    description: String(
+      payload?.description ?? payload?.Description ?? payload?.discription ?? "",
+    ).trim(),
   };
 
   if (!isPresent(normalizedPayload.rescueRequestID)) {

@@ -1958,6 +1958,7 @@ const Dashboard = () => {
         const createdOrder = await reliefOrdersService.createReliefOrder({
           rescueRequestID: selectedRequest.id,
           rescueTeamID: selectedTeamId,
+          description: selectedRequest.description?.trim() || "",
         });
 
         console.log("Create supply ReliefOrder response:", createdOrder);
@@ -2095,6 +2096,7 @@ const Dashboard = () => {
           payload: e?.requestPayload || {
             rescueRequestID: selectedRequest?.id || null,
             rescueTeamID: selectedTeamId || null,
+            description: selectedRequest?.description?.trim() || "",
           },
           status: e?.status || null,
           message: e?.message || "Unknown error",
