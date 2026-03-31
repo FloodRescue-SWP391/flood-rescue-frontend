@@ -746,7 +746,7 @@ const ListUser = () => {
                         </td>
 
                         <td>
-                          <div className="table-actions">
+                          <div className="row-actions">
                             {isEditing ? (
                               <>
                                 <button
@@ -767,14 +767,14 @@ const ListUser = () => {
                             ) : (
                               <>
                                 <button
-                                  className="edit-btn"
+                                  className="btn small"
                                   onClick={() => handleEdit(user)}
                                 >
                                   Sửa
                                 </button>
                                 <div className="action-buttons1">
                                   <button
-                                    className="delete-btn1"
+                                    className="btn small danger"
                                     onClick={() =>
                                       handleDelete(user.userID, user.username)
                                     }

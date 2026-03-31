@@ -341,12 +341,12 @@
 .save-btn,
 .cancel-btn {
   border: none;
-  padding: 8px 14px;
+  padding: 14px 9px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
-  min-width: 84px;
+  min-width: 30px;
   height: 38px;
   display: inline-flex;
   align-items: center;
@@ -461,12 +461,7 @@
   }
 
 
-  .edit-btn,
-  .delete-btn,
-  .save-btn,
-  .cancel-btn {
-    width: 100%;
-  }
+
 
   .user-table {
     font-size: 13px;
