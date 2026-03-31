@@ -220,10 +220,9 @@
     justify-content: space-between;
   }
 
-  .rescue-notification-panel {
+  .rescue-notification-panel1 {
     right: auto;
-    left: 0;
-    width: min(420px, calc(100vw - 32px));
+    left: 0;  
   }
 
 }
@@ -341,12 +340,11 @@
   box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
 }
 
-.rescue-notification-panel {
+.rescue-notification-panel1 {
   position: absolute;
   top: 60px;
   right: 0;
-  width: 420px;
-  max-width: min(420px, calc(100vw - 40px));
+  width: 520px;
   max-height: 500px;
   background: #ffffff;
   border-radius: 18px;

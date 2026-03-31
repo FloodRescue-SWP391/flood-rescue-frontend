@@ -730,7 +730,10 @@ const buildResolvableOrderItems = (
     return directItems;
   }
 
-  return inferRequestedItemsFromText(resolveOrderDescription(order, relatedRequest), catalog);
+  return inferRequestedItemsFromText(
+    resolveOrderDescription(order, relatedRequest),
+    catalog,
+  );
 };
 
 const formatDateTime = (value) => {
@@ -1432,13 +1435,14 @@ const buildOrderNotification = (order, requests = []) => {
   }
 
   return {
-    id:
-      `order-${normalizedOrder?.reliefOrderID || normalizedOrder?.rescueRequestID || normalizedOrder?.requestShortCode || Date.now()}`,
+    id: `order-${normalizedOrder?.reliefOrderID || normalizedOrder?.rescueRequestID || normalizedOrder?.requestShortCode || Date.now()}`,
     type: "order",
     title: "Đơn cứu trợ",
     message: messageParts.join(" "),
     referenceId: normalizedOrder?.reliefOrderID || "",
-    targetRoute: buildManagerReliefOrdersRoute(normalizedOrder?.reliefOrderID || ""),
+    targetRoute: buildManagerReliefOrdersRoute(
+      normalizedOrder?.reliefOrderID || "",
+    ),
     timestamp: createTimestamp(),
     createdAt: normalizedOrder?.createdAt || new Date().toISOString(),
     read: false,
@@ -1497,7 +1501,9 @@ export default function ManagerReliefOrders() {
     const requestIdsToFetch = Array.from(
       new Set(
         normalizedOrders
-          .map((order) => order?.rescueRequestID || order?.rescueRequestId || "")
+          .map(
+            (order) => order?.rescueRequestID || order?.rescueRequestId || "",
+          )
           .filter(Boolean),
       ),
     ).filter((requestId) => {
@@ -1540,8 +1546,11 @@ export default function ManagerReliefOrders() {
         return;
       }
 
-      const normalizedRequest = normalizeRescueRequestSummary(result.value || {});
-      const requestId = normalizedRequest?.rescueRequestID || normalizedRequest?.id || "";
+      const normalizedRequest = normalizeRescueRequestSummary(
+        result.value || {},
+      );
+      const requestId =
+        normalizedRequest?.rescueRequestID || normalizedRequest?.id || "";
 
       if (!requestId) {
         return;
@@ -1613,9 +1622,7 @@ export default function ManagerReliefOrders() {
           normalizedSummary?.requestShortCode ||
           null;
         const resolvedDescription =
-          normalizedDetail?.description ||
-          normalizedSummary?.description ||
-          "";
+          normalizedDetail?.description || normalizedSummary?.description || "";
         const resolvedTeamName =
           normalizedDetail?.teamName || normalizedSummary?.teamName || "";
 
@@ -1761,7 +1768,10 @@ export default function ManagerReliefOrders() {
           order,
           nextRescueRequests,
         );
-        const resolvedDescription = resolveOrderDescription(order, relatedRequest);
+        const resolvedDescription = resolveOrderDescription(
+          order,
+          relatedRequest,
+        );
 
         return hasDisplayText(resolvedDescription)
           ? { ...order, description: resolvedDescription }
@@ -1773,7 +1783,9 @@ export default function ManagerReliefOrders() {
       setNotifications((prev) =>
         mergeNotifications(
           prev,
-          nextOrders.map((order) => buildOrderNotification(order, nextRescueRequests)),
+          nextOrders.map((order) =>
+            buildOrderNotification(order, nextRescueRequests),
+          ),
         ),
       );
     }
@@ -1811,6 +1823,24 @@ export default function ManagerReliefOrders() {
       setLoading(false);
     });
   }, [appliedFilters]);
+
+  useEffect(() => {
+  if (!detailOrderId) return;
+
+  const loadDetail = async () => {
+    const detail = await reliefOrdersService.getById(detailOrderId);
+
+    setOrders(prev =>
+      prev.map(o =>
+        String(o.reliefOrderID) === String(detailOrderId)
+          ? { ...o, ...detail }
+          : o
+      )
+    );
+  };
+
+  loadDetail();
+}, [detailOrderId]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -1925,27 +1955,58 @@ export default function ManagerReliefOrders() {
     setNotifications((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const goToNotificationDetail = (notification) => {
-    if (!notification) return;
+  // const goToNotificationDetail = (notification) => {
+  //   if (!notification) return;
 
-    setNotifications((prev) =>
-      prev.map((item) =>
-        item.id === notification.id ? { ...item, read: true } : item,
+  //   setNotifications((prev) =>
+  //     prev.map((item) =>
+  //       item.id === notification.id ? { ...item, read: true } : item,
+  //     ),
+  //   );
+  //   setShowNotifications(false);
+
+  //   const targetRoute =
+  //     notification.targetRoute === "/manager/orders" ||
+  //     notification.targetRoute === "/manager#relief-orders"
+  //       ? buildManagerReliefOrdersRoute(notification.referenceId || "")
+  //       : notification.targetRoute;
+
+  //   if (targetRoute) {
+  //     navigate(targetRoute);
+  //   }
+  // };
+
+  const goToNotificationDetail = async (notification) => {
+  if (!notification) return;
+
+  setNotifications((prev) =>
+    prev.map((item) =>
+      item.id === notification.id ? { ...item, read: true } : item,
+    ),
+  );
+  setShowNotifications(false);
+
+  const orderId = String(notification.referenceId || "");
+  if (!orderId) return;
+
+  try {
+    const detail = await reliefOrdersService.getById(orderId);
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        String(o.reliefOrderID || o.reliefOrderId || "") === orderId
+          ? { ...o, ...detail }
+          : o,
       ),
     );
-    setShowNotifications(false);
 
-    const targetRoute =
-      notification.targetRoute === "/manager/orders" ||
-      notification.targetRoute === "/manager#relief-orders"
-        ? buildManagerReliefOrdersRoute(notification.referenceId || "")
-        : notification.targetRoute;
-
-    if (targetRoute) {
-      navigate(targetRoute);
-    }
-  };
-
+    setDetailOrderId(orderId);
+    setHighlightedOrderId(orderId);
+  } catch (err) {
+    console.error("Load notification order detail failed:", err);
+    toast.error("Không tải được chi tiết đơn cứu trợ.");
+  }
+};
   const getNotificationStyleMeta = (type) => {
     switch (type) {
       case "order":
@@ -2835,14 +2896,6 @@ export default function ManagerReliefOrders() {
                                   {notification.timestamp}
                                 </span>
 
-                                <button
-                                  className="notification-action"
-                                  onClick={() =>
-                                    goToNotificationDetail(notification)
-                                  }
-                                >
-                                  Xem chi tiết
-                                </button>
                               </div>
                             </div>
 
@@ -2930,7 +2983,6 @@ export default function ManagerReliefOrders() {
                 onChange={handleFilterInputChange}
               />
             </label>
-
 
             <label className="manager-relief-orders-field">
               <span>Số dòng mỗi trang</span>
@@ -3055,7 +3107,18 @@ export default function ManagerReliefOrders() {
                     <button
                       className="btn btn-outline-primary manager-relief-order-detail-btn"
                       type="button"
-                      onClick={() => setDetailOrderId(orderId)}
+                      onClick={async () => {
+                        const detail =
+                          await reliefOrdersService.getById(orderId);
+                        setOrders((prev) =>
+                          prev.map((o) =>
+                            String(o.reliefOrderID) === String(orderId)
+                              ? { ...o, ...detail }
+                              : o,
+                          ),
+                        );
+                        setDetailOrderId(orderId);
+                      }}
                     >
                       Xem chi tiết
                     </button>

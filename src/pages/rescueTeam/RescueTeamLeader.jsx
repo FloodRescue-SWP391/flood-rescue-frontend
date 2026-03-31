@@ -717,9 +717,13 @@ export default function RescueTeamLeader({ teamId }) {
     const normalizedMissionStatus = normalizeStatus(missionStatus);
 
     if (
-      ["Assigned", "Accepted", "AwaitingPickup", "InProgress", "Completed"].includes(
-        normalizedMissionStatus,
-      )
+      [
+        "Assigned",
+        "Accepted",
+        "AwaitingPickup",
+        "InProgress",
+        "Completed",
+      ].includes(normalizedMissionStatus)
     ) {
       if (
         normalizedMissionStatus === "Assigned" &&
@@ -1959,7 +1963,7 @@ export default function RescueTeamLeader({ teamId }) {
                     </button>
 
                     {showNotifications && (
-                      <div className="rescue-notification-panel">
+                      <div className="rescue-notification-panel1">
                         <div className="rescue-notification-header">
                           <h3>Thông báo ({notifications.length})</h3>
                           <button
@@ -1999,22 +2003,47 @@ export default function RescueTeamLeader({ teamId }) {
 
                                   <div className="rescue-notification-content">
                                     <h4>{notification.title}</h4>
-                                    <p>{notification.message}</p>
+                                    {/* <p>{notification.message}</p> */}
+
+                                    <div style={{ lineHeight: "1.5" }}>
+                                      {
+                                        notification.message.split(
+                                          "Địa chỉ kho:",
+                                        )[0]
+                                      }
+
+                                      {notification.message.includes(
+                                        "Địa chỉ kho:",
+                                      ) && (
+                                        <>
+                                          <br />
+                                          <strong>📍 Địa chỉ kho:</strong>
+                                          <br />
+                                          {
+                                            notification.message.split(
+                                              "Địa chỉ kho:",
+                                            )[1]
+                                          }
+                                        </>
+                                      )}
+                                    </div>
 
                                     <div className="rescue-notification-footer">
                                       <span className="rescue-notification-time">
                                         {notification.timestamp}
                                       </span>
 
-                                      <button
-                                        className="rescue-notification-action"
-                                        type="button"
-                                        onClick={() =>
-                                          openNotificationDetail(notification)
-                                        }
-                                      >
-                                        Xem chi tiết
-                                      </button>
+                                      {notification.type !== "pickup" && (
+                                        <button
+                                          className="rescue-notification-action"
+                                          type="button"
+                                          onClick={() =>
+                                            openNotificationDetail(notification)
+                                          }
+                                        >
+                                          Xem chi tiết
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
 

@@ -97,14 +97,24 @@ export default function RequestDetailModal({
     "Chưa có địa chỉ",
   );
 
-  const requestType = pick(
+  // const requestType = pick(
+  //   requestData?.requestType,
+  //   requestData?.type,
+  //   missionData?.requestType,
+  //   missionData?.type,
+  //   "Rescue",
+  // );
+
+  const requestTypeRaw = pick(
     requestData?.requestType,
     requestData?.type,
     missionData?.requestType,
     missionData?.type,
-    "Rescue",
+    missionData?.orderType,
+    missionData?.order_type,
   );
 
+  const requestType = String(requestTypeRaw || "").toLowerCase();
   const peopleCount = pick(
     requestData?.peopleCount,
     requestData?.numberOfPeople,
@@ -269,7 +279,8 @@ export default function RequestDetailModal({
 
   const addressCache = new Map();
   const AddressDisplay = ({ lat, lng }) => {
-    const [resolvedAddress, setResolvedAddress] = useState("Đang tải vị trí...");
+    const [resolvedAddress, setResolvedAddress] =
+      useState("Đang tải vị trí...");
 
     useEffect(() => {
       if (lat == null || lng == null) {
@@ -383,7 +394,12 @@ export default function RequestDetailModal({
                   <div className="detail-item card-style">
                     <label>Loại yêu cầu</label>
                     <p className="value with-icon">
-                      <FaTag /> {requestType}
+                      <FaTag />{" "}
+                      {mission?.reliefOrderID ||
+                      mission?.orderStatus ||
+                      pickupAddress
+                        ? "Supply"
+                        : "Rescue"}
                     </p>
                   </div>
 
@@ -448,7 +464,9 @@ export default function RequestDetailModal({
                   <div className="detail-grid">
                     <div className="detail-item card-style">
                       <label>Kho</label>
-                      <p className="value">{pickupWarehouseName || "Kho cứu trợ"}</p>
+                      <p className="value">
+                        {pickupWarehouseName || "Kho cứu trợ"}
+                      </p>
                     </div>
 
                     <div className="detail-item full-width card-style">
@@ -457,8 +475,12 @@ export default function RequestDetailModal({
                         <FaMapMarkerAlt />{" "}
                         {pickupAddress ? (
                           <span>{pickupAddress}</span>
-                        ) : pickupLatitude !== "N/A" && pickupLongitude !== "N/A" ? (
-                          <AddressDisplay lat={pickupLatitude} lng={pickupLongitude} />
+                        ) : pickupLatitude !== "N/A" &&
+                          pickupLongitude !== "N/A" ? (
+                          <AddressDisplay
+                            lat={pickupLatitude}
+                            lng={pickupLongitude}
+                          />
                         ) : (
                           <span>Chưa có địa chỉ kho</span>
                         )}
@@ -568,7 +590,9 @@ export default function RequestDetailModal({
               <div className="timeline modern-timeline1">
                 <div className="timeline-item">
                   <div className="timeline-marker1">
-                    <div className={`timeline-dot ${createdAt ? "active" : ""}`}></div>
+                    <div
+                      className={`timeline-dot ${createdAt ? "active" : ""}`}
+                    ></div>
                     <div className="timeline-line"></div>
                   </div>
                   <div className="timeline-content card-style">
@@ -582,7 +606,9 @@ export default function RequestDetailModal({
 
                 <div className="timeline-item">
                   <div className="timeline-marker1">
-                    <div className={`timeline-dot ${assignedAt ? "active" : ""}`}></div>
+                    <div
+                      className={`timeline-dot ${assignedAt ? "active" : ""}`}
+                    ></div>
                     <div className="timeline-line"></div>
                   </div>
                   <div className="timeline-content card-style">
@@ -596,7 +622,9 @@ export default function RequestDetailModal({
 
                 <div className="timeline-item">
                   <div className="timeline-marker1">
-                    <div className={`timeline-dot ${startedAt ? "active" : ""}`}></div>
+                    <div
+                      className={`timeline-dot ${startedAt ? "active" : ""}`}
+                    ></div>
                     {completedAt && <div className="timeline-line"></div>}
                   </div>
                   <div className="timeline-content card-style">
