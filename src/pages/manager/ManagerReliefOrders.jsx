@@ -155,6 +155,12 @@ const resolveDescriptionFromSource = (source = null) => {
     source?.rescueRequest,
     source?.request,
     source?.orderInfo,
+    source?.mission,
+    source?.mission?.requestInfo,
+    source?.mission?.rescueRequest,
+    source?.rescueMission,
+    source?.rescueMission?.requestInfo,
+    source?.rescueMission?.rescueRequest,
   ];
 
   for (const candidate of nestedCandidates) {
@@ -247,6 +253,12 @@ const collectRequestLinkTokens = (source = null) => {
     source?.rescueRequest,
     source?.request,
     source?.orderInfo,
+    source?.mission,
+    source?.mission?.requestInfo,
+    source?.mission?.rescueRequest,
+    source?.rescueMission,
+    source?.rescueMission?.requestInfo,
+    source?.rescueMission?.rescueRequest,
     source?.content,
     source?.data,
   ];
@@ -2310,14 +2322,10 @@ export default function ManagerReliefOrders() {
         ]),
       );
     };
-    const handleReceiveOrderResponse = (data) => {
+    const handleReceiveOrderResponse = async (data) => {
       console.log("ReceiveOrderResponse:", data);
-
-      // hiện thông báo
-      // toast.success(data?.message || "Đơn hàng vừa có phản hồi");
-
-      // load lại danh sách order
-      loadPageData(appliedFilters);
+      handleTeamResponse(data);
+      await loadPageData(appliedFilters);
     };
     const handleDeliveryStarted = async (data) => {
       const reliefOrderId = pickFirst(
@@ -2453,6 +2461,14 @@ export default function ManagerReliefOrders() {
         await signalRService.on(
           CLIENT_EVENTS.ORDER_PREPARED,
           handleOrderPrepared,
+        );
+        await signalRService.on(
+          CLIENT_EVENTS.DELIVERY_STARTED,
+          handleDeliveryStarted,
+        );
+        await signalRService.on(
+          CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
+          handleReceiveOrderResponse,
         );
       } catch (signalRError) {
         console.error(

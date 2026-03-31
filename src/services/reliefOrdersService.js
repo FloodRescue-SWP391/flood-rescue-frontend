@@ -204,6 +204,10 @@ const pickFirstValue = (source, keys, fallback = null) => {
 const pickDescriptionValue = (source, fallback = "") =>
   pickFirstValue(source, DESCRIPTION_KEYS, fallback);
 
+const looksLikeReliefOrderEntity = (value) =>
+  isPlainObject(value) &&
+  isPresent(pickFirstValue(value, RELIEF_ORDER_ID_KEYS, null));
+
 const toComparable = (value) => String(value ?? "").trim().toLowerCase();
 
 const isLikelyGuid = (value) =>
@@ -251,6 +255,7 @@ export const extractReliefOrderApiData = (payload, visited = new Set()) => {
   if (Array.isArray(payload)) return payload;
   if (!isPlainObject(payload)) return payload;
   if (visited.has(payload)) return payload;
+  if (looksLikeReliefOrderEntity(payload)) return payload;
 
   visited.add(payload);
 
@@ -664,6 +669,36 @@ export function normalizeReliefOrder(order = {}) {
           ["requestID", "RequestID", "requestId", "RequestId"],
           null,
         ),
+      (item) =>
+        pickFirstValue(
+          item?.mission,
+          ["requestID", "RequestID", "requestId", "RequestId"],
+          null,
+        ),
+      (item) =>
+        pickFirstValue(
+          item?.mission?.rescueRequest,
+          ["requestID", "RequestID", "requestId", "RequestId"],
+          null,
+        ),
+      (item) =>
+        pickFirstValue(
+          item?.mission?.requestInfo,
+          ["requestID", "RequestID", "requestId", "RequestId"],
+          null,
+        ),
+      (item) =>
+        pickFirstValue(
+          item?.rescueMission?.rescueRequest,
+          ["requestID", "RequestID", "requestId", "RequestId"],
+          null,
+        ),
+      (item) =>
+        pickFirstValue(
+          item?.rescueMission?.requestInfo,
+          ["requestID", "RequestID", "requestId", "RequestId"],
+          null,
+        ),
     ],
     null,
   );
@@ -673,6 +708,15 @@ export function normalizeReliefOrder(order = {}) {
       (item) => pickFirstValue(item, RESCUE_REQUEST_ID_KEYS, null),
       (item) => pickFirstValue(item?.rescueRequest, RESCUE_REQUEST_ID_KEYS, null),
       (item) => pickFirstValue(item?.requestInfo, RESCUE_REQUEST_ID_KEYS, null),
+      (item) => pickFirstValue(item?.mission, RESCUE_REQUEST_ID_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.mission?.rescueRequest, RESCUE_REQUEST_ID_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.mission?.requestInfo, RESCUE_REQUEST_ID_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.rescueMission?.rescueRequest, RESCUE_REQUEST_ID_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.rescueMission?.requestInfo, RESCUE_REQUEST_ID_KEYS, null),
     ],
     null,
   );
@@ -682,6 +726,15 @@ export function normalizeReliefOrder(order = {}) {
       (item) => pickFirstValue(item, REQUEST_SHORT_CODE_KEYS, null),
       (item) => pickFirstValue(item?.rescueRequest, REQUEST_SHORT_CODE_KEYS, null),
       (item) => pickFirstValue(item?.requestInfo, REQUEST_SHORT_CODE_KEYS, null),
+      (item) => pickFirstValue(item?.mission, REQUEST_SHORT_CODE_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.mission?.rescueRequest, REQUEST_SHORT_CODE_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.mission?.requestInfo, REQUEST_SHORT_CODE_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.rescueMission?.rescueRequest, REQUEST_SHORT_CODE_KEYS, null),
+      (item) =>
+        pickFirstValue(item?.rescueMission?.requestInfo, REQUEST_SHORT_CODE_KEYS, null),
     ],
     !isLikelyGuid(requestAlias) ? requestAlias : null,
   );
@@ -795,6 +848,12 @@ export function normalizeReliefOrder(order = {}) {
         (item) => pickDescriptionValue(item, ""),
         (item) => pickDescriptionValue(item?.rescueRequest, ""),
         (item) => pickDescriptionValue(item?.requestInfo, ""),
+        (item) => pickDescriptionValue(item?.mission, ""),
+        (item) => pickDescriptionValue(item?.mission?.rescueRequest, ""),
+        (item) => pickDescriptionValue(item?.mission?.requestInfo, ""),
+        (item) => pickDescriptionValue(item?.rescueMission, ""),
+        (item) => pickDescriptionValue(item?.rescueMission?.rescueRequest, ""),
+        (item) => pickDescriptionValue(item?.rescueMission?.requestInfo, ""),
       ],
       "",
     ),
