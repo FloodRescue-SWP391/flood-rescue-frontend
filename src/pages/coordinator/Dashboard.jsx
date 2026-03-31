@@ -354,9 +354,9 @@ const Dashboard = () => {
 
   const refreshRequestsInBackground = () => {
     loadRealRequests();
-    setTimeout(() => loadRealRequests(), 800);
+    //setTimeout(() => loadRealRequests(), 800);
     setTimeout(() => loadRealRequests(), 2000);
-    setTimeout(() => loadRealRequests(), 3500);
+   // setTimeout(() => loadRealRequests(), 3500);
   };
 
   // Lưu tên user hệ thống
@@ -526,6 +526,28 @@ const Dashboard = () => {
       console.error("Save rejected requests to localStorage failed:", error);
     }
   }, [teamRejectedRequests]);
+
+  useEffect(() => {
+  setTeamRejectedRequests((prev) =>
+    prev.filter((item) => {
+      const matchedRequest = allRequests.find(
+        (req) =>
+          String(req.requestId) === String(item.shortCode) ||
+          String(req.id) === String(item.originalRequestId),
+      );
+
+      // nếu backend chưa trả lại request này thì cứ giữ tạm
+      if (!matchedRequest) return false;
+
+      const isStillWaitingRedispatch =
+        String(matchedRequest.status || "").toLowerCase() === "pending" &&
+        !matchedRequest.assignedTeamId &&
+        !matchedRequest.rescueMissionId;
+
+      return isStillWaitingRedispatch;
+    }),
+  );
+}, [allRequests]);
 
   // tránh trùng và lọc request chưa xử lý
   const isUnprocessedStatus = (status) => {
@@ -1851,7 +1873,7 @@ const Dashboard = () => {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       loadRealRequests();
-    }, 4000);
+    }, 2000);
 
     return () => window.clearInterval(intervalId);
   }, []);
@@ -2308,8 +2330,8 @@ const Dashboard = () => {
           </div>
         </div>
         <button className="logout-btn3" onClick={handleLogout}>
-          <span className="logout-icon">↩</span>
-          <span>Đăng xuất</span>
+          
+          <span>🚪 Đăng xuất</span>
         </button>
       </div>
 

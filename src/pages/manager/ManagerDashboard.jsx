@@ -1496,8 +1496,8 @@ const handleReceiveOrderResponse = (data) => {
           </div>
 
           <button className="logout-btn3" onClick={handleLogout}>
-            <span className="logout-icon">↩</span>
-            <span>Đăng xuất</span>
+            
+            <span>🚪 Đăng xuất</span>
           </button>
         </div>
 
