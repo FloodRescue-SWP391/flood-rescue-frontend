@@ -3,7 +3,10 @@ import "./ManagerReliefOrders.css";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { getAllRescueRequests } from "../../services/rescueRequestService";
+import {
+  getAllRescueRequests,
+  getRescueRequestById,
+} from "../../services/rescueRequestService";
 import signalRService from "../../services/signalrService";
 import { CLIENT_EVENTS } from "../../data/signalrConstants";
 import { reliefItemsService } from "../../services/reliefItemService";
@@ -13,6 +16,7 @@ import {
   findRelatedRequestForOrder,
   normalizeReliefOrder,
   normalizeReliefOrders,
+  normalizeRescueRequestSummary,
   normalizeRescueRequests,
   reliefOrdersService,
 } from "../../services/reliefOrdersService";
@@ -27,8 +31,6 @@ const DEFAULT_FILTERS = {
   createdToDate: "",
   preparedFromDate: "",
   preparedToDate: "",
-  pickedUpFromDate: "",
-  pickedUpToDate: "",
   pageNumber: 1,
   pageSize: 12,
 };
@@ -368,16 +370,6 @@ const filterOrdersLocally = (orders, filters = {}) =>
       return false;
     }
 
-    if (
-      !isWithinOptionalRange(
-        order?.pickedUpAt,
-        filters?.pickedUpFromDate,
-        filters?.pickedUpToDate,
-      )
-    ) {
-      return false;
-    }
-
     return true;
   });
 
@@ -524,10 +516,7 @@ const buildResolvableOrderItems = (
     return directItems;
   }
 
-  return inferRequestedItemsFromText(
-    order?.description || relatedRequest?.description || "",
-    catalog,
-  );
+  return inferRequestedItemsFromText(resolveOrderDescription(order, relatedRequest), catalog);
 };
 
 const formatDateTime = (value) => {
@@ -1158,8 +1147,6 @@ const buildFilterParams = (filters) => ({
   createdToDate: filters?.createdToDate || "",
   preparedFromDate: filters?.preparedFromDate || "",
   preparedToDate: filters?.preparedToDate || "",
-  pickedUpFromDate: filters?.pickedUpFromDate || "",
-  pickedUpToDate: filters?.pickedUpToDate || "",
   pageNumber: Number(filters?.pageNumber) || 1,
   pageSize: Number(filters?.pageSize) || 12,
 });
@@ -1198,11 +1185,55 @@ const mergeNotifications = (oldList, newList) => {
   );
 };
 
+const buildOrderNotification = (order, requests = []) => {
+  const normalizedOrder = normalizeReliefOrder(order);
+  const relatedRequest = findRelatedRequestForOrder(normalizedOrder, requests);
+  const requestLabel =
+    relatedRequest?.shortCode ||
+    relatedRequest?.requestShortCode ||
+    normalizedOrder?.requestShortCode ||
+    relatedRequest?.rescueRequestID ||
+    normalizedOrder?.rescueRequestID ||
+    "";
+  const description = resolveOrderDescription(normalizedOrder, relatedRequest);
+  const teamName =
+    normalizedOrder?.teamName || relatedRequest?.assignedTeamName || "";
+  const messageParts = [];
+
+  if (requestLabel) {
+    messageParts.push(`Có đơn cứu trợ cho yêu cầu #${requestLabel}.`);
+  } else {
+    messageParts.push("Có đơn cứu trợ cần manager xử lý.");
+  }
+
+  if (teamName) {
+    messageParts.push(`Đội nhận đơn: ${teamName}.`);
+  }
+
+  if (hasDisplayText(description)) {
+    messageParts.push(`Mô tả: ${String(description).trim()}`);
+  }
+
+  return {
+    id:
+      `order-${normalizedOrder?.reliefOrderID || normalizedOrder?.rescueRequestID || normalizedOrder?.requestShortCode || Date.now()}`,
+    type: "order",
+    title: "Đơn cứu trợ",
+    message: messageParts.join(" "),
+    referenceId: normalizedOrder?.reliefOrderID || "",
+    targetRoute: buildManagerReliefOrdersRoute(normalizedOrder?.reliefOrderID || ""),
+    timestamp: createTimestamp(),
+    createdAt: normalizedOrder?.createdAt || new Date().toISOString(),
+    read: false,
+  };
+};
+
 export default function ManagerReliefOrders() {
   const navigate = useNavigate();
   const location = useLocation();
   const orderCardRefs = useRef({});
   const ordersSnapshotRef = useRef([]);
+  const rescueRequestDetailCacheRef = useRef(new Map());
 
   const [formFilters, setFormFilters] = useState(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
@@ -1234,6 +1265,82 @@ export default function ManagerReliefOrders() {
   const [prepareWarehouseId, setPrepareWarehouseId] = useState(() =>
     getSelectedManagerWarehouseId(),
   );
+
+  const hydrateRescueRequestsForOrders = async (
+    orderItems = [],
+    requestItems = [],
+  ) => {
+    const normalizedOrders = normalizeReliefOrders(orderItems);
+    const requestMap = new Map(
+      normalizeRescueRequests(requestItems).map((request) => [
+        toComparable(request?.rescueRequestID || request?.id || ""),
+        request,
+      ]),
+    );
+    const requestIdsToFetch = Array.from(
+      new Set(
+        normalizedOrders
+          .map((order) => order?.rescueRequestID || order?.rescueRequestId || "")
+          .filter(Boolean),
+      ),
+    ).filter((requestId) => {
+      const existingRequest = requestMap.get(toComparable(requestId));
+      return !hasDisplayText(resolveOrderDescription(existingRequest));
+    });
+
+    if (requestIdsToFetch.length === 0) {
+      return Array.from(requestMap.values());
+    }
+
+    const detailResults = await Promise.allSettled(
+      requestIdsToFetch.map(async (requestId) => {
+        const cacheKey = toComparable(requestId);
+
+        if (rescueRequestDetailCacheRef.current.has(cacheKey)) {
+          return rescueRequestDetailCacheRef.current.get(cacheKey);
+        }
+
+        const response = await getRescueRequestById(requestId);
+        const normalizedRequest = normalizeRescueRequestSummary(
+          extractApiObject(response),
+        );
+
+        if (normalizedRequest?.rescueRequestID) {
+          rescueRequestDetailCacheRef.current.set(cacheKey, normalizedRequest);
+        }
+
+        return normalizedRequest;
+      }),
+    );
+
+    detailResults.forEach((result, index) => {
+      if (result.status !== "fulfilled") {
+        console.warn(
+          "[ManagerReliefOrders] Load rescue request detail failed:",
+          requestIdsToFetch[index],
+          result.reason,
+        );
+        return;
+      }
+
+      const normalizedRequest = normalizeRescueRequestSummary(result.value || {});
+      const requestId = normalizedRequest?.rescueRequestID || normalizedRequest?.id || "";
+
+      if (!requestId) {
+        return;
+      }
+
+      const cacheKey = toComparable(requestId);
+      const previousRequest = requestMap.get(cacheKey) || {};
+
+      requestMap.set(cacheKey, {
+        ...previousRequest,
+        ...normalizedRequest,
+      });
+    });
+
+    return Array.from(requestMap.values());
+  };
 
   const hydrateReliefOrders = async (orderSummaries = []) => {
     if (!Array.isArray(orderSummaries) || orderSummaries.length === 0) {
@@ -1342,6 +1449,8 @@ export default function ManagerReliefOrders() {
     ]);
 
     const errors = [];
+    let nextOrders = [];
+    let nextRescueRequests = [];
 
     if (ordersResult.status === "fulfilled") {
       let orderSummaries = ordersResult.value?.items || [];
@@ -1375,13 +1484,15 @@ export default function ManagerReliefOrders() {
       }
 
       const hydratedOrders = await hydrateReliefOrders(orderSummaries);
+      nextOrders = hydratedOrders.items || [];
 
-      setOrders(hydratedOrders.items || []);
+      setOrders(nextOrders);
       setTotalCount(resolvedTotalCount);
       if (hydratedOrders.errors.length > 0) {
         errors.push(hydratedOrders.errors.join(" "));
       }
     } else {
+      nextOrders = [];
       setOrders([]);
       setTotalCount(0);
       errors.push(
@@ -1394,12 +1505,28 @@ export default function ManagerReliefOrders() {
         normalizeRescueRequests(extractList(requestsResult.value)),
       );
     } else {
-      setRescueRequests([]);
+      nextRescueRequests = [];
       errors.push(
         requestsResult.reason?.message ||
           "Không thể tải danh sách yêu cầu cứu hộ.",
       );
     }
+
+    if (nextOrders.length > 0) {
+      nextRescueRequests = await hydrateRescueRequestsForOrders(
+        nextOrders,
+        nextRescueRequests,
+      );
+
+      setNotifications((prev) =>
+        mergeNotifications(
+          prev,
+          nextOrders.map((order) => buildOrderNotification(order, nextRescueRequests)),
+        ),
+      );
+    }
+
+    setRescueRequests(nextRescueRequests);
 
     // RescueMission route is not available for manager, so this screen skips it.
 
@@ -1593,6 +1720,10 @@ export default function ManagerReliefOrders() {
         relatedRequest,
         reliefItemCatalog,
       );
+      const resolvedDescription = resolveOrderDescription(
+        normalizedOrder,
+        relatedRequest,
+      );
       const assignedTeam = findAssignedTeamForOrder(
         normalizedOrder,
         [],
@@ -1612,8 +1743,8 @@ export default function ManagerReliefOrders() {
         relatedRequest?.assignedTeamName,
       );
       const descriptionText = formatDisplayValue(
-        normalizedOrder?.description || relatedRequest?.description,
-        "Chưa có mô tả cung ứng.",
+        resolvedDescription,
+        "Chưa có mô tả từ rescue request.",
       );
       const hasAcceptedMission = hasAcceptedMissionSignal(
         normalizedOrder,
@@ -1652,6 +1783,7 @@ export default function ManagerReliefOrders() {
           normalizedOrder?.requestShortCode ||
           `${Math.random()}`,
         items,
+        description: resolvedDescription,
         relatedRequest,
         assignedTeam,
         assignedTeamName:
@@ -1776,7 +1908,14 @@ export default function ManagerReliefOrders() {
           },
         ]),
       );
-      await loadPageData(appliedFilters);
+      setFormFilters((prev) => ({
+        ...prev,
+        pageNumber: 1,
+      }));
+      setAppliedFilters((prev) => ({
+        ...prev,
+        pageNumber: 1,
+      }));
       if (reliefOrderId) {
         setHighlightedOrderId(reliefOrderId);
       }
@@ -2072,16 +2211,8 @@ export default function ManagerReliefOrders() {
           handleReliefItemUpdated,
         );
         await signalRService.on(
-          CLIENT_EVENTS.DELIVERY_STARTED,
-          handleDeliveryStarted,
-        );
-        await signalRService.on(
           CLIENT_EVENTS.ORDER_PREPARED,
           handleOrderPrepared,
-        );
-        await signalRService.on(
-          CLIENT_EVENTS.RECEIVE_ORDER_RESPONSE,
-          handleReceiveOrderResponse,
         );
       } catch (signalRError) {
         console.error(
@@ -2544,25 +2675,6 @@ export default function ManagerReliefOrders() {
               />
             </label>
 
-            <label className="manager-relief-orders-field">
-              <span>Nhận hàng từ</span>
-              <input
-                type="datetime-local"
-                name="pickedUpFromDate"
-                value={formFilters.pickedUpFromDate}
-                onChange={handleFilterInputChange}
-              />
-            </label>
-
-            <label className="manager-relief-orders-field">
-              <span>Nhận hàng đến</span>
-              <input
-                type="datetime-local"
-                name="pickedUpToDate"
-                value={formFilters.pickedUpToDate}
-                onChange={handleFilterInputChange}
-              />
-            </label>
 
             <label className="manager-relief-orders-field">
               <span>Số dòng mỗi trang</span>

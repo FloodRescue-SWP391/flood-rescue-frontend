@@ -86,6 +86,21 @@ const TEAM_NAME_KEYS = [
   "Name",
 ];
 
+const DESCRIPTION_KEYS = [
+  "description",
+  "Description",
+  "specialNeeds",
+  "SpecialNeeds",
+  "note",
+  "Note",
+  "details",
+  "Details",
+  "requestDescription",
+  "RequestDescription",
+  "incidentDescription",
+  "IncidentDescription",
+];
+
 const ACCEPTED_AT_KEYS = [
   "acceptedAt",
   "AcceptedAt",
@@ -177,6 +192,9 @@ const pickFirstValue = (source, keys, fallback = null) => {
 
   return fallback;
 };
+
+const pickDescriptionValue = (source, fallback = "") =>
+  pickFirstValue(source, DESCRIPTION_KEYS, fallback);
 
 const toComparable = (value) => String(value ?? "").trim().toLowerCase();
 
@@ -358,19 +376,9 @@ export function normalizeRescueRequestSummary(request = {}) {
   const description = pickNestedValue(
     request,
     [
-      (item) => pickFirstValue(item, ["description", "Description", "note", "Note"], ""),
-      (item) =>
-        pickFirstValue(
-          item?.requestInfo,
-          ["description", "Description", "note", "Note"],
-          "",
-        ),
-      (item) =>
-        pickFirstValue(
-          item?.rescueRequest,
-          ["description", "Description", "note", "Note"],
-          "",
-        ),
+      (item) => pickDescriptionValue(item, ""),
+      (item) => pickDescriptionValue(item?.requestInfo, ""),
+      (item) => pickDescriptionValue(item?.rescueRequest, ""),
     ],
     "",
   );
@@ -751,19 +759,9 @@ export function normalizeReliefOrder(order = {}) {
     description: pickNestedValue(
       order,
       [
-        (item) => pickFirstValue(item, ["description", "Description"], ""),
-        (item) =>
-          pickFirstValue(
-            item?.rescueRequest,
-            ["description", "Description", "note", "Note"],
-            "",
-          ),
-        (item) =>
-          pickFirstValue(
-            item?.requestInfo,
-            ["description", "Description", "note", "Note"],
-            "",
-          ),
+        (item) => pickDescriptionValue(item, ""),
+        (item) => pickDescriptionValue(item?.rescueRequest, ""),
+        (item) => pickDescriptionValue(item?.requestInfo, ""),
       ],
       "",
     ),
@@ -1223,6 +1221,52 @@ export async function filterReliefOrders(params = {}) {
   };
 }
 
+const RELIEF_ORDER_LOOKUP_CACHE_TTL_MS = 10000;
+let reliefOrderLookupCache = {
+  expiresAt: 0,
+  items: [],
+  pendingPromise: null,
+};
+
+async function loadCachedReliefOrderLookup() {
+  const now = Date.now();
+  if (
+    Array.isArray(reliefOrderLookupCache.items) &&
+    reliefOrderLookupCache.items.length > 0 &&
+    reliefOrderLookupCache.expiresAt > now
+  ) {
+    return reliefOrderLookupCache.items;
+  }
+
+  if (reliefOrderLookupCache.pendingPromise) {
+    return await reliefOrderLookupCache.pendingPromise;
+  }
+
+  reliefOrderLookupCache.pendingPromise = (async () => {
+    try {
+      const result = await filterReliefOrders({
+        statuses: ["Pending", "Prepared"],
+        pageNumber: 1,
+        pageSize: 200,
+      });
+      const items = normalizeReliefOrders(result?.items || []);
+
+      reliefOrderLookupCache = {
+        expiresAt: Date.now() + RELIEF_ORDER_LOOKUP_CACHE_TTL_MS,
+        items,
+        pendingPromise: null,
+      };
+
+      return items;
+    } catch (error) {
+      reliefOrderLookupCache.pendingPromise = null;
+      throw error;
+    }
+  })();
+
+  return await reliefOrderLookupCache.pendingPromise;
+}
+
 export async function createReliefOrder(payload) {
   if (!payload || typeof payload !== "object") {
     throw new Error("payload is required");
@@ -1352,10 +1396,29 @@ export const reliefOrdersService = {
 
   createReliefOrder: async (payload) => await createReliefOrder(payload),
 
-  getById: async (id) =>
-    await requestReliefOrder(`${BASE}/${id}`, {
+  getById: async (id) => {
+    const normalizedId = String(id ?? "").trim();
+    if (!normalizedId) {
+      throw new Error("id is required");
+    }
+
+    try {
+      const cachedItems = await loadCachedReliefOrderLookup();
+      const matchedOrder = cachedItems.find((order) =>
+        valuesMatch(normalizeReliefOrder(order)?.reliefOrderID, normalizedId),
+      );
+
+      if (matchedOrder) {
+        return normalizeReliefOrder(matchedOrder);
+      }
+    } catch (lookupError) {
+      console.warn("[reliefOrdersService.getById] Lookup cache miss:", lookupError);
+    }
+
+    return await requestReliefOrder(`${BASE}/${id}`, {
       method: "GET",
-    }),
+    });
+  },
 
   getPending: async () =>
     await requestReliefOrder(`${BASE}/pending`, {
