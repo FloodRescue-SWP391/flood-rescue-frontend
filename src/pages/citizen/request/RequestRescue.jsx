@@ -278,21 +278,7 @@ const RequestRescue = () => {
       icon: "🏠",
       description: "Nhà bị ngập và cần sơ tán",
     },
-    {
-      value: "Cần thực phẩm / nước uống",
-      icon: "📦",
-      description: "Cần thực phẩm và nước sạch",
-    },
-    {
-      value: "Cần thuốc men",
-      icon: "💊",
-      description: "Cần thuốc và thiết bị y tế",
-    },
-    {
-      value: "Cần áo phao / thuyền",
-      icon: "🛟",
-      description: "Cần thiết bị cứu hộ hoặc thiết bị an toàn",
-    },
+
     {
       value: "Cần sơ tán khẩn cấp",
       icon: "🚨",
@@ -308,10 +294,11 @@ const RequestRescue = () => {
       icon: "🛣️",
       description: "Cây đổ hoặc đường bị hư hỏng do lũ lụt",
     },
+
     {
-      value: "Mất điện / mất liên lạc",
-      icon: "📡",
-      description: "Mất điện hoặc mất liên lạc",
+      value: "Cần thực phẩm / nước uống",
+      icon: "📦",
+      description: "Cần thực phẩm và nước sạch",
     },
   ];
 
@@ -701,7 +688,7 @@ const RequestRescue = () => {
                     <div className="suggestion-box">
                       <div className="suggestion-box-header">
                         <div className="suggestion-guideline-title">
-                          🎒 Gợi ý nhu yếu phẩm
+                          🎒 Danh sách thực phẩm / nước uống
                         </div>
                         <p className="suggestion-guideline-sub">
                           Danh sách đề xuất theo từng nhóm để bạn chọn nhanh hơn
@@ -806,7 +793,7 @@ const RequestRescue = () => {
                       color: "red",
                     }}
                   >
-                    Khi là yêu cầu cứu hộ lương thực, thực phẩm.
+                    * Vui lòng nhập số lượng thực phẩm, nước uống.
                   </p>
                   <textarea
                     name="description"
