@@ -40,9 +40,6 @@ export default function ManagerSidebar() {
 
         <NavLink to="/manager/relief-orders">Đơn cứu trợ</NavLink>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          Đăng xuất
-        </button>
       </nav>
     </div>
   );

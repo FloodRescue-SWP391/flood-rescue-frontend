@@ -793,7 +793,7 @@ const RequestRescue = () => {
                       color: "red",
                     }}
                   >
-                    * Vui lòng nhập số lượng thực phẩm, nước uống.
+                    * Vui lòng nhập đúng và đầy đủ số lượng thực phẩm, nước uống.
                   </p>
                   <textarea
                     name="description"
