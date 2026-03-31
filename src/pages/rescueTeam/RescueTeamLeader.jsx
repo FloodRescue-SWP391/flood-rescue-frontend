@@ -717,9 +717,38 @@ export default function RescueTeamLeader({ teamId }) {
     const normalizedMissionStatus = normalizeStatus(missionStatus);
 
     if (
-      ["Assigned", "InProgress", "Completed"].includes(normalizedMissionStatus)
+      ["Assigned", "Accepted", "AwaitingPickup", "InProgress", "Completed"].includes(
+        normalizedMissionStatus,
+      )
     ) {
+      if (
+        normalizedMissionStatus === "Assigned" &&
+        (mission?.acceptedAt || mission?.startedAt || mission?.startTime)
+      ) {
+        if (isReliefOrderMission(mission) && !hasPickupConfirmed(mission)) {
+          return hasPickupInfo(mission) ? "AwaitingPickup" : "Accepted";
+        }
+
+        return hasPickupConfirmed(mission) ? "InProgress" : "Accepted";
+      }
+
       return normalizedMissionStatus;
+    }
+
+    if (mission?.completedAt || mission?.endTime) {
+      return "Completed";
+    }
+
+    if (hasPickupConfirmed(mission)) {
+      return "InProgress";
+    }
+
+    if (mission?.acceptedAt || mission?.startedAt || mission?.startTime) {
+      if (isReliefOrderMission(mission) && !hasPickupConfirmed(mission)) {
+        return hasPickupInfo(mission) ? "AwaitingPickup" : "Accepted";
+      }
+
+      return "Accepted";
     }
 
     if (isReliefOrderMission(mission) && mission?.orderStatus) {
@@ -759,7 +788,7 @@ export default function RescueTeamLeader({ teamId }) {
     const status = getMissionStatus(mission);
 
     if (isReliefOrderMission(mission)) {
-      return status === "InProgress" && hasPickupConfirmed(mission);
+      return ["Accepted", "AwaitingPickup", "InProgress"].includes(status);
     }
 
     return ["Accepted", "InProgress"].includes(status);
@@ -1743,17 +1772,12 @@ export default function RescueTeamLeader({ teamId }) {
         return;
       }
 
-      const res = await rescueMissionService.respond({
+      await rescueMissionService.respond({
         rescueMissionID: missionId,
         isAccepted: true,
         rejectReason: "",
       });
-
-      if (res?.success) {
-        await loadMissions({ force: true });
-      } else {
-        console.error(res?.message || "Accept failed");
-      }
+      await loadMissions({ force: true });
     } catch (err) {
       console.error("Accept mission error:", err);
     }
@@ -1775,17 +1799,12 @@ export default function RescueTeamLeader({ teamId }) {
         return;
       }
 
-      const res = await rescueMissionService.respond({
+      await rescueMissionService.respond({
         rescueMissionID: missionId,
         isAccepted: false,
         rejectReason: "Team unavailable",
       });
-
-      if (res?.success) {
-        await loadMissions({ force: true });
-      } else {
-        console.error(res?.message || "Reject failed");
-      }
+      await loadMissions({ force: true });
     } catch (err) {
       console.error("Reject mission error:", err);
     }
