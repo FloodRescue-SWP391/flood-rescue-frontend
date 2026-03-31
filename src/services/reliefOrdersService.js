@@ -355,6 +355,25 @@ export function normalizeRescueRequestSummary(request = {}) {
     ],
     null,
   );
+  const description = pickNestedValue(
+    request,
+    [
+      (item) => pickFirstValue(item, ["description", "Description", "note", "Note"], ""),
+      (item) =>
+        pickFirstValue(
+          item?.requestInfo,
+          ["description", "Description", "note", "Note"],
+          "",
+        ),
+      (item) =>
+        pickFirstValue(
+          item?.rescueRequest,
+          ["description", "Description", "note", "Note"],
+          "",
+        ),
+    ],
+    "",
+  );
 
   return {
     ...request,
@@ -366,6 +385,7 @@ export function normalizeRescueRequestSummary(request = {}) {
     assignedTeamID,
     assignedTeamId: assignedTeamID,
     assignedTeamName,
+    description,
     rescueMissionID,
     rescueMissionId: rescueMissionID,
   };
@@ -728,7 +748,25 @@ export function normalizeReliefOrder(order = {}) {
     missionStatus,
     status: orderStatus || missionStatus || "",
     items: extractOrderItems(order),
-    description: pickFirstValue(order, ["description", "Description"], ""),
+    description: pickNestedValue(
+      order,
+      [
+        (item) => pickFirstValue(item, ["description", "Description"], ""),
+        (item) =>
+          pickFirstValue(
+            item?.rescueRequest,
+            ["description", "Description", "note", "Note"],
+            "",
+          ),
+        (item) =>
+          pickFirstValue(
+            item?.requestInfo,
+            ["description", "Description", "note", "Note"],
+            "",
+          ),
+      ],
+      "",
+    ),
     createdAt: normalizeDateValue(createdAt),
     acceptedAt: normalizeDateValue(acceptedAt),
     preparedAt: normalizeDateValue(preparedAt),

@@ -562,8 +562,24 @@ export default function RescueTeamLeader({ teamId }) {
 
   const isReliefOrderMission = (mission) => {
     const requestType = getMissionRequestType(mission);
+    const reliefOrderId = getReliefOrderId(mission);
 
     if (isReliefOrderRequestType(requestType)) {
+      return true;
+    }
+
+    if (reliefOrderId) {
+      return true;
+    }
+
+    if (
+      mission?.orderStatus ||
+      mission?.preparedAt ||
+      mission?.pickedUpAt ||
+      mission?.pickupConfirmedAt ||
+      mission?.deliveryStartedAt ||
+      hasPickupInfo(mission)
+    ) {
       return true;
     }
 
@@ -571,7 +587,7 @@ export default function RescueTeamLeader({ teamId }) {
       return false;
     }
 
-    return Boolean(getReliefOrderId(mission));
+    return false;
   };
 
   const matchesMissionIdentifiers = (mission, identifiers = {}) =>
