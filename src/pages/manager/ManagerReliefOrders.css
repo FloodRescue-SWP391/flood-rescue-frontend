@@ -392,6 +392,18 @@
   gap: 16px;
 }
 
+.manager-relief-order-card .relief-order-title {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.manager-relief-order-code,
+.manager-relief-order-modal-code {
+  word-break: break-word;
+}
+
 .manager-relief-order-compact-grid {
   margin-bottom: 0;
 }
@@ -465,11 +477,12 @@
   color: #2563eb;
 }
 
-.manager-relief-order-modal-title-group h3 {
+.manager-relief-order-modal-code {
   margin: 0;
   color: #0f172a;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
   word-break: break-word;
 }
 

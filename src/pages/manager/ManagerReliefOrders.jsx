@@ -79,6 +79,11 @@ const formatDisplayValue = (value, fallback = "Không rõ") =>
     ? String(value)
     : fallback;
 
+const formatReliefOrderCode = (value, fallback = "Chưa có mã") => {
+  const displayValue = formatDisplayValue(value, fallback);
+  return displayValue.startsWith("#") ? displayValue : `#${displayValue}`;
+};
+
 const DESCRIPTION_KEYS = [
   "description",
   "Description",
@@ -2659,7 +2664,7 @@ export default function ManagerReliefOrders() {
       setSelectedWarehouseId(warehouseId);
       setPrepareDialogOrderId("");
       toast.success(
-        `Đã hoàn thành chuẩn bị cho đơn ${formatDisplayValue(order.reliefOrderID)}.`,
+        `Đã hoàn thành chuẩn bị cho đơn ${formatReliefOrderCode(order.reliefOrderID)}.`,
       );
       return true;
     } catch (prepareError) {
@@ -3010,8 +3015,8 @@ export default function ManagerReliefOrders() {
                   <div className="relief-order-card-head">
                     <div>
                       <div className="relief-order-eyebrow">Đơn cứu trợ</div>
-                      <h3 className="relief-order-title">
-                        {formatDisplayValue(order.reliefOrderID)}
+                      <h3 className="relief-order-title manager-relief-order-code">
+                        {formatReliefOrderCode(order.reliefOrderID)}
                       </h3>
                     </div>
 
@@ -3131,8 +3136,11 @@ export default function ManagerReliefOrders() {
             <div className="manager-relief-order-modal-head">
               <div className="manager-relief-order-modal-title-group">
                 <span>Chọn kho để Prepare đơn</span>
-                <h3 id="manager-relief-order-prepare-modal-title">
-                  {formatDisplayValue(prepareDialogOrder.reliefOrderID)}
+                <h3
+                  id="manager-relief-order-prepare-modal-title"
+                  className="manager-relief-order-modal-code"
+                >
+                  {formatReliefOrderCode(prepareDialogOrder.reliefOrderID)}
                 </h3>
               </div>
 
@@ -3192,47 +3200,6 @@ export default function ManagerReliefOrders() {
               </div>
             </div>
 
-            <div className="manager-relief-order-modal-field">
-              <span className="manager-relief-order-modal-label">Vật phẩm</span>
-              <div className="manager-relief-order-items-box">
-                {prepareDialogOrder?.items?.length > 0 ? (
-                  <div className="manager-relief-order-item-editor">
-                    {prepareDialogOrder.items.map((item, index) => (
-                      <div
-                        className="manager-relief-order-item-row"
-                        key={`${item?.reliefItemID || item?.itemID || index}`}
-                      >
-                        <div className="manager-relief-order-item-copy">
-                          <strong>
-                            {formatDisplayValue(
-                              item?.reliefItemName || item?.itemName,
-                              `Vật phẩm ${index + 1}`,
-                            )}
-                          </strong>
-                          <span>
-                            Mã vật phẩm:{" "}
-                            {formatDisplayValue(item?.reliefItemID, "Chưa có")}
-                          </span>
-                        </div>
-                        <div className="manager-relief-order-prepare-field">
-                          <span>Số lượng</span>
-                          <input
-                            type="number"
-                            value={Number(item?.quantity) || 0}
-                            readOnly
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="manager-relief-order-modal-description">
-                    Chưa map được vật phẩm từ dữ liệu đơn.
-                  </div>
-                )}
-              </div>
-            </div>
-
             <div className="manager-relief-order-actions">
               <button
                 className="btn btn-outline-secondary"
@@ -3280,8 +3247,11 @@ export default function ManagerReliefOrders() {
             <div className="manager-relief-order-modal-head">
               <div className="manager-relief-order-modal-title-group">
                 <span>Chi tiết đơn cứu trợ</span>
-                <h3 id="manager-relief-order-modal-title">
-                  {formatDisplayValue(detailModalOrder.reliefOrderID)}
+                <h3
+                  id="manager-relief-order-modal-title"
+                  className="manager-relief-order-modal-code"
+                >
+                  {formatReliefOrderCode(detailModalOrder.reliefOrderID)}
                 </h3>
               </div>
 
