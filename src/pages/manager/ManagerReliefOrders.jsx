@@ -1222,7 +1222,16 @@ const publishPreparedOrderSharedEvent = ({
     id: `prepared-${normalizedOrder?.reliefOrderID || Date.now()}`,
     source: "manager_prepare_order",
     teamId: String(teamId),
+    teamID: String(teamId),
+    rescueTeamID: String(teamId),
+    rescueTeamId: String(teamId),
+    assignedTeamID: String(teamId),
+    assignedTeamId: String(teamId),
     reliefOrderID:
+      normalizedPreparedOrder?.reliefOrderID ||
+      normalizedOrder?.reliefOrderID ||
+      "",
+    reliefOrderId:
       normalizedPreparedOrder?.reliefOrderID ||
       normalizedOrder?.reliefOrderID ||
       "",
@@ -1230,10 +1239,28 @@ const publishPreparedOrderSharedEvent = ({
       normalizedPreparedOrder?.rescueMissionID ||
       normalizedOrder?.rescueMissionID ||
       "",
+    rescueMissionId:
+      normalizedPreparedOrder?.rescueMissionID ||
+      normalizedOrder?.rescueMissionID ||
+      "",
     rescueRequestID:
       normalizedPreparedOrder?.rescueRequestID ||
       normalizedOrder?.rescueRequestID ||
       "",
+    rescueRequestId:
+      normalizedPreparedOrder?.rescueRequestID ||
+      normalizedOrder?.rescueRequestID ||
+      "",
+    orderStatus:
+      normalizedPreparedOrder?.orderStatus ||
+      normalizedPreparedOrder?.status ||
+      normalizedOrder?.orderStatus ||
+      normalizedOrder?.status ||
+      "Prepared",
+    preparedAt:
+      normalizedPreparedOrder?.preparedAt ||
+      normalizedOrder?.preparedAt ||
+      new Date().toISOString(),
     managerName,
     createdAt: new Date().toISOString(),
     ...(resolvedWarehouseMeta || {}),
