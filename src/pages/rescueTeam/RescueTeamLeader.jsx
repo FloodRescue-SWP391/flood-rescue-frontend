@@ -799,6 +799,35 @@ export default function RescueTeamLeader({ teamId }) {
     return ["Accepted", "AwaitingPickup", "InProgress"].includes(status);
   };
 
+  const hasPreparedOrderSignal = (mission) => {
+    if (!isReliefOrderMission(mission)) {
+      return false;
+    }
+
+    if (hasPickupInfo(mission) || mission?.preparedAt || mission?.preparedTime) {
+      return true;
+    }
+
+    return [
+      mission?.orderStatus,
+      mission?.reliefOrderStatus,
+      mission?.missionStatus,
+      mission?.newMissionStatus,
+      mission?.status,
+    ].some((status) => {
+      const token = normalizeStatusToken(status);
+      return [
+        "prepared",
+        "preparing",
+        "ready",
+        "ready_for_pickup",
+        "readyforpickup",
+        "awaiting_pickup",
+        "pending_pickup",
+      ].some((candidate) => token.includes(candidate));
+    });
+  };
+
   const isValidCoord = (lat, lng) => {
     if (lat == null || lng == null) return false;
     const latNum = Number(lat);
@@ -1157,7 +1186,7 @@ export default function RescueTeamLeader({ teamId }) {
 
     if (!suppressPickupNotifications) {
       missionList.forEach((mission) => {
-        if (!isActivePickupMission(mission) || !hasPickupInfo(mission)) {
+        if (!isActivePickupMission(mission) || !hasPreparedOrderSignal(mission)) {
           return;
         }
 
@@ -1171,7 +1200,7 @@ export default function RescueTeamLeader({ teamId }) {
           identifiers,
         );
 
-        if (previousMission && hasPickupInfo(previousMission)) {
+        if (previousMission && hasPreparedOrderSignal(previousMission)) {
           return;
         }
 
@@ -1496,16 +1525,24 @@ export default function RescueTeamLeader({ teamId }) {
         "Manager";
 
       const preparedOrderContext = await resolvePreparedOrderContext(data);
+      const eventIdentifiers = preparedOrderContext.identifiers || {};
       const knownMission =
         preparedOrderContext.matchedMission ||
         findMissionByIdentifiers(
           missionsRef.current,
-          preparedOrderContext.identifiers,
+          eventIdentifiers,
         );
-      const shouldHandleEvent =
-        sameValue(eventTeamId, teamId) || Boolean(knownMission);
+      const hasEventIdentifiers = Boolean(
+        eventIdentifiers?.reliefOrderID ||
+          eventIdentifiers?.rescueMissionID ||
+          eventIdentifiers?.rescueRequestID,
+      );
 
-      if (!shouldHandleEvent) {
+      if (
+        !sameValue(eventTeamId, teamId) &&
+        !knownMission &&
+        !(hasEventIdentifiers && options?.refreshMissions !== false)
+      ) {
         return false;
       }
 
@@ -1518,8 +1555,20 @@ export default function RescueTeamLeader({ teamId }) {
             });
       const refreshedMission = findMissionByIdentifiers(
         refreshedMissions,
-        preparedOrderContext.identifiers,
+        eventIdentifiers,
       );
+      const resolvedEventTeamId =
+        eventTeamId ||
+        getPreparedOrderTeamId(preparedOrderContext.matchedMission) ||
+        getPreparedOrderTeamId(refreshedMission);
+
+      if (
+        !sameValue(resolvedEventTeamId, teamId) &&
+        !knownMission &&
+        !refreshedMission
+      ) {
+        return false;
+      }
       const pickupInfo = mergePickupInfo(
         preparedOrderContext.pickupInfo,
         preparedOrderContext.matchedMission,
@@ -1536,7 +1585,7 @@ export default function RescueTeamLeader({ teamId }) {
 
       const notification = buildPreparedOrderNotification({
         reliefOrderId,
-        rescueMissionID: preparedOrderContext.identifiers?.rescueMissionID,
+        rescueMissionID: eventIdentifiers?.rescueMissionID,
         managerName,
         pickupInfo,
       });
