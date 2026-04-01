@@ -1643,6 +1643,7 @@ export default function RescueTeamLeader({ teamId }) {
 
     const handlePreparedOrderUpdate = async (data = {}, options = {}) => {
       const showToast = options?.showToast !== false;
+      const trustIncomingEvent = options?.trustIncomingEvent === true;
       const reliefOrderId =
         data?.reliefOrderID ||
         data?.ReliefOrderID ||
@@ -1674,6 +1675,7 @@ export default function RescueTeamLeader({ teamId }) {
       );
 
       if (
+        !trustIncomingEvent &&
         !sameValue(eventTeamId, teamId) &&
         !knownMission &&
         !(hasEventIdentifiers && options?.refreshMissions !== false)
@@ -1698,6 +1700,7 @@ export default function RescueTeamLeader({ teamId }) {
         getPreparedOrderTeamId(refreshedMission);
 
       if (
+        !trustIncomingEvent &&
         !sameValue(resolvedEventTeamId, teamId) &&
         !knownMission &&
         !refreshedMission
@@ -1745,12 +1748,14 @@ export default function RescueTeamLeader({ teamId }) {
 
     const handleOrderPrepared = async (data) => {
       console.log("OrderPrepared:", data);
-      await handlePreparedOrderUpdate(data);
+      await handlePreparedOrderUpdate(data, { trustIncomingEvent: true });
     };
 
     const handleReceiveOrderResponse = async (data) => {
       console.log("ReceiveOrderResponse:", data);
-      const handled = await handlePreparedOrderUpdate(data);
+      const handled = await handlePreparedOrderUpdate(data, {
+        trustIncomingEvent: true,
+      });
 
       if (!handled) {
         await loadMissions({ force: true });
