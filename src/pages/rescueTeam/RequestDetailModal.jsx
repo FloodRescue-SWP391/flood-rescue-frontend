@@ -11,7 +11,6 @@ import "./RequestDetailModal.css";
 export default function RequestDetailModal({
   mission,
   onClose,
-  onReportIncident,
 }) {
   const [activeTab, setActiveTab] = useState("details");
 
@@ -29,6 +28,8 @@ export default function RequestDetailModal({
     requestData?.id,
     missionData?.rescueRequestID,
     missionData?.requestID,
+    missionData?.reliefOrderID,
+    missionData?.reliefOrderId,
     "N/A",
   );
 
@@ -202,6 +203,8 @@ export default function RequestDetailModal({
 
   const missionStatus = pick(
     missionData?.missionStatus,
+    missionData?.orderStatus,
+    missionData?.reliefOrderStatus,
     missionData?.status,
     "Unknown",
   );
@@ -238,6 +241,10 @@ export default function RequestDetailModal({
   const rescueTeamId = pick(
     missionData?.rescueTeamID,
     missionData?.rescueTeamId,
+    missionData?.assignedTeamID,
+    missionData?.assignedTeamId,
+    missionData?.teamID,
+    missionData?.teamId,
     "N/A",
   );
 
@@ -630,16 +637,6 @@ export default function RequestDetailModal({
         <div className="modal-footer modern-footer">
           <button className="btn-secondary modern-btn" onClick={onClose}>
             Đóng
-          </button>
-
-          <button
-            className="btn-primary modern-btn"
-            onClick={() => {
-              onReportIncident(mission);
-              onClose();
-            }}
-          >
-            Báo cáo sự cố
           </button>
         </div>
       </div>
