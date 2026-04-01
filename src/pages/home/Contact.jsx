@@ -45,7 +45,7 @@ const Contact = () => {
               <Row className="g-3 mb-4">
                 <Col xs={12} md={6}>
                   <div className="feature-box">
-                    <div className="feature-icon">
+                    <div className="feature-icon2">
                       <FaMapMarkerAlt />
                     </div>
                     <h6>Địa chỉ</h6>
@@ -55,7 +55,7 @@ const Contact = () => {
 
                 <Col xs={12} md={6}>
                   <div className="feature-box">
-                    <div className="feature-icon">
+                    <div className="feature-icon2">
                       <FaPhoneAlt />
                     </div>
                     <h6>Số điện thoại</h6>
@@ -65,7 +65,7 @@ const Contact = () => {
 
                 <Col xs={12} md={6}>
                   <div className="feature-box">
-                    <div className="feature-icon">
+                    <div className="feature-icon2">
                       <FaEnvelope />
                     </div>
                     <h6>Email</h6>
@@ -75,7 +75,7 @@ const Contact = () => {
 
                 <Col xs={12} md={6}>
                   <div className="feature-box">
-                    <div className="feature-icon">
+                    <div className="feature-icon2">
                       <FaClock />
                     </div>
                     <h6>Thời gian làm việc</h6>

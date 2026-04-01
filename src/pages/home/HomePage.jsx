@@ -124,7 +124,7 @@ const HomePage = () => {
             <Col md={6} lg={3}>
               <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
-                  <div className="feature-icon mb-3">📍</div>
+                  <div className="feature-icon1 mb-3">📍</div>
                   <Card.Title className="feature-card-title">
                     Định vị chính xác
                   </Card.Title>
@@ -138,7 +138,7 @@ const HomePage = () => {
             <Col md={6} lg={3}>
               <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
-                  <div className="feature-icon mb-3">⚡</div>
+                  <div className="feature-icon1 mb-3">⚡</div>
                   <Card.Title className="feature-card-title">
                     Phản hồi nhanh
                   </Card.Title>
@@ -152,7 +152,7 @@ const HomePage = () => {
             <Col md={6} lg={3}>
               <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
-                  <div className="feature-icon mb-3">📱</div>
+                  <div className="feature-icon1 mb-3">📱</div>
                   <Card.Title className="feature-card-title">
                     Đa nền tảng
                   </Card.Title>
@@ -166,7 +166,7 @@ const HomePage = () => {
             <Col md={6} lg={3}>
               <Card className="h-100 border-0 text-center feature-card">
                 <Card.Body className="p-4">
-                  <div className="feature-icon mb-3">🔄</div>
+                  <div className="feature-icon1 mb-3">🔄</div>
                   <Card.Title className="feature-card-title">
                     Cập nhật thời gian thực
                   </Card.Title>
