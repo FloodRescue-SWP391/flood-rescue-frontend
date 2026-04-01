@@ -537,7 +537,7 @@ const Dashboard = () => {
         );
 
         // nếu backend chưa trả lại request này thì cứ giữ tạm
-        if (!matchedRequest) return false;
+        if (!matchedRequest) return true;
 
         const isStillWaitingRedispatch =
           String(matchedRequest.status || "").toLowerCase() === "pending" &&
