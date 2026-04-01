@@ -356,7 +356,7 @@ const Dashboard = () => {
     loadRealRequests();
     //setTimeout(() => loadRealRequests(), 800);
     setTimeout(() => loadRealRequests(), 2000);
-   // setTimeout(() => loadRealRequests(), 3500);
+    // setTimeout(() => loadRealRequests(), 3500);
   };
 
   // Lưu tên user hệ thống
@@ -528,26 +528,26 @@ const Dashboard = () => {
   }, [teamRejectedRequests]);
 
   useEffect(() => {
-  setTeamRejectedRequests((prev) =>
-    prev.filter((item) => {
-      const matchedRequest = allRequests.find(
-        (req) =>
-          String(req.requestId) === String(item.shortCode) ||
-          String(req.id) === String(item.originalRequestId),
-      );
+    setTeamRejectedRequests((prev) =>
+      prev.filter((item) => {
+        const matchedRequest = allRequests.find(
+          (req) =>
+            String(req.requestId) === String(item.shortCode) ||
+            String(req.id) === String(item.originalRequestId),
+        );
 
-      // nếu backend chưa trả lại request này thì cứ giữ tạm
-      if (!matchedRequest) return false;
+        // nếu backend chưa trả lại request này thì cứ giữ tạm
+        if (!matchedRequest) return false;
 
-      const isStillWaitingRedispatch =
-        String(matchedRequest.status || "").toLowerCase() === "pending" &&
-        !matchedRequest.assignedTeamId &&
-        !matchedRequest.rescueMissionId;
+        const isStillWaitingRedispatch =
+          String(matchedRequest.status || "").toLowerCase() === "pending" &&
+          !matchedRequest.assignedTeamId &&
+          !matchedRequest.rescueMissionId;
 
-      return isStillWaitingRedispatch;
-    }),
-  );
-}, [allRequests]);
+        return isStillWaitingRedispatch;
+      }),
+    );
+  }, [allRequests]);
 
   // tránh trùng và lọc request chưa xử lý
   const isUnprocessedStatus = (status) => {
@@ -969,16 +969,13 @@ const Dashboard = () => {
 
       const code =
         data.requestShortCode || data.RequestShortCode || data.ShortCode;
-
       const type = String(
         data.notificationType || data.NotificationType || "",
       ).toLowerCase();
-
       const rejected =
         type.includes("reject") ||
         type.includes("decline") ||
         type.includes("refuse");
-
       const teamName = data.teamName || data.TeamName || "Đội cứu hộ";
       const teamId =
         data.rescueTeamID ||
@@ -986,12 +983,10 @@ const Dashboard = () => {
         data.teamId ||
         data.TeamId ||
         null;
-
       const missionId = data.rescueMissionID || data.RescueMissionID || null;
       const requestId = data.rescueRequestID || data.RescueRequestID || null;
 
-      let rejectedRequestSnapshot = null;
-
+      // Sẽ cập nhật state dưới đây
       setAllRequests((prev) =>
         prev.map((r) => {
           const matched =
@@ -1001,6 +996,7 @@ const Dashboard = () => {
           if (!matched) return r;
 
           if (!rejected) {
+            // Accepted
             return {
               ...r,
               status: "in_progress",
@@ -1010,26 +1006,83 @@ const Dashboard = () => {
               assignedTeamId: teamId ? String(teamId) : r.assignedTeamId,
               rescueMissionId: missionId,
             };
-          }
+          } else {
+            // Rejected
+            const nextRejectedTeamIds = Array.from(
+              new Set([
+                ...(Array.isArray(r.rejectedTeamIds) ? r.rejectedTeamIds : []),
+                ...(teamId ? [String(teamId)] : []),
+              ]),
+            );
+            const nextRejectedTeamNames = Array.from(
+              new Set([
+                ...(Array.isArray(r.rejectedTeamNames)
+                  ? r.rejectedTeamNames
+                  : []),
+                ...(teamName ? [teamName] : []),
+              ]),
+            );
 
+            const updatedRequest = {
+              ...r,
+              status: "pending",
+              rawStatus: "Pending",
+              missionStatus: "",
+              assignedTeamName: "",
+              assignedTeamId: "",
+              rescueMissionId: null,
+              isNew: true,
+              wasRejected: true,
+              rejectedTeamIds: nextRejectedTeamIds,
+              rejectedTeamNames: nextRejectedTeamNames,
+            };
+
+            // LƯU LẠI ĐỂ DÙNG SAU
+            window.__rejectedRequestSnapshot = updatedRequest;
+
+            return updatedRequest;
+          }
+        }),
+      );
+
+      setSelectedRequest((prev) => {
+        if (!prev) return prev;
+        const matched =
+          String(prev.requestId) === String(code) ||
+          (requestId && String(prev.id) === String(requestId));
+        if (!matched) return prev;
+
+        if (!rejected) {
+          // accepted
+          return {
+            ...prev,
+            status: "in_progress",
+            rawStatus: "Processing",
+            missionStatus: "InProgress",
+            assignedTeamName: teamName,
+            assignedTeamId: teamId ? String(teamId) : prev.assignedTeamId,
+            rescueMissionId: missionId,
+          };
+        } else {
+          // rejected
           const nextRejectedTeamIds = Array.from(
             new Set([
-              ...(Array.isArray(r.rejectedTeamIds) ? r.rejectedTeamIds : []),
+              ...(Array.isArray(prev.rejectedTeamIds)
+                ? prev.rejectedTeamIds
+                : []),
               ...(teamId ? [String(teamId)] : []),
             ]),
           );
-
           const nextRejectedTeamNames = Array.from(
             new Set([
-              ...(Array.isArray(r.rejectedTeamNames)
-                ? r.rejectedTeamNames
+              ...(Array.isArray(prev.rejectedTeamNames)
+                ? prev.rejectedTeamNames
                 : []),
               ...(teamName ? [teamName] : []),
             ]),
           );
-
-          const updatedRequest = {
-            ...r,
+          return {
+            ...prev,
             status: "pending",
             rawStatus: "Pending",
             missionStatus: "",
@@ -1041,115 +1094,58 @@ const Dashboard = () => {
             rejectedTeamIds: nextRejectedTeamIds,
             rejectedTeamNames: nextRejectedTeamNames,
           };
-
-          rejectedRequestSnapshot = updatedRequest;
-          return updatedRequest;
-        }),
-      );
-
-      setSelectedRequest((prev) => {
-        if (!prev) return prev;
-
-        const code =
-          data.requestShortCode ||
-          data.RequestShortCode ||
-          data.ShortCode ||
-          "";
-
-        const matched =
-          String(prev.requestId) === String(code) ||
-          (requestId && String(prev.id) === String(requestId));
-
-        if (!matched) return prev;
-
-        if (!rejected) {
-          return {
-            ...prev,
-            status: "in_progress",
-            rawStatus: "Processing",
-            missionStatus: "InProgress",
-            assignedTeamName: teamName,
-            assignedTeamId: teamId ? String(teamId) : prev.assignedTeamId,
-            rescueMissionId: missionId,
-          };
         }
-
-        const nextRejectedTeamIds = Array.from(
-          new Set([
-            ...(Array.isArray(prev.rejectedTeamIds)
-              ? prev.rejectedTeamIds
-              : []),
-            ...(teamId ? [String(teamId)] : []),
-          ]),
-        );
-
-        const nextRejectedTeamNames = Array.from(
-          new Set([
-            ...(Array.isArray(prev.rejectedTeamNames)
-              ? prev.rejectedTeamNames
-              : []),
-            ...(teamName ? [teamName] : []),
-          ]),
-        );
-
-        return {
-          ...prev,
-          status: "pending",
-          rawStatus: "Pending",
-          missionStatus: "",
-          assignedTeamName: "",
-          assignedTeamId: "",
-          rescueMissionId: null,
-          isNew: true,
-          wasRejected: true,
-          rejectedTeamIds: nextRejectedTeamIds,
-          rejectedTeamNames: nextRejectedTeamNames,
-        };
       });
 
       if (rejected) {
-        const rejectedItem = {
-          ...(rejectedRequestSnapshot || {}),
-          id: `rejected-${code}-${Date.now()}`,
-          originalRequestId: requestId || rejectedRequestSnapshot?.id || code,
-          shortCode: code,
-          rejectedByTeamId: teamId ? String(teamId) : "",
-          rejectedByTeamName: teamName,
-          rejectedTeamIds:
-            rejectedRequestSnapshot?.rejectedTeamIds ||
-            (teamId ? [String(teamId)] : []),
-          rejectedTeamNames:
-            rejectedRequestSnapshot?.rejectedTeamNames ||
-            (teamName ? [teamName] : []),
-          message: `[${teamName}] đã từ chối nhận nhiệm vụ có ID [${code}]`,
-          createdAt: new Date().toISOString(),
-        };
+        // Lấy snapshot đã lưu
+        const rejectedRequestSnapshot = window.__rejectedRequestSnapshot;
+        delete window.__rejectedRequestSnapshot; // clean
 
-        setTeamRejectedRequests((prev) => {
-          const filtered = prev.filter(
-            (item) => String(item.shortCode) !== String(code),
+        if (rejectedRequestSnapshot) {
+          const rejectedItem = {
+            ...rejectedRequestSnapshot,
+            id: `rejected-${code}-${Date.now()}`,
+            originalRequestId: requestId || rejectedRequestSnapshot.id || code,
+            shortCode: code,
+            rejectedByTeamId: teamId ? String(teamId) : "",
+            rejectedByTeamName: teamName,
+            rejectedTeamIds:
+              rejectedRequestSnapshot.rejectedTeamIds ||
+              (teamId ? [String(teamId)] : []),
+            rejectedTeamNames:
+              rejectedRequestSnapshot.rejectedTeamNames ||
+              (teamName ? [teamName] : []),
+            message: `[${teamName}] đã từ chối nhận nhiệm vụ có ID [${code}]`,
+            createdAt: new Date().toISOString(),
+          };
+
+          setTeamRejectedRequests((prev) => {
+            const filtered = prev.filter(
+              (item) => String(item.shortCode) !== String(code),
+            );
+            return [rejectedItem, ...filtered];
+          });
+
+          setRejectedToast(rejectedItem);
+
+          setNotifications((prev) =>
+            mergeNotifications(prev, [
+              {
+                id: `reject-${code}`,
+                type: "critical",
+                title: "Đội cứu hộ từ chối nhiệm vụ",
+                message: `[${teamName}] đã từ chối nhận nhiệm vụ có ID [${code}]`,
+                requestId: String(code),
+                rawRequestId: String(requestId || code),
+                timestamp: new Date().toLocaleString("vi-VN"),
+                createdAt: new Date().toISOString(),
+                read: false,
+                status: "pending",
+              },
+            ]),
           );
-          return [rejectedItem, ...filtered];
-        });
-
-        setRejectedToast(rejectedItem);
-
-        setNotifications((prev) =>
-          mergeNotifications(prev, [
-            {
-              id: `reject-${code}`,
-              type: "critical",
-              title: "Đội cứu hộ từ chối nhiệm vụ",
-              message: `[${teamName}] đã từ chối nhận nhiệm vụ có ID [${code}]`,
-              requestId: String(code),
-              rawRequestId: String(requestId || code),
-              timestamp: new Date().toLocaleString("vi-VN"),
-              createdAt: new Date().toISOString(),
-              read: false,
-              status: "pending",
-            },
-          ]),
-        );
+        }
       }
 
       refreshRequestsInBackground();
@@ -2330,7 +2326,6 @@ const Dashboard = () => {
           </div>
         </div>
         <button className="logout-btn3" onClick={handleLogout}>
-          
           <span>🚪 Đăng xuất</span>
         </button>
       </div>
@@ -2484,7 +2479,7 @@ const Dashboard = () => {
               </h4>
               <div className="request-mode-grid1">
                 <button
-                  className={`request-mode-card ${requestBoxType === "rescue" ? "active" : ""}`}
+                  className={`request-mode-card ${requestBoxType === "rescue" ? "active" : ""} `}
                   onClick={() => {
                     setRequestBoxType("rescue");
                     setRequestStatusTab("new");
