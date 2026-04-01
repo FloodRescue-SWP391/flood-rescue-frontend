@@ -85,22 +85,22 @@ const Introduce = () => {
                 <h4>Tính năng chính</h4>
                 <div className="feature-grid">
                   <div className="feature-item">
-                    <div className="feature-icon">📨</div>
+                    <div className="feature-icon2">📨</div>
                     <p>Gửi yêu cầu cứu hộ nhanh chóng</p>
                   </div>
 
                   <div className="feature-item">
-                    <div className="feature-icon">📍</div>
+                    <div className="feature-icon2">📍</div>
                     <p>Định vị vị trí sự cố</p>
                   </div>
 
                   <div className="feature-item">
-                    <div className="feature-icon">🚑</div>
+                    <div className="feature-icon2">🚑</div>
                     <p>Điều phối đội cứu hộ</p>
                   </div>
 
                   <div className="feature-item">
-                    <div className="feature-icon">📊</div>
+                    <div className="feature-icon2">📊</div>
                     <p>Theo dõi trạng thái cứu hộ</p>
                   </div>
                 </div>
