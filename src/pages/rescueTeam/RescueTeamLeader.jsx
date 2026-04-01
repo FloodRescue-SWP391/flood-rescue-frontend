@@ -23,7 +23,6 @@ import RequestDetailModal from "./RequestDetailModal";
 import IncidentReportForm from "./IncidentReportForm";
 import { incidentReportService } from "../../services/incidentReportService";
 import { useNavigate } from "react-router-dom";
-import { reliefOrdersService } from "../../services/reliefOrdersService";
 import { getWarehouseById } from "../../services/warehouseService";
 
 const RESCUE_TEAM_AUTO_REFRESH_INTERVAL_MS = 2000;
@@ -426,6 +425,183 @@ const mergePickupInfoIntoMission = (mission, pickupInfo) => {
   };
 };
 
+const mergePreparedOrderStateIntoMission = (mission, source = {}) => {
+  if (!source || typeof source !== "object") {
+    return mission;
+  }
+
+  const resolvedMission = mission && typeof mission === "object" ? mission : {};
+  const reliefOrderID = pickFirstValue(
+    resolvedMission?.reliefOrderID,
+    resolvedMission?.reliefOrderId,
+    source?.reliefOrderID,
+    source?.ReliefOrderID,
+    source?.reliefOrderId,
+    source?.ReliefOrderId,
+    source?.id,
+    source?.ID,
+  );
+  const rescueMissionID = pickFirstValue(
+    resolvedMission?.rescueMissionID,
+    resolvedMission?.rescueMissionId,
+    source?.rescueMissionID,
+    source?.RescueMissionID,
+    source?.rescueMissionId,
+    source?.RescueMissionId,
+    source?.missionID,
+    source?.MissionID,
+  );
+  const rescueRequestID = pickFirstValue(
+    resolvedMission?.rescueRequestID,
+    resolvedMission?.rescueRequestId,
+    source?.rescueRequestID,
+    source?.RescueRequestID,
+    source?.rescueRequestId,
+    source?.RescueRequestId,
+    source?.requestID,
+    source?.RequestID,
+  );
+  const rescueTeamID = pickFirstValue(
+    resolvedMission?.rescueTeamID,
+    resolvedMission?.RescueTeamID,
+    resolvedMission?.rescueTeamId,
+    resolvedMission?.RescueTeamId,
+    resolvedMission?.assignedTeamID,
+    resolvedMission?.AssignedTeamID,
+    resolvedMission?.assignedTeamId,
+    resolvedMission?.AssignedTeamId,
+    resolvedMission?.teamID,
+    resolvedMission?.TeamID,
+    resolvedMission?.teamId,
+    resolvedMission?.TeamId,
+    resolvedMission?.team?.rescueTeamID,
+    resolvedMission?.team?.rescueTeamId,
+    resolvedMission?.assignedTeam?.rescueTeamID,
+    resolvedMission?.assignedTeam?.rescueTeamId,
+    source?.rescueTeamID,
+    source?.RescueTeamID,
+    source?.rescueTeamId,
+    source?.RescueTeamId,
+    source?.assignedTeamID,
+    source?.AssignedTeamID,
+    source?.assignedTeamId,
+    source?.AssignedTeamId,
+    source?.teamID,
+    source?.TeamID,
+    source?.teamId,
+    source?.TeamId,
+    source?.team?.rescueTeamID,
+    source?.team?.rescueTeamId,
+    source?.assignedTeam?.rescueTeamID,
+    source?.assignedTeam?.rescueTeamId,
+  );
+  const teamName = pickFirstValue(
+    resolvedMission?.teamName,
+    source?.teamName,
+    source?.TeamName,
+    source?.assignedTeam?.teamName,
+    source?.assignedTeam?.TeamName,
+    source?.team?.teamName,
+    source?.team?.TeamName,
+  );
+  const preparedAt = pickFirstValue(
+    resolvedMission?.preparedAt,
+    resolvedMission?.preparedTime,
+    source?.preparedAt,
+    source?.PreparedAt,
+    source?.preparedTime,
+    source?.PreparedTime,
+    source?.updatedAt,
+    source?.UpdatedAt,
+  );
+  const orderStatus = pickFirstValue(
+    resolvedMission?.orderStatus,
+    resolvedMission?.reliefOrderStatus,
+    source?.orderStatus,
+    source?.OrderStatus,
+    source?.reliefOrderStatus,
+    source?.ReliefOrderStatus,
+    source?.status,
+    source?.Status,
+  );
+  const pickedUpAt = pickFirstValue(
+    resolvedMission?.pickedUpAt,
+    resolvedMission?.pickupConfirmedAt,
+    resolvedMission?.deliveryStartedAt,
+    source?.pickedUpAt,
+    source?.PickedUpAt,
+    source?.pickupConfirmedAt,
+    source?.PickupConfirmedAt,
+    source?.deliveryStartedAt,
+    source?.DeliveryStartedAt,
+    source?.pickupTime,
+    source?.PickupTime,
+  );
+
+  return {
+    ...resolvedMission,
+    ...(reliefOrderID
+      ? { reliefOrderID, reliefOrderId: reliefOrderID }
+      : {}),
+    ...(rescueMissionID
+      ? { rescueMissionID, rescueMissionId: rescueMissionID }
+      : {}),
+    ...(rescueRequestID
+      ? { rescueRequestID, rescueRequestId: rescueRequestID }
+      : {}),
+    ...(rescueTeamID
+      ? {
+          rescueTeamID,
+          rescueTeamId: rescueTeamID,
+          assignedTeamID: rescueTeamID,
+          assignedTeamId: rescueTeamID,
+          teamID: rescueTeamID,
+          teamId: rescueTeamID,
+        }
+      : {}),
+    ...(teamName ? { teamName } : {}),
+    ...(preparedAt
+      ? {
+          preparedAt,
+          preparedTime: pickFirstValue(
+            resolvedMission?.preparedTime,
+            source?.preparedTime,
+            source?.PreparedTime,
+            preparedAt,
+          ),
+        }
+      : {}),
+    ...(orderStatus
+      ? {
+          orderStatus,
+          reliefOrderStatus: pickFirstValue(
+            resolvedMission?.reliefOrderStatus,
+            source?.reliefOrderStatus,
+            source?.ReliefOrderStatus,
+            orderStatus,
+          ),
+        }
+      : {}),
+    ...(pickedUpAt
+      ? {
+          pickedUpAt,
+          pickupConfirmedAt: pickFirstValue(
+            resolvedMission?.pickupConfirmedAt,
+            source?.pickupConfirmedAt,
+            source?.PickupConfirmedAt,
+            pickedUpAt,
+          ),
+          deliveryStartedAt: pickFirstValue(
+            resolvedMission?.deliveryStartedAt,
+            source?.deliveryStartedAt,
+            source?.DeliveryStartedAt,
+            pickedUpAt,
+          ),
+        }
+      : {}),
+  };
+};
+
 const createNotificationTimestamp = () =>
   new Date().toLocaleString("vi-VN", {
     dateStyle: "medium",
@@ -782,7 +958,7 @@ export default function RescueTeamLeader({ teamId }) {
     return (
       isReliefOrderMission(mission) &&
       Boolean(getReliefOrderId(mission)) &&
-      hasPickupInfo(mission) &&
+      hasPreparedOrderSignal(mission) &&
       !hasPickupConfirmed(mission) &&
       ["Accepted", "AwaitingPickup", "InProgress"].includes(status)
     );
@@ -1038,29 +1214,10 @@ export default function RescueTeamLeader({ teamId }) {
       };
 
       let resolvedPickupInfo = mergePickupInfo(mission, detail, requestInfo);
-      const reliefOrderId = getReliefOrderId(enrichedMission);
-      const reliefOrderMission = isReliefOrderMission(enrichedMission);
-
-      if (
-        reliefOrderMission &&
-        reliefOrderId &&
-        (!resolvedPickupInfo?.pickupAddress ||
-          resolvedPickupInfo?.pickupLatitude == null ||
-          resolvedPickupInfo?.pickupLongitude == null ||
-          !resolvedPickupInfo?.warehouseName)
-      ) {
-        try {
-          const orderDetail = reliefOrderId
-            ? await reliefOrdersService.getById(reliefOrderId)
-            : null;
-          resolvedPickupInfo = mergePickupInfo(resolvedPickupInfo, orderDetail);
-        } catch (orderError) {
-          console.warn(
-            "Load relief order detail for pickup failed:",
-            orderError,
-          );
-        }
-      }
+      const enrichedMissionWithOrderState = mergePreparedOrderStateIntoMission(
+        enrichedMission,
+        detail,
+      );
 
       if (
         resolvedPickupInfo?.warehouseID &&
@@ -1079,7 +1236,12 @@ export default function RescueTeamLeader({ teamId }) {
         }
       }
 
-      return mergePickupInfoIntoMission(enrichedMission, resolvedPickupInfo);
+      return hasPickupInfo(resolvedPickupInfo)
+        ? mergePickupInfoIntoMission(
+            enrichedMissionWithOrderState,
+            resolvedPickupInfo,
+          )
+        : enrichedMissionWithOrderState;
     } catch (err) {
       console.error("Enrich mission detail error:", missionId, err);
       return mission;
@@ -1302,8 +1464,8 @@ export default function RescueTeamLeader({ teamId }) {
           missionResponse ||
           {};
 
-        matchedMission = mergePickupInfoIntoMission(
-          matchedMission || missionDetail,
+        matchedMission = mergePreparedOrderStateIntoMission(
+          mergePickupInfoIntoMission(matchedMission || missionDetail, missionDetail),
           missionDetail,
         );
         resolvedPickupInfo = mergePickupInfo(resolvedPickupInfo, missionDetail);
@@ -1315,54 +1477,12 @@ export default function RescueTeamLeader({ teamId }) {
       }
     }
 
-    let orderDetail = null;
-    const needsOrderContext = Boolean(
-      identifiers.reliefOrderID &&
-      (!resolvedPickupInfo?.pickupAddress ||
-        resolvedPickupInfo?.pickupLatitude == null ||
-        resolvedPickupInfo?.pickupLongitude == null ||
-        !resolvedPickupInfo?.warehouseName),
-    );
-
-    if (needsOrderContext) {
-      try {
-        orderDetail = await reliefOrdersService.getById(
-          identifiers.reliefOrderID,
-        );
-        identifiers.rescueMissionID =
-          identifiers.rescueMissionID ||
-          pickFirstValue(
-            orderDetail?.rescueMissionID,
-            orderDetail?.rescueMissionId,
-          );
-        identifiers.rescueRequestID =
-          identifiers.rescueRequestID ||
-          pickFirstValue(
-            orderDetail?.rescueRequestID,
-            orderDetail?.rescueRequestId,
-          );
-
-        matchedMission =
-          matchedMission ||
-          findMissionByIdentifiers(missionsRef.current, identifiers) ||
-          matchedMission;
-        resolvedPickupInfo = mergePickupInfo(resolvedPickupInfo, orderDetail);
-      } catch (orderError) {
-        console.warn(
-          "Load relief order detail for prepared order failed:",
-          orderError,
-        );
-      }
-    }
-
     const warehouseId = pickFirstValue(
       resolvedPickupInfo?.warehouseID,
       data?.warehouseID,
       data?.warehouseId,
       matchedMission?.warehouseID,
       matchedMission?.warehouseId,
-      orderDetail?.warehouseID,
-      orderDetail?.warehouseId,
     );
 
     if (
@@ -1386,12 +1506,22 @@ export default function RescueTeamLeader({ teamId }) {
       }
     }
 
+    const missionWithPreparedState = matchedMission
+      ? mergePreparedOrderStateIntoMission(matchedMission, data)
+      : null;
+
     return {
       identifiers,
       matchedMission:
-        matchedMission && hasPickupInfo(resolvedPickupInfo)
-          ? mergePickupInfoIntoMission(matchedMission, resolvedPickupInfo)
-          : matchedMission,
+        missionWithPreparedState && hasPickupInfo(resolvedPickupInfo)
+          ? mergePreparedOrderStateIntoMission(
+              mergePickupInfoIntoMission(
+                missionWithPreparedState,
+                resolvedPickupInfo,
+              ),
+              data,
+            )
+          : missionWithPreparedState,
       pickupInfo: resolvedPickupInfo,
     };
   };
@@ -1403,6 +1533,7 @@ export default function RescueTeamLeader({ teamId }) {
     pickupInfo,
   }) => {
     const actor = managerName || "Manager";
+    const createdAt = new Date().toISOString();
     const pickupAddressText =
       pickupInfo?.pickupAddress ||
       pickupInfo?.warehouseName ||
@@ -1426,8 +1557,12 @@ export default function RescueTeamLeader({ teamId }) {
       pickupAddress: pickupInfo?.pickupAddress || "",
       pickupLatitude: pickupInfo?.pickupLatitude ?? null,
       pickupLongitude: pickupInfo?.pickupLongitude ?? null,
+      orderStatus: "Prepared",
+      reliefOrderStatus: "Prepared",
+      preparedAt: createdAt,
+      preparedTime: createdAt,
       timestamp: createNotificationTimestamp(),
-      createdAt: new Date().toISOString(),
+      createdAt,
       read: false,
     };
   };
@@ -1738,6 +1873,88 @@ export default function RescueTeamLeader({ teamId }) {
     );
   };
 
+  const buildMissionFromNotification = (notification) => {
+    if (!notification) {
+      return null;
+    }
+
+    const reliefOrderID =
+      notification?.reliefOrderId || notification?.reliefOrderID || "";
+    const rescueMissionID =
+      notification?.rescueMissionID || notification?.rescueMissionId || "";
+    const rescueRequestID =
+      notification?.rescueRequestID || notification?.rescueRequestId || "";
+    const baseMission = mergePreparedOrderStateIntoMission(
+      {
+        rescueMissionID,
+        rescueMissionId: rescueMissionID,
+        reliefOrderID,
+        reliefOrderId: reliefOrderID,
+        rescueRequestID,
+        rescueRequestId: rescueRequestID,
+        citizenName: notification?.citizenName || "",
+        description: notification?.message || "",
+        requestType: notification?.requestType || "Supply",
+        type: notification?.requestType || "Supply",
+        orderStatus: notification?.orderStatus || "Prepared",
+        reliefOrderStatus:
+          notification?.reliefOrderStatus ||
+          notification?.orderStatus ||
+          "Prepared",
+        preparedAt:
+          notification?.preparedAt ||
+          notification?.preparedTime ||
+          notification?.createdAt ||
+          null,
+        preparedTime:
+          notification?.preparedTime ||
+          notification?.preparedAt ||
+          notification?.createdAt ||
+          null,
+      },
+      notification,
+    );
+    const pickupInfo = mergePickupInfo(notification);
+
+    return pickupInfo
+      ? mergePickupInfoIntoMission(baseMission, pickupInfo)
+      : baseMission;
+  };
+
+  const resolveMissionFromNotification = async (notification) => {
+    if (!notification) {
+      return null;
+    }
+
+    let preparedOrderContext = null;
+    const identifiers = {
+      rescueMissionID: notification?.rescueMissionID || notification?.rescueMissionId,
+      reliefOrderID: notification?.reliefOrderId || notification?.reliefOrderID,
+      rescueRequestID: notification?.rescueRequestID || notification?.rescueRequestId,
+    };
+
+    let mission = findMissionByIdentifiers(missionsRef.current, identifiers);
+
+    if (!mission && notification?.type === "pickup") {
+      preparedOrderContext = await resolvePreparedOrderContext(notification);
+      mission = preparedOrderContext?.matchedMission || null;
+    }
+
+    if (!mission) {
+      const refreshedMissions = await loadMissions({ force: true });
+      mission = findMissionByIdentifiers(refreshedMissions, identifiers);
+    }
+
+    if (!mission && preparedOrderContext?.pickupInfo) {
+      mission = mergePickupInfoIntoMission(
+        buildMissionFromNotification(notification),
+        preparedOrderContext.pickupInfo,
+      );
+    }
+
+    return mission || buildMissionFromNotification(notification);
+  };
+
   const openNotificationDetail = async (notification) => {
     if (!notification) return;
 
@@ -1748,37 +1965,10 @@ export default function RescueTeamLeader({ teamId }) {
     );
     setShowNotifications(false);
 
-    const identifiers = {
-      rescueMissionID: notification?.rescueMissionID,
-      reliefOrderID: notification?.reliefOrderId || notification?.reliefOrderID,
-    };
-
-    let mission = findMissionByIdentifiers(missionsRef.current, identifiers);
-
-    if (!mission) {
-      const refreshedMissions = await loadMissions({ force: true });
-      mission = findMissionByIdentifiers(refreshedMissions, identifiers);
-    }
+    const mission = await resolveMissionFromNotification(notification);
 
     if (mission) {
       handleShowDetail(mission);
-      return;
-    }
-
-    const pickupInfo = mergePickupInfo(notification);
-    if (pickupInfo) {
-      handleShowDetail(
-        mergePickupInfoIntoMission(
-          {
-            rescueMissionID: notification?.rescueMissionID || "",
-            reliefOrderID:
-              notification?.reliefOrderId || notification?.reliefOrderID || "",
-            citizenName: notification?.title || "Đơn supply",
-            description: notification?.message || "",
-          },
-          pickupInfo,
-        ),
-      );
     }
   };
 
@@ -1869,7 +2059,7 @@ export default function RescueTeamLeader({ teamId }) {
         window.alert(
           "Đơn chưa ở trạng thái sẵn sàng lấy hàng hoặc đã được xác nhận pickup.",
         );
-        return;
+        return false;
       }
 
       const rescueMissionID =
@@ -1882,7 +2072,7 @@ export default function RescueTeamLeader({ teamId }) {
           reliefOrderID,
           mission,
         });
-        return;
+        return false;
       }
 
       await rescueMissionService.confirmPickup({
@@ -1890,10 +2080,13 @@ export default function RescueTeamLeader({ teamId }) {
         reliefOrderID,
       });
 
-      toast.success("Đã xác nhận lấy hàng từ kho.");
+      toast.success("Đã xác nhận đã nhận được hàng.");
       await loadMissions({ force: true });
+      return true;
     } catch (err) {
       console.error("Confirm pickup error:", err);
+      toast.error(err?.message || "Không thể xác nhận nhận hàng.");
+      return false;
     }
   };
 
@@ -2266,8 +2459,8 @@ export default function RescueTeamLeader({ teamId }) {
                     !canCompleteMission(mission) && (
                       <p>
                         <small>
-                          Đang chờ người quản lý chuẩn bị đơn và gửi kho thông
-                          tin.
+                          Đang chờ manager hoàn thành chuẩn bị đơn để đội xác
+                          nhận nhận hàng.
                         </small>
                       </p>
                     )}
@@ -2277,7 +2470,7 @@ export default function RescueTeamLeader({ teamId }) {
                       className="btn-accept"
                       onClick={() => handlePickup(mission)}
                     >
-                      Xác nhận lấy hàng
+                      Đã nhận được hàng
                     </button>
                   )}
 
@@ -2525,7 +2718,6 @@ export default function RescueTeamLeader({ teamId }) {
             <RequestDetailModal
               mission={selectedMission}
               onClose={handleCloseDetail}
-              onReportIncident={handleReportIncident}
             />
           )}
 
